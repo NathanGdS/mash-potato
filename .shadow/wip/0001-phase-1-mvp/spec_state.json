@@ -1,0 +1,91 @@
+{
+  "id": "0001",
+  "title": "Phase 1 MVP",
+  "total": 14,
+  "stories": [
+    {
+      "id": "US-1",
+      "title": "Create Collection",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can open a 'New Collection' dialog/input and submit a name\n- Collection is saved to SQLite with fields: id (UUID), name, created_at\n- Collection appears immediately in the sidebar list after creation\n- Empty name is rejected with inline validation\n\nTechnical Approach:\n- SQLite table: collections(id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at DATETIME)\n- Wails-bound Go method: CreateCollection(name string) (Collection, error)\n- Frontend calls binding, updates local state on success\n\nFiles likely affected:\n- main.go (Wails app setup)\n- app.go (Wails App struct, CreateCollection binding)\n- db/db.go (SQLite init, migrations)\n- db/collections.go (CRUD queries)\n- frontend/src/components/Sidebar.tsx\n- frontend/src/components/NewCollectionModal.tsx\n- frontend/src/store/collectionsStore.ts"
+    },
+    {
+      "id": "US-2",
+      "title": "Rename Collection",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can double-click or right-click a collection to rename it\n- New name is persisted in SQLite\n- Sidebar updates immediately\n- Empty name is rejected\n\nTechnical Approach:\n- Wails-bound Go method: RenameCollection(id string, name string) error\n- UPDATE query on collections table\n- Frontend inline edit or modal\n\nFiles likely affected:\n- app.go\n- db/collections.go\n- frontend/src/components/Sidebar.tsx\n- frontend/src/components/CollectionItem.tsx"
+    },
+    {
+      "id": "US-3",
+      "title": "Delete Collection",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can delete a collection via right-click menu or button\n- Confirmation prompt shown before deletion\n- Collection and all its child requests are removed from SQLite (cascade)\n- Sidebar updates immediately\n\nTechnical Approach:\n- Wails-bound Go method: DeleteCollection(id string) error\n- SQLite: DELETE FROM collections WHERE id=? (requests table has ON DELETE CASCADE foreign key)\n- Frontend removes collection and clears active request if it belonged to deleted collection\n\nFiles likely affected:\n- app.go\n- db/collections.go\n- db/requests.go\n- frontend/src/components/Sidebar.tsx\n- frontend/src/components/CollectionItem.tsx\n- frontend/src/store/collectionsStore.ts"
+    },
+    {
+      "id": "US-4",
+      "title": "Create Request",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can add a new request inside a collection\n- Request is saved to SQLite with default values: method=GET, url='', headers=[], params=[], body_type='none', body=''\n- New request appears in the collection's request list in the sidebar\n- User can name the request\n\nTechnical Approach:\n- SQLite table: requests(id TEXT PRIMARY KEY, collection_id TEXT REFERENCES collections(id) ON DELETE CASCADE, name TEXT, method TEXT, url TEXT, headers TEXT, params TEXT, body_type TEXT, body TEXT, created_at DATETIME)\n- headers and params stored as JSON strings\n- Wails-bound Go method: CreateRequest(collectionId string, name string) (Request, error)\n\nFiles likely affected:\n- app.go\n- db/requests.go\n- frontend/src/components/Sidebar.tsx\n- frontend/src/components/CollectionItem.tsx\n- frontend/src/store/requestsStore.ts"
+    },
+    {
+      "id": "US-5",
+      "title": "Configure HTTP Method",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User sees a method selector (dropdown) in the request editor: GET, POST, PUT, PATCH, DELETE\n- Selected method is saved to SQLite when changed\n- Method persists when re-opening the request\n\nTechnical Approach:\n- Wails-bound Go method: UpdateRequest(req RequestPayload) error (shared update method for all request fields)\n- Frontend dropdown updates local state and calls UpdateRequest on change\n\nFiles likely affected:\n- app.go\n- db/requests.go\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/components/MethodSelector.tsx"
+    },
+    {
+      "id": "US-6",
+      "title": "Configure URL",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can type a URL in a text input in the request editor\n- URL is saved to SQLite (debounced or on blur)\n- URL persists when re-opening the request\n\nTechnical Approach:\n- Part of UpdateRequest binding\n- Frontend text input with debounce (300ms) or on-blur save\n\nFiles likely affected:\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/components/UrlBar.tsx"
+    },
+    {
+      "id": "US-7",
+      "title": "Configure Headers",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can add, edit, and remove key-value header pairs in a table within the request editor\n- Headers are saved to SQLite as a JSON array [{key, value, enabled}]\n- Headers persist when re-opening the request\n- Rows can be disabled (checkbox) without deletion\n\nTechnical Approach:\n- Stored in requests.headers as JSON string\n- UpdateRequest binding serializes headers array\n- Frontend renders a KeyValueTable component reused for headers and query params\n\nFiles likely affected:\n- app.go\n- db/requests.go\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/components/KeyValueTable.tsx"
+    },
+    {
+      "id": "US-8",
+      "title": "Configure Query Parameters",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can add, edit, and remove key-value query param pairs\n- Params are saved to SQLite as a JSON array [{key, value, enabled}]\n- Enabled params are appended to the URL as ?key=value&... when request is sent\n- Params persist when re-opening the request\n\nTechnical Approach:\n- Stored in requests.params as JSON string\n- Go backend builds final URL by appending enabled params before execution\n- Reuses KeyValueTable component from US-7\n\nFiles likely affected:\n- app.go\n- db/requests.go\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/components/KeyValueTable.tsx"
+    },
+    {
+      "id": "US-9",
+      "title": "Configure Request Body",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User can select body type: None, JSON, Raw, Form-data\n- For JSON and Raw: a textarea/code editor is shown\n- For Form-data: a key-value table is shown (same KeyValueTable pattern)\n- Body content and type are saved to SQLite\n- Body persists when re-opening the request\n- Body tab/section is disabled or hidden for GET/DELETE (or shown with a warning)\n\nTechnical Approach:\n- body_type: 'none' | 'json' | 'raw' | 'form-data'\n- body: TEXT (JSON string for form-data rows, raw string otherwise)\n- UpdateRequest binding handles body fields\n- Go backend sets Content-Type header automatically based on body_type (application/json, text/plain, multipart/form-data)\n\nFiles likely affected:\n- app.go\n- db/requests.go\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/components/BodyEditor.tsx\n- frontend/src/components/KeyValueTable.tsx"
+    },
+    {
+      "id": "US-10",
+      "title": "Send Request",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- User clicks a Send button in the request editor\n- The Go backend executes the HTTP request using net/http\n- Headers (enabled only), query params (enabled only), and body are applied\n- A loading/spinner state is shown while request is in-flight\n- Result (status, body, headers, duration, size) is returned to the frontend\n- Errors (timeout, connection refused, invalid URL) are surfaced to the user\n\nTechnical Approach:\n- Wails-bound Go method: SendRequest(id string) (ResponseResult, error)\n- ResponseResult struct: { StatusCode int, StatusText string, Body string, Headers map[string][]string, DurationMs int64, SizeBytes int64 }\n- net/http client with a reasonable timeout (30s default)\n- Measure duration with time.Now() / time.Since()\n- Measure size from len(body bytes)\n- Frontend stores ResponseResult in state for the response viewer\n\nFiles likely affected:\n- app.go\n- http/client.go (new file for HTTP execution logic)\n- frontend/src/components/RequestEditor.tsx\n- frontend/src/store/responseStore.ts"
+    },
+    {
+      "id": "US-11",
+      "title": "View Response Status",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- After Send, the response panel shows the HTTP status code (e.g. 200, 404, 500)\n- Status text is shown alongside code (e.g. '200 OK')\n- Status is color-coded: 2xx green, 3xx blue, 4xx orange, 5xx red\n\nTechnical Approach:\n- Reads from ResponseResult.StatusCode and ResponseResult.StatusText in frontend state\n- StatusBadge component with conditional color class\n\nFiles likely affected:\n- frontend/src/components/ResponseViewer.tsx\n- frontend/src/components/StatusBadge.tsx"
+    },
+    {
+      "id": "US-12",
+      "title": "View Response Body",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- Response panel shows the full response body\n- If Content-Type is application/json, body is pretty-printed with syntax highlighting\n- Raw view always available as a fallback\n- Body is scrollable for large responses\n\nTechnical Approach:\n- Reads ResponseResult.Body (string)\n- Use a lightweight syntax highlighter (e.g. Prism.js or a Monaco-lite) or simple <pre> with JSON.stringify(JSON.parse()) pretty print\n- Tab toggle: Pretty / Raw\n\nFiles likely affected:\n- frontend/src/components/ResponseViewer.tsx\n- frontend/src/components/ResponseBody.tsx"
+    },
+    {
+      "id": "US-13",
+      "title": "View Response Headers",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- Response panel has a Headers tab showing all response headers as key-value pairs\n- Headers are readable and scrollable\n\nTechnical Approach:\n- Reads ResponseResult.Headers (map[string][]string)\n- Renders as a read-only table\n\nFiles likely affected:\n- frontend/src/components/ResponseViewer.tsx\n- frontend/src/components/ResponseHeaders.tsx"
+    },
+    {
+      "id": "US-14",
+      "title": "View Request Metrics",
+      "status": "pending",
+      "spec": "Acceptance Criteria:\n- After Send, the UI shows response time in milliseconds (e.g. '142 ms')\n- UI shows response size in human-readable form (e.g. '1.2 KB' or '340 B')\n- Metrics are displayed in the response panel header/toolbar area\n\nTechnical Approach:\n- Reads ResponseResult.DurationMs and ResponseResult.SizeBytes\n- Frontend formats size: if < 1024 show bytes, else show KB with 1 decimal\n- Displayed inline next to status badge\n\nFiles likely affected:\n- frontend/src/components/ResponseViewer.tsx\n- frontend/src/components/MetricsBar.tsx"
+    }
+  ]
+}
