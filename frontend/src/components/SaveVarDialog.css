@@ -10,9 +10,9 @@
 }
 
 .svd-dialog {
-  background: #1e2532;
-  border: 1px solid #4a5568;
-  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   padding: 20px;
   width: 340px;
@@ -24,7 +24,7 @@
 .svd-title {
   font-size: 13px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -39,55 +39,55 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #718096;
+  color: var(--text-subtle);
 }
 
 .svd-value-preview {
-  background: #141922;
-  border: 1px solid #2d3748;
-  border-radius: 4px;
-  color: #a0aec0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
   font-size: 12px;
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .svd-input {
-  background: #141922;
-  border: 1px solid #4a5568;
-  border-radius: 4px;
-  color: #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
   box-sizing: border-box;
 }
 
 .svd-input:focus {
-  border-color: #f97316;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
 }
 
 .svd-input::placeholder {
-  color: #4a5568;
+  color: var(--text-muted);
 }
 
 .svd-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .svd-cancel-btn {
   background: none;
-  border: 1px solid #4a5568;
-  border-radius: 4px;
-  color: #a0aec0;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
   padding: 6px 14px;
@@ -95,29 +95,29 @@
 }
 
 .svd-cancel-btn:hover {
-  border-color: #718096;
-  color: #e2e8f0;
+  border-color: var(--text-subtle);
+  color: var(--text-primary);
 }
 
 .svd-save-btn {
-  background: #f97316;
+  background: var(--accent);
   border: none;
-  border-radius: 4px;
-  color: #fff;
+  border-radius: var(--radius-sm);
+  color: white;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 16px;
+  padding: 6px var(--space-4);
   transition: background 0.12s, box-shadow 0.12s;
 }
 
 .svd-save-btn:hover:not(:disabled) {
-  background: #ea6c0a;
+  background: var(--accent-hover);
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.28);
 }
 
 .svd-save-btn:disabled {
-  background: #4a5568;
+  background: var(--text-muted);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -126,16 +126,16 @@
 .svd-tabs {
   display: flex;
   gap: 0;
-  border: 1px solid #2d3748;
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .svd-tab {
   flex: 1;
-  background: #141922;
+  background: var(--bg-secondary);
   border: none;
-  color: #718096;
+  color: var(--text-subtle);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -144,17 +144,17 @@
 }
 
 .svd-tab + .svd-tab {
-  border-left: 1px solid #2d3748;
+  border-left: 1px solid var(--border);
 }
 
 .svd-tab:hover:not(:disabled):not(.svd-tab--active) {
-  background: #1e2532;
-  color: #a0aec0;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .svd-tab--active {
-  background: #1e2532;
-  color: #f97316;
+  background: var(--bg-surface);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -165,13 +165,13 @@
 
 /* ── Existing-var select ────────────────────────────────── */
 .svd-select {
-  background: #141922;
-  border: 1px solid #4a5568;
-  border-radius: 4px;
-  color: #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
@@ -179,21 +179,21 @@
 }
 
 .svd-select:focus {
-  border-color: #f97316;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
 }
 
 .svd-select option {
-  background: #1e2532;
+  background: var(--bg-surface);
 }
 
 /* ── Error ──────────────────────────────────────────────── */
 .svd-error {
   margin: 0;
   font-size: 12px;
-  color: #fc8181;
+  color: var(--status-5xx-fg);
   background: rgba(138, 32, 32, 0.18);
   border: 1px solid rgba(252, 129, 129, 0.2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
 }
