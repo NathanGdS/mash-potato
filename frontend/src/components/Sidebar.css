@@ -123,3 +123,26 @@
   color: #fc8181;
   margin-top: 2px;
 }
+
+/* Delete button — hidden until the row is hovered */
+.collection-delete-btn {
+  display: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color 0.15s;
+}
+
+.collection-item:hover .collection-delete-btn {
+  display: block;
+}
+
+.collection-delete-btn:hover {
+  color: #fc8181;
+}

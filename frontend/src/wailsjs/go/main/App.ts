@@ -19,3 +19,7 @@ export function ListCollections(): Promise<import('../../../types/collection').C
 export function RenameCollection(id: string, name: string): Promise<void> {
   return go?.main?.App?.RenameCollection(id, name);
 }
+
+export function DeleteCollection(id: string): Promise<void> {
+  return go?.main?.App?.DeleteCollection(id);
+}

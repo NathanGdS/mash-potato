@@ -52,6 +52,14 @@ func (a *App) RenameCollection(id string, name string) error {
 	return nil
 }
 
+// DeleteCollection removes a collection and all its child requests from SQLite.
+func (a *App) DeleteCollection(id string) error {
+	if err := db.DeleteCollection(id); err != nil {
+		return fmt.Errorf("DeleteCollection: %w", err)
+	}
+	return nil
+}
+
 // ListCollections returns all stored collections.
 func (a *App) ListCollections() ([]db.Collection, error) {
 	cols, err := db.ListCollections()

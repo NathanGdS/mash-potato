@@ -8,9 +8,11 @@ interface CollectionItemProps {
 
 const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   const renameCollection = useCollectionsStore((s) => s.renameCollection);
+  const deleteCollection = useCollectionsStore((s) => s.deleteCollection);
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(collection.name);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const startEditing = () => {
@@ -39,6 +41,18 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
     } catch (err) {
       setRenameError(String(err));
       inputRef.current?.focus();
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Delete collection "${collection.name}"?\nThis will also remove all requests inside it.`
+    );
+    if (!confirmed) return;
+    try {
+      await deleteCollection(collection.id);
+    } catch (err) {
+      setDeleteError(String(err));
     }
   };
 
@@ -82,6 +96,21 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
         <span className="collection-name" title={collection.name}>
           {collection.name}
         </span>
+      )}
+
+      {!editing && (
+        <button
+          className="collection-delete-btn"
+          title="Delete collection"
+          aria-label={`Delete collection ${collection.name}`}
+          onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+        >
+          ×
+        </button>
+      )}
+
+      {deleteError && (
+        <span className="collection-rename-error">{deleteError}</span>
       )}
     </li>
   );

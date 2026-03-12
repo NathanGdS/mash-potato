@@ -22,6 +22,11 @@ func Init(dataSourceName string) error {
 		return fmt.Errorf("db.Init: WAL pragma: %w", err)
 	}
 
+	// Enable foreign key enforcement (SQLite disables it by default).
+	if _, err = DB.Exec(`PRAGMA foreign_keys = ON`); err != nil {
+		return fmt.Errorf("db.Init: foreign_keys pragma: %w", err)
+	}
+
 	if err = migrate(DB); err != nil {
 		return fmt.Errorf("db.Init: migrate: %w", err)
 	}
@@ -37,5 +42,23 @@ func migrate(db *sql.DB) error {
 			created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 		);
 	`)
-	return err
+	if err != nil {
+		return fmt.Errorf("migrate collections: %w", err)
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS requests (
+			id            TEXT PRIMARY KEY,
+			collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+			name          TEXT NOT NULL,
+			method        TEXT NOT NULL DEFAULT 'GET',
+			url           TEXT NOT NULL DEFAULT '',
+			created_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate requests: %w", err)
+	}
+
+	return nil
 }

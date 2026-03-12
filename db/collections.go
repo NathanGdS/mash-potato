@@ -41,6 +41,23 @@ func UpdateCollection(id, name string) error {
 	return nil
 }
 
+// DeleteCollection removes a collection by ID. Child requests are removed via
+// ON DELETE CASCADE. Returns an error if no such collection exists.
+func DeleteCollection(id string) error {
+	res, err := DB.Exec(`DELETE FROM collections WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("DeleteCollection: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("DeleteCollection rows affected: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("DeleteCollection: no collection with id %q", id)
+	}
+	return nil
+}
+
 // ListCollections returns all collections ordered by creation time.
 func ListCollections() ([]Collection, error) {
 	rows, err := DB.Query(`SELECT id, name, created_at FROM collections ORDER BY created_at ASC`)
