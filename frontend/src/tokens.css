@@ -68,4 +68,12 @@
   --status-5xx-bg:     #3a1a1a;
   --status-5xx-fg:     #fc8181;
   --status-5xx-border: #8a2020;
+
+  /* JSON highlighting */
+  --json-key:     #93c5fd; /* blue-300 */
+  --json-string:  #86efac; /* green-300 */
+  --json-number:  #fcd34d; /* amber-300 */
+  --json-boolean: #f472b6; /* pink-400 */
+  --json-null:    #94a3b8; /* slate-400 */
+  --json-structural: #cbd5e1; /* slate-300 */
 }
