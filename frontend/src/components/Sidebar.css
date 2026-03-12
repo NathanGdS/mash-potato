@@ -98,3 +98,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Inline rename input */
+.collection-rename-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-rename-input {
+  width: 100%;
+  background: #1e2532;
+  border: 1px solid #f97316;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 13px;
+  padding: 1px 4px;
+  outline: none;
+}
+
+.collection-rename-error {
+  font-size: 10px;
+  color: #fc8181;
+  margin-top: 2px;
+}

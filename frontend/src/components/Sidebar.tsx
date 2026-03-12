@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCollectionsStore } from '../store/collectionsStore';
+import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
 import './Sidebar.css';
 
@@ -42,10 +43,7 @@ const Sidebar: React.FC = () => {
 
         <ul className="collection-list">
           {collections.map((col) => (
-            <li key={col.id} className="collection-item">
-              <span className="collection-icon">📁</span>
-              <span className="collection-name">{col.name}</span>
-            </li>
+            <CollectionItem key={col.id} collection={col} />
           ))}
         </ul>
       </div>

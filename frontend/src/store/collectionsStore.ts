@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Collection } from '../types/collection';
-import { CreateCollection, ListCollections } from '../wailsjs/go/main/App';
+import { CreateCollection, ListCollections, RenameCollection } from '../wailsjs/go/main/App';
 
 interface CollectionsState {
   collections: Collection[];
@@ -12,6 +12,9 @@ interface CollectionsState {
 
   /** Create a new collection. Returns the created collection or throws. */
   createCollection: (name: string) => Promise<Collection>;
+
+  /** Rename an existing collection by id. Throws on empty name or backend error. */
+  renameCollection: (id: string, name: string) => Promise<void>;
 }
 
 export const useCollectionsStore = create<CollectionsState>((set) => ({
@@ -37,5 +40,18 @@ export const useCollectionsStore = create<CollectionsState>((set) => ({
     const col = await CreateCollection(trimmed);
     set((state) => ({ collections: [...state.collections, col] }));
     return col;
+  },
+
+  renameCollection: async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Collection name cannot be empty.');
+    }
+    await RenameCollection(id, trimmed);
+    set((state) => ({
+      collections: state.collections.map((c) =>
+        c.id === id ? { ...c, name: trimmed } : c
+      ),
+    }));
   },
 }));

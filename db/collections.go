@@ -25,6 +25,22 @@ func InsertCollection(id, name string) (Collection, error) {
 	return Collection{ID: id, Name: name, CreatedAt: now}, nil
 }
 
+// UpdateCollection updates the name of an existing collection by ID.
+func UpdateCollection(id, name string) error {
+	res, err := DB.Exec(`UPDATE collections SET name = ? WHERE id = ?`, name, id)
+	if err != nil {
+		return fmt.Errorf("UpdateCollection: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("UpdateCollection rows affected: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("UpdateCollection: no collection with id %q", id)
+	}
+	return nil
+}
+
 // ListCollections returns all collections ordered by creation time.
 func ListCollections() ([]Collection, error) {
 	rows, err := DB.Query(`SELECT id, name, created_at FROM collections ORDER BY created_at ASC`)

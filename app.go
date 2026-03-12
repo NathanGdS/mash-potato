@@ -40,6 +40,18 @@ func (a *App) CreateCollection(name string) (db.Collection, error) {
 	return col, nil
 }
 
+// RenameCollection validates the new name and updates the collection in SQLite.
+func (a *App) RenameCollection(id string, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("collection name cannot be empty")
+	}
+	if err := db.UpdateCollection(id, name); err != nil {
+		return fmt.Errorf("RenameCollection: %w", err)
+	}
+	return nil
+}
+
 // ListCollections returns all stored collections.
 func (a *App) ListCollections() ([]db.Collection, error) {
 	cols, err := db.ListCollections()

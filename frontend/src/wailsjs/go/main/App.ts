@@ -15,3 +15,7 @@ export function CreateCollection(name: string): Promise<import('../../../types/c
 export function ListCollections(): Promise<import('../../../types/collection').Collection[]> {
   return go?.main?.App?.ListCollections();
 }
+
+export function RenameCollection(id: string, name: string): Promise<void> {
+  return go?.main?.App?.RenameCollection(id, name);
+}
