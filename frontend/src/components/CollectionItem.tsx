@@ -3,6 +3,17 @@ import { useCollectionsStore } from '../store/collectionsStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { Collection } from '../types/collection';
 
+function methodBadgeClass(method: string): string {
+  switch (method.toUpperCase()) {
+    case 'GET':    return 'request-method request-method--get';
+    case 'POST':   return 'request-method request-method--post';
+    case 'PUT':    return 'request-method request-method--put';
+    case 'PATCH':  return 'request-method request-method--patch';
+    case 'DELETE': return 'request-method request-method--delete';
+    default:       return 'request-method request-method--other';
+  }
+}
+
 interface CollectionItemProps {
   collection: Collection;
 }
@@ -220,7 +231,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
               onClick={() => openRequest(req.id)}
               style={{ cursor: 'pointer' }}
             >
-              <span className="request-method" data-method={req.method}>{req.method}</span>
+              <span className={methodBadgeClass(req.method)} data-method={req.method}>{req.method}</span>
               <span className="request-name">{req.name}</span>
             </li>
           ))}

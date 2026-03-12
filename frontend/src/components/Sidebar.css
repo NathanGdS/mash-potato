@@ -4,8 +4,8 @@
   min-width: 180px;
   max-width: 320px;
   height: 100vh;
-  background: #141922;
-  border-right: 1px solid #2d3748;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -19,10 +19,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid #2d3748;
+  padding: 10px var(--space-4);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: linear-gradient(180deg, #191d28 0%, #141922 100%);
+  background: var(--bg-secondary);
 }
 
 .sidebar-title {
@@ -30,23 +30,23 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4a5568;
+  color: var(--text-muted);
 }
 
 .sidebar-new-btn {
   background: none;
   border: none;
-  color: #718096;
+  color: var(--text-subtle);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   border-radius: 3px;
   transition: color 0.15s, background 0.15s;
 }
 
 .sidebar-new-btn:hover {
-  color: #f97316;
+  color: var(--accent);
   background: rgba(249, 115, 22, 0.1);
 }
 
@@ -54,21 +54,21 @@
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .sidebar-status {
   font-size: 12px;
-  color: #718096;
-  padding: 8px 16px;
+  color: var(--text-subtle);
+  padding: var(--space-2) var(--space-4);
 }
 
 .sidebar-status--error {
-  color: #fc8181;
+  color: var(--status-5xx-fg);
 }
 
 .sidebar-status--empty strong {
-  color: #a0aec0;
+  color: var(--text-secondary);
 }
 
 /* Collection list */
@@ -81,17 +81,17 @@
 .collection-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
-  color: #cbd5e0;
+  color: var(--text-primary);
   font-size: 13px;
   border-radius: 0;
   transition: background 0.1s;
 }
 
 .collection-item:hover {
-  background: #1e2532;
+  background: var(--bg-surface);
 }
 
 .collection-icon {
@@ -115,18 +115,18 @@
 
 .collection-rename-input {
   width: 100%;
-  background: #1e2532;
-  border: 1px solid #f97316;
+  background: var(--bg-surface);
+  border: 1px solid var(--accent);
   border-radius: 3px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 13px;
-  padding: 1px 4px;
+  padding: 1px var(--space-1);
   outline: none;
 }
 
 .collection-rename-error {
   font-size: 10px;
-  color: #fc8181;
+  color: var(--status-5xx-fg);
   margin-top: 2px;
 }
 
@@ -137,7 +137,7 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  color: #718096;
+  color: var(--text-subtle);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -150,7 +150,7 @@
 }
 
 .collection-delete-btn:hover {
-  color: #fc8181;
+  color: var(--status-5xx-fg);
 }
 
 /* ── Collection tree: expand / add-request buttons ─────── */
@@ -170,7 +170,7 @@
 .collection-expand-btn {
   background: none;
   border: none;
-  color: #718096;
+  color: var(--text-subtle);
   cursor: pointer;
   font-size: 12px;
   padding: 0 2px;
@@ -179,14 +179,14 @@
 }
 
 .collection-expand-btn:hover {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .collection-add-request-btn {
   display: none;
   background: none;
   border: none;
-  color: #718096;
+  color: var(--text-subtle);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -199,14 +199,14 @@
 }
 
 .collection-add-request-btn:hover {
-  color: #49cc90;
+  color: var(--method-post);
 }
 
 /* ── Request list ───────────────────────────────────────── */
 .request-list {
   list-style: none;
   padding: 0 0 0 28px;
-  margin: 2px 0 4px;
+  margin: 2px 0 var(--space-1);
   width: 100%;
 }
 
@@ -214,36 +214,36 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 8px;
+  padding: 5px var(--space-2);
   border-radius: 3px;
   font-size: 12px;
-  color: #a0aec0;
+  color: var(--text-secondary);
   transition: background 0.1s, color 0.1s;
   border-left: 2px solid transparent;
 }
 
 .request-item:hover {
-  background: #1e2532;
-  color: #e2e8f0;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .request-item--active {
   background: rgba(249, 115, 22, 0.08) !important;
-  color: #f97316 !important;
-  border-left-color: #f97316 !important;
+  color: var(--accent) !important;
+  border-left-color: var(--accent) !important;
   padding-left: 6px;
 }
 
 .request-item--status,
 .request-item--error,
 .request-item--empty {
-  color: #4a5568;
+  color: var(--text-muted);
   font-style: italic;
   cursor: default;
 }
 
 .request-item--error {
-  color: #fc8181;
+  color: var(--status-5xx-fg);
 }
 
 .request-item--new {
@@ -252,24 +252,35 @@
   align-items: stretch;
 }
 
+/* ── Method badge pill ──────────────────────────────────── */
 .request-method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #61affe;
+  letter-spacing: 0.04em;
   flex-shrink: 0;
-  min-width: 42px;
+  min-width: 38px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 3px;
+  /* default (fallback) — GET colours */
+  background: var(--method-get-bg);
+  color: var(--method-get-fg);
 }
 
-.request-method[data-method="GET"]    { color: #61affe; }
-.request-method[data-method="POST"]   { color: #49cc90; }
-.request-method[data-method="PUT"]    { color: #fca130; }
-.request-method[data-method="PATCH"]  { color: #50e3c2; }
-.request-method[data-method="DELETE"] { color: #f93e3e; }
-.request-method[data-method="HEAD"]   { color: #9e6aff; }
+.request-method--get    { background: var(--method-get-bg);    color: var(--method-get-fg); }
+.request-method--post   { background: var(--method-post-bg);   color: var(--method-post-fg); }
+.request-method--put    { background: var(--method-put-bg);    color: var(--method-put-fg); }
+.request-method--patch  { background: var(--method-patch-bg);  color: var(--method-patch-fg); }
+.request-method--delete { background: var(--method-delete-bg); color: var(--method-delete-fg); }
+.request-method--other  { background: var(--method-other-bg);  color: var(--method-other-fg); }
 
+/* Active row: keep pill colours; only the name text shifts to accent */
 .request-item--active .request-method {
-  color: #f97316 !important;
+  /* intentionally no override — preserve pill colour for readability */
 }
 
 .request-name {
@@ -281,11 +292,11 @@
 
 .request-name-input {
   width: 100%;
-  background: #1e2532;
-  border: 1px solid #f97316;
+  background: var(--bg-surface);
+  border: 1px solid var(--accent);
   border-radius: 3px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 12px;
-  padding: 2px 4px;
+  padding: 2px var(--space-1);
   outline: none;
 }
