@@ -22,3 +22,4 @@ build/bin/
 # OS artefacts
 .DS_Store
 Thumbs.db
+.gemini/
