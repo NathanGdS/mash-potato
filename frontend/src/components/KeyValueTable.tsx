@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import { parseVarSegments } from '../utils/varSegments';
 import VarPopover from './VarPopover';
 
 export interface KVRow {
@@ -15,7 +16,7 @@ interface KeyValueTableProps {
   valuePlaceholder?: string;
 }
 
-/** A value input that surfaces the {{ variable autocomplete popover. */
+/** A value input with {{ variable highlighting and autocomplete popover. */
 function VarValueInput({
   value,
   onChange,
@@ -26,25 +27,46 @@ function VarValueInput({
   placeholder?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const mirrorInnerRef = useRef<HTMLSpanElement>(null);
+
+  const syncScroll = () => {
+    if (inputRef.current && mirrorInnerRef.current) {
+      mirrorInnerRef.current.style.transform = `translateX(-${inputRef.current.scrollLeft}px)`;
+    }
+  };
+
   const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown, close } =
     useVarAutocomplete({
       inputRef,
-      onInsert: onChange,
+      onInsert: (v) => { onChange(v); syncScroll(); },
     });
 
+  const segments = parseVarSegments(value);
+
   return (
-    <>
+    <div className="kv-value-wrapper">
+      <div className="kv-value-mirror" aria-hidden="true">
+        <span ref={mirrorInnerRef} className="kv-value-mirror-inner">
+          {segments.map((seg, i) =>
+            seg.isVar ? (
+              <span key={i} className="var-token">{seg.text}</span>
+            ) : (
+              <span key={i}>{seg.text}</span>
+            )
+          )}
+          {'\u00A0'}
+        </span>
+      </div>
       <input
         ref={inputRef}
         type="text"
-        className="kv-input"
+        className="kv-input kv-input--highlight"
         value={value}
         placeholder={placeholder}
-        onChange={(e) => {
-          onChange(e.target.value);
-          checkTrigger();
-        }}
-        onKeyDown={onKeyDown}
+        onChange={(e) => { onChange(e.target.value); checkTrigger(); syncScroll(); }}
+        onKeyDown={(e) => { onKeyDown(e); syncScroll(); }}
+        onClick={syncScroll}
+        spellCheck={false}
       />
       <VarPopover
         open={open}
@@ -54,7 +76,7 @@ function VarValueInput({
         onSelect={select}
         onClose={close}
       />
-    </>
+    </div>
   );
 }
 

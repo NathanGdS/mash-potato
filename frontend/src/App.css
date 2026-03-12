@@ -76,10 +76,58 @@
   border-color: #f97316;
 }
 
+/* ── Shared var-token highlight ─────────────────────────── */
+.var-token {
+  color: #f97316;
+  font-style: normal;
+}
+
+/* ── URL bar with highlight overlay ────────────────────── */
 .url-bar-wrapper {
   flex: 1;
   position: relative;
   min-width: 0;
+  background: #1e2532;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.url-bar-wrapper:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+/* Mirror sits behind the input, clipping overflow */
+.url-bar-mirror {
+  position: absolute;
+  inset: 0;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  z-index: 0;
+  color: #e2e8f0;
+}
+
+.url-bar-mirror-inner {
+  display: inline;
+  white-space: pre;
+}
+
+/* The real input — transparent text, visible caret */
+.url-bar--highlight {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #e2e8f0;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .url-bar {
@@ -185,6 +233,52 @@
 .kv-input:focus {
   border-color: #f97316;
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+/* ── KV value cell with highlight overlay ───────────────── */
+.kv-value-wrapper {
+  position: relative;
+  width: 100%;
+  background: #1e2532;
+  border: 1px solid #2d3748;
+  border-radius: 3px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.kv-value-wrapper:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+.kv-value-mirror {
+  position: absolute;
+  inset: 0;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  z-index: 0;
+  color: #e2e8f0;
+}
+
+.kv-value-mirror-inner {
+  display: inline;
+  white-space: pre;
+}
+
+.kv-input--highlight {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #e2e8f0;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0;
 }
 
 .kv-row-disabled .kv-input {
@@ -754,4 +848,54 @@
 .body-textarea:focus {
   border-color: #f97316;
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+/* ── Body textarea with highlight overlay ───────────────── */
+.body-textarea-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  min-height: 220px;
+  background: #1e2532;
+  border: 1px solid #2d3748;
+  border-radius: 4px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.body-textarea-wrapper:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+.body-textarea-mirror {
+  position: absolute;
+  inset: 0;
+  padding: 10px 12px;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: hidden;
+  pointer-events: none;
+  color: #e2e8f0;
+  z-index: 0;
+}
+
+.body-textarea--highlight {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #e2e8f0;
+  border: none !important;
+  box-shadow: none !important;
+  resize: vertical;
+  min-height: 220px;
+  outline: none;
+  padding: 10px 12px;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
 }
