@@ -6,6 +6,10 @@ export function CreateCollection(arg1) {
   return window['go']['main']['App']['CreateCollection'](arg1);
 }
 
+export function CreateEnvironment(arg1) {
+  return window['go']['main']['App']['CreateEnvironment'](arg1);
+}
+
 export function CreateRequest(arg1, arg2) {
   return window['go']['main']['App']['CreateRequest'](arg1, arg2);
 }
@@ -14,12 +18,32 @@ export function DeleteCollection(arg1) {
   return window['go']['main']['App']['DeleteCollection'](arg1);
 }
 
+export function DeleteEnvironment(arg1) {
+  return window['go']['main']['App']['DeleteEnvironment'](arg1);
+}
+
+export function DeleteVariable(arg1) {
+  return window['go']['main']['App']['DeleteVariable'](arg1);
+}
+
+export function GetActiveEnvironment() {
+  return window['go']['main']['App']['GetActiveEnvironment']();
+}
+
 export function GetRequest(arg1) {
   return window['go']['main']['App']['GetRequest'](arg1);
 }
 
+export function GetVariables(arg1) {
+  return window['go']['main']['App']['GetVariables'](arg1);
+}
+
 export function ListCollections() {
   return window['go']['main']['App']['ListCollections']();
+}
+
+export function ListEnvironments() {
+  return window['go']['main']['App']['ListEnvironments']();
 }
 
 export function ListRequests(arg1) {
@@ -30,8 +54,20 @@ export function RenameCollection(arg1, arg2) {
   return window['go']['main']['App']['RenameCollection'](arg1, arg2);
 }
 
+export function RenameEnvironment(arg1, arg2) {
+  return window['go']['main']['App']['RenameEnvironment'](arg1, arg2);
+}
+
 export function SendRequest(arg1) {
   return window['go']['main']['App']['SendRequest'](arg1);
+}
+
+export function SetActiveEnvironment(arg1) {
+  return window['go']['main']['App']['SetActiveEnvironment'](arg1);
+}
+
+export function SetVariable(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetVariable'](arg1, arg2, arg3);
 }
 
 export function UpdateRequest(arg1) {

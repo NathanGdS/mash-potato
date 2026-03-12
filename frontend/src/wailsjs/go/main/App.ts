@@ -62,3 +62,46 @@ export interface ResponseResult {
 export function SendRequest(id: string): Promise<ResponseResult> {
   return _app()?.SendRequest(id);
 }
+
+export function CreateEnvironment(name: string): Promise<import('../../../types/environment').Environment> {
+  return _app()?.CreateEnvironment(name);
+}
+
+export function ListEnvironments(): Promise<import('../../../types/environment').Environment[]> {
+  return _app()?.ListEnvironments();
+}
+
+export function RenameEnvironment(id: string, name: string): Promise<void> {
+  return _app()?.RenameEnvironment(id, name);
+}
+
+export function DeleteEnvironment(id: string): Promise<void> {
+  return _app()?.DeleteEnvironment(id);
+}
+
+export function GetActiveEnvironment(): Promise<string> {
+  return _app()?.GetActiveEnvironment();
+}
+
+export function SetActiveEnvironment(id: string): Promise<void> {
+  return _app()?.SetActiveEnvironment(id);
+}
+
+export interface EnvironmentVariable {
+  id: number;
+  environment_id: string;
+  key: string;
+  value: string;
+}
+
+export function SetVariable(environmentId: string, key: string, value: string): Promise<EnvironmentVariable> {
+  return _app()?.SetVariable(environmentId, key, value);
+}
+
+export function GetVariables(environmentId: string): Promise<EnvironmentVariable[]> {
+  return _app()?.GetVariables(environmentId);
+}
+
+export function DeleteVariable(id: number): Promise<void> {
+  return _app()?.DeleteVariable(id);
+}

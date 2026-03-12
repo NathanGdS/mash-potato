@@ -6,18 +6,36 @@ import {main} from '../models';
 
 export function CreateCollection(arg1:string):Promise<db.Collection>;
 
+export function CreateEnvironment(arg1:string):Promise<db.Environment>;
+
 export function CreateRequest(arg1:string,arg2:string):Promise<db.Request>;
 
 export function DeleteCollection(arg1:string):Promise<void>;
 
+export function DeleteEnvironment(arg1:string):Promise<void>;
+
+export function DeleteVariable(arg1:number):Promise<void>;
+
+export function GetActiveEnvironment():Promise<string>;
+
 export function GetRequest(arg1:string):Promise<db.Request>;
 
+export function GetVariables(arg1:string):Promise<Array<db.EnvironmentVariable>>;
+
 export function ListCollections():Promise<Array<db.Collection>>;
+
+export function ListEnvironments():Promise<Array<db.Environment>>;
 
 export function ListRequests(arg1:string):Promise<Array<db.Request>>;
 
 export function RenameCollection(arg1:string,arg2:string):Promise<void>;
 
+export function RenameEnvironment(arg1:string,arg2:string):Promise<void>;
+
 export function SendRequest(arg1:string):Promise<httpclient.ResponseResult>;
+
+export function SetActiveEnvironment(arg1:string):Promise<void>;
+
+export function SetVariable(arg1:string,arg2:string,arg3:string):Promise<db.EnvironmentVariable>;
 
 export function UpdateRequest(arg1:main.RequestPayload):Promise<void>;
