@@ -4,12 +4,26 @@ import StatusBadge from './StatusBadge';
 import MetricsBar from './MetricsBar';
 import ResponseBody from './ResponseBody';
 import ResponseHeaders from './ResponseHeaders';
+import { tryPrettyPrint } from '../utils/jsonHighlighter';
 
 type ResponseTab = 'body' | 'headers';
 
 const ResponseViewer: React.FC = () => {
   const { response, error } = useResponseStore();
   const [activeTab, setActiveTab] = useState<ResponseTab>('body');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!response?.Body) return;
+    try {
+      const { text } = tryPrettyPrint(response.Body);
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy response body', err);
+    }
+  };
 
   if (error) {
     return (
@@ -34,6 +48,13 @@ const ResponseViewer: React.FC = () => {
       <div className="response-viewer-toolbar">
         <StatusBadge statusCode={response.StatusCode} statusText={response.StatusText} />
         <MetricsBar durationMs={response.DurationMs} sizeBytes={response.SizeBytes} />
+        <button 
+          className={`rv-copy-btn${copied ? ' rv-copy-btn--success' : ''}`}
+          onClick={handleCopy}
+          title="Copy response body"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
       </div>
 
       {/* Tab navigation */}

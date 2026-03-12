@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useEnvironmentsStore } from '../store/environmentsStore';
 import SaveVarDialog from './SaveVarDialog';
+import { JsonHighlighted, tryPrettyPrint } from '../utils/jsonHighlighter';
 
 interface ResponseBodyProps {
   body: string;
@@ -12,15 +13,6 @@ interface SelectionAnchor {
   x: number;
   y: number;
   text: string;
-}
-
-function tryPrettyPrint(raw: string): { text: string; isJson: boolean } {
-  try {
-    const parsed = JSON.parse(raw);
-    return { text: JSON.stringify(parsed, null, 2), isJson: true };
-  } catch {
-    return { text: raw, isJson: false };
-  }
 }
 
 const ResponseBody: React.FC<ResponseBodyProps> = ({ body }) => {
@@ -135,7 +127,11 @@ const ResponseBody: React.FC<ResponseBodyProps> = ({ body }) => {
           onMouseUp={handleMouseUp}
           onMouseDown={handleMouseDown}
         >
-          {displayText}
+          {mode === 'pretty' && isJson ? (
+            <JsonHighlighted text={displayText} />
+          ) : (
+            displayText
+          )}
         </pre>
 
         {selectionAnchor && (
