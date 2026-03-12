@@ -53,11 +53,29 @@ func migrate(db *sql.DB) error {
 			name          TEXT NOT NULL,
 			method        TEXT NOT NULL DEFAULT 'GET',
 			url           TEXT NOT NULL DEFAULT '',
+			headers       TEXT NOT NULL DEFAULT '[]',
+			params        TEXT NOT NULL DEFAULT '[]',
+			body_type     TEXT NOT NULL DEFAULT 'none',
+			body          TEXT NOT NULL DEFAULT '',
 			created_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 		);
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate requests: %w", err)
+	}
+
+	// Add columns that may be missing if the table was created by an older migration.
+	addColumns := []string{
+		`ALTER TABLE requests ADD COLUMN headers   TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE requests ADD COLUMN params    TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE requests ADD COLUMN body_type TEXT NOT NULL DEFAULT 'none'`,
+		`ALTER TABLE requests ADD COLUMN body      TEXT NOT NULL DEFAULT ''`,
+	}
+	for _, stmt := range addColumns {
+		if _, execErr := db.Exec(stmt); execErr != nil {
+			// SQLite returns an error when the column already exists; ignore it.
+			_ = execErr
+		}
 	}
 
 	return nil

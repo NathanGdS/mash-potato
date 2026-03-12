@@ -23,3 +23,11 @@ export function RenameCollection(id: string, name: string): Promise<void> {
 export function DeleteCollection(id: string): Promise<void> {
   return go?.main?.App?.DeleteCollection(id);
 }
+
+export function CreateRequest(collectionId: string, name: string): Promise<import('../../../types/request').Request> {
+  return go?.main?.App?.CreateRequest(collectionId, name);
+}
+
+export function ListRequests(collectionId: string): Promise<import('../../../types/request').Request[]> {
+  return go?.main?.App?.ListRequests(collectionId);
+}

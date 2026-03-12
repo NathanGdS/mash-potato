@@ -72,3 +72,33 @@ func (a *App) ListCollections() ([]db.Collection, error) {
 	}
 	return cols, nil
 }
+
+// CreateRequest validates the name, generates a UUID, persists to SQLite,
+// and returns the new request with default values.
+func (a *App) CreateRequest(collectionID string, name string) (db.Request, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return db.Request{}, fmt.Errorf("request name cannot be empty")
+	}
+	if strings.TrimSpace(collectionID) == "" {
+		return db.Request{}, fmt.Errorf("collection id cannot be empty")
+	}
+	id := uuid.New().String()
+	req, err := db.InsertRequest(id, collectionID, name)
+	if err != nil {
+		return db.Request{}, fmt.Errorf("CreateRequest: %w", err)
+	}
+	return req, nil
+}
+
+// ListRequests returns all requests belonging to the given collection.
+func (a *App) ListRequests(collectionID string) ([]db.Request, error) {
+	reqs, err := db.ListRequests(collectionID)
+	if err != nil {
+		return nil, fmt.Errorf("ListRequests: %w", err)
+	}
+	if reqs == nil {
+		return []db.Request{}, nil
+	}
+	return reqs, nil
+}
