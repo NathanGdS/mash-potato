@@ -6,34 +6,34 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { go }: any = (window as any).wails ?? { go: {} };
+const _app = (): any => (window as any)['go']?.['main']?.['App'];
 
 export function CreateCollection(name: string): Promise<import('../../../types/collection').Collection> {
-  return go?.main?.App?.CreateCollection(name);
+  return _app()?.CreateCollection(name);
 }
 
 export function ListCollections(): Promise<import('../../../types/collection').Collection[]> {
-  return go?.main?.App?.ListCollections();
+  return _app()?.ListCollections();
 }
 
 export function RenameCollection(id: string, name: string): Promise<void> {
-  return go?.main?.App?.RenameCollection(id, name);
+  return _app()?.RenameCollection(id, name);
 }
 
 export function DeleteCollection(id: string): Promise<void> {
-  return go?.main?.App?.DeleteCollection(id);
+  return _app()?.DeleteCollection(id);
 }
 
 export function CreateRequest(collectionId: string, name: string): Promise<import('../../../types/request').Request> {
-  return go?.main?.App?.CreateRequest(collectionId, name);
+  return _app()?.CreateRequest(collectionId, name);
 }
 
 export function ListRequests(collectionId: string): Promise<import('../../../types/request').Request[]> {
-  return go?.main?.App?.ListRequests(collectionId);
+  return _app()?.ListRequests(collectionId);
 }
 
 export function GetRequest(id: string): Promise<import('../../../types/request').Request> {
-  return go?.main?.App?.GetRequest(id);
+  return _app()?.GetRequest(id);
 }
 
 export interface RequestPayload {
@@ -47,7 +47,7 @@ export interface RequestPayload {
 }
 
 export function UpdateRequest(payload: RequestPayload): Promise<void> {
-  return go?.main?.App?.UpdateRequest(payload);
+  return _app()?.UpdateRequest(payload);
 }
 
 export interface ResponseResult {
@@ -60,5 +60,5 @@ export interface ResponseResult {
 }
 
 export function SendRequest(id: string): Promise<ResponseResult> {
-  return go?.main?.App?.SendRequest(id);
+  return _app()?.SendRequest(id);
 }

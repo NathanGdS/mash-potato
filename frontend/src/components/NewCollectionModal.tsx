@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useCollectionsStore } from '../store/collectionsStore';
 import './NewCollectionModal.css';
 
@@ -52,7 +53,7 @@ const NewCollectionModal: React.FC<Props> = ({ onClose }) => {
     }
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className="modal-backdrop"
       onClick={handleBackdropClick}
@@ -111,7 +112,8 @@ const NewCollectionModal: React.FC<Props> = ({ onClose }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
