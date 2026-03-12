@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import KeyValueTable, { KVRow } from './KeyValueTable';
+import VarPopover from './VarPopover';
+import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
 
 export type BodyType = 'none' | 'json' | 'raw' | 'form-data';
 
@@ -21,6 +23,15 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
   onBodyChange,
 }) => {
   const noBodyMethod = method === 'GET' || method === 'DELETE';
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Hooks must be called unconditionally — the popover just won't open when
+  // the textarea isn't rendered (bodyType !== 'json'/'raw').
+  const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown, close } =
+    useVarAutocomplete({
+      inputRef: textareaRef,
+      onInsert: onBodyChange,
+    });
 
   const parseFormData = (): KVRow[] => {
     try {
@@ -64,14 +75,29 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
       )}
 
       {(bodyType === 'json' || bodyType === 'raw') && (
-        <textarea
-          className="body-textarea"
-          value={body}
-          placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Raw body text'}
-          onChange={(e) => onBodyChange(e.target.value)}
-          spellCheck={false}
-          aria-label="Request body"
-        />
+        <>
+          <textarea
+            ref={textareaRef}
+            className="body-textarea"
+            value={body}
+            placeholder={bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Raw body text'}
+            onChange={(e) => {
+              onBodyChange(e.target.value);
+              checkTrigger();
+            }}
+            onKeyDown={onKeyDown}
+            spellCheck={false}
+            aria-label="Request body"
+          />
+          <VarPopover
+            open={open}
+            items={filteredVars}
+            selectedIdx={selectedIdx}
+            anchorRef={textareaRef}
+            onSelect={select}
+            onClose={close}
+          />
+        </>
       )}
 
       {bodyType === 'form-data' && (

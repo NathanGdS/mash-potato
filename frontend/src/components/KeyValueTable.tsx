@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import VarPopover from './VarPopover';
 
 export interface KVRow {
   key: string;
@@ -11,6 +13,49 @@ interface KeyValueTableProps {
   onChange: (rows: KVRow[]) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+}
+
+/** A value input that surfaces the {{ variable autocomplete popover. */
+function VarValueInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown, close } =
+    useVarAutocomplete({
+      inputRef,
+      onInsert: onChange,
+    });
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="text"
+        className="kv-input"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => {
+          onChange(e.target.value);
+          checkTrigger();
+        }}
+        onKeyDown={onKeyDown}
+      />
+      <VarPopover
+        open={open}
+        items={filteredVars}
+        selectedIdx={selectedIdx}
+        anchorRef={inputRef}
+        onSelect={select}
+        onClose={close}
+      />
+    </>
+  );
 }
 
 const KeyValueTable: React.FC<KeyValueTableProps> = ({
@@ -64,12 +109,10 @@ const KeyValueTable: React.FC<KeyValueTableProps> = ({
                 />
               </td>
               <td>
-                <input
-                  type="text"
-                  className="kv-input"
+                <VarValueInput
                   value={row.value}
                   placeholder={valuePlaceholder}
-                  onChange={(e) => updateRow(i, { value: e.target.value })}
+                  onChange={(v) => updateRow(i, { value: v })}
                 />
               </td>
               <td>

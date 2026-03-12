@@ -76,8 +76,14 @@
   border-color: #f97316;
 }
 
-.url-bar {
+.url-bar-wrapper {
   flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.url-bar {
+  width: 100%;
   background: #1e2532;
   border: 1px solid #4a5568;
   border-radius: 4px;
@@ -358,6 +364,18 @@
 .env-selector:focus {
   border-color: #f97316;
   color: #e2e8f0;
+}
+
+.env-selector--active {
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.45);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.env-selector--active:hover,
+.env-selector--active:focus {
+  border-color: #f97316;
+  color: #f97316;
 }
 
 /* ── Workspace split layout ─────────────────────────────── */
