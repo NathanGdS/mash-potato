@@ -64,6 +64,39 @@ func migrate(db *sql.DB) error {
 		return fmt.Errorf("migrate requests: %w", err)
 	}
 
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS environments (
+			id         TEXT PRIMARY KEY,
+			name       TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate environments: %w", err)
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS settings (
+			key   TEXT PRIMARY KEY,
+			value TEXT NOT NULL DEFAULT ''
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate settings: %w", err)
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS environment_variables (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			environment_id TEXT    NOT NULL REFERENCES environments(id) ON DELETE CASCADE,
+			key            TEXT    NOT NULL,
+			value          TEXT    NOT NULL
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate environment_variables: %w", err)
+	}
+
 	// Add columns that may be missing if the table was created by an older migration.
 	addColumns := []string{
 		`ALTER TABLE requests ADD COLUMN headers   TEXT NOT NULL DEFAULT '[]'`,
