@@ -27,7 +27,7 @@ function parseKV(json: string): KVRow[] {
 
 const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
   const updateRequest = useRequestsStore((s) => s.updateRequest);
-  const { sendRequest, isLoading, error: responseError } = useResponseStore();
+  const { sendRequest, cancelRequest, isLoading, error: responseError } = useResponseStore();
 
   // Local editable state — initialized from prop, synced when request.id changes
   const [method, setMethod] = useState(request.method);
@@ -103,11 +103,15 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
     schedulePersist({ body: b });
   };
 
-  const handleSend = useCallback(() => {
-    sendRequest(request.id).catch(() => {
-      // errors are stored in responseStore; nothing extra needed here
-    });
-  }, [sendRequest, request.id]);
+  const handleSendOrCancel = useCallback(() => {
+    if (isLoading) {
+      cancelRequest();
+    } else {
+      sendRequest(request.id).catch(() => {
+        // errors are stored in responseStore; nothing extra needed here
+      });
+    }
+  }, [isLoading, cancelRequest, sendRequest, request.id]);
 
   return (
     <div className="request-editor">
@@ -116,12 +120,18 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
         <MethodSelector value={method} onChange={handleMethodChange} />
         <UrlBar value={url} onChange={handleUrlChange} />
         <button
-          className={`send-btn${isLoading ? ' send-btn--loading' : ''}`}
-          onClick={handleSend}
-          disabled={isLoading}
-          aria-label="Send request"
+          className={`send-btn${isLoading ? ' send-btn--cancel' : ''}`}
+          onClick={handleSendOrCancel}
+          aria-label={isLoading ? 'Cancel request' : 'Send request'}
         >
-          {isLoading ? <span className="send-btn-spinner" aria-hidden="true" /> : 'Send'}
+          {isLoading ? (
+            <>
+              <span className="send-btn-spinner" aria-hidden="true" />
+              {' Cancel'}
+            </>
+          ) : (
+            'Send'
+          )}
         </button>
       </div>
 
@@ -133,17 +143,39 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
       )}
 
       {/* Tab navigation */}
-      <div className="request-editor-tabs">
-        {(['params', 'headers', 'body'] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            className={`re-tab${activeTab === tab ? ' re-tab--active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const paramsCount = params.filter((p) => p.enabled && p.key).length;
+        const headersCount = headers.filter((h) => h.enabled && h.key).length;
+        const hasBody = body.trim().length > 0;
+
+        const tabLabels: Record<Tab, { label: string; badge: number | boolean }> = {
+          params:  { label: 'Params',  badge: paramsCount },
+          headers: { label: 'Headers', badge: headersCount },
+          body:    { label: 'Body',    badge: hasBody },
+        };
+
+        return (
+          <div className="request-editor-tabs">
+            {(['params', 'headers', 'body'] as Tab[]).map((tab) => {
+              const { label, badge } = tabLabels[tab];
+              const showBadge = typeof badge === 'boolean' ? badge : badge > 0;
+              const badgeText = typeof badge === 'boolean' ? '●' : String(badge);
+              return (
+                <button
+                  key={tab}
+                  className={`re-tab${activeTab === tab ? ' re-tab--active' : ''}`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {label}
+                  {showBadge && (
+                    <span className="re-tab-count">{badgeText}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Tab panels */}
       <div className="request-editor-panel">
