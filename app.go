@@ -129,6 +129,9 @@ type RequestPayload struct {
 
 // SendRequest fetches the request from SQLite by id, executes it via net/http,
 // and returns a ResponseResult with status, body, headers, duration, and size.
+// Before dispatching, all {{variable}} tokens in URL, headers, params, and body
+// are replaced with values from the active environment (if one is set).
+// Interpolation is ephemeral — resolved values are never written back to the DB.
 func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	if strings.TrimSpace(id) == "" {
 		return httpclient.ResponseResult{}, fmt.Errorf("request id cannot be empty")
@@ -137,11 +140,137 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	if err != nil {
 		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: load request: %w", err)
 	}
+
+	// Build the interpolation vars map from the active environment (if any).
+	vars := map[string]string{}
+	envID, err := db.GetSetting("active_environment_id")
+	if err != nil {
+		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: get active environment: %w", err)
+	}
+	if envID != "" {
+		dbVars, err := db.GetVariables(envID)
+		if err != nil {
+			return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: get variables: %w", err)
+		}
+		for _, v := range dbVars {
+			vars[v.Key] = v.Value
+		}
+	}
+
+	// Apply interpolation to all text fields (ephemeral — not saved to DB).
+	if len(vars) > 0 {
+		req.URL = Interpolate(req.URL, vars)
+		req.Headers = Interpolate(req.Headers, vars)
+		req.Params = Interpolate(req.Params, vars)
+		req.Body = Interpolate(req.Body, vars)
+	}
+
 	result, err := httpclient.ExecuteRequest(req)
 	if err != nil {
 		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: %w", err)
 	}
 	return result, nil
+}
+
+// CreateEnvironment validates the name, generates a UUID, persists to SQLite,
+// and returns the new environment.
+func (a *App) CreateEnvironment(name string) (db.Environment, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return db.Environment{}, fmt.Errorf("environment name cannot be empty")
+	}
+	id := uuid.New().String()
+	env, err := db.InsertEnvironment(id, name)
+	if err != nil {
+		return db.Environment{}, fmt.Errorf("CreateEnvironment: %w", err)
+	}
+	return env, nil
+}
+
+// ListEnvironments returns all stored environments.
+func (a *App) ListEnvironments() ([]db.Environment, error) {
+	envs, err := db.ListEnvironments()
+	if err != nil {
+		return nil, fmt.Errorf("ListEnvironments: %w", err)
+	}
+	if envs == nil {
+		return []db.Environment{}, nil
+	}
+	return envs, nil
+}
+
+// RenameEnvironment validates the new name and updates the environment in SQLite.
+func (a *App) RenameEnvironment(id string, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("environment name cannot be empty")
+	}
+	if err := db.UpdateEnvironment(id, name); err != nil {
+		return fmt.Errorf("RenameEnvironment: %w", err)
+	}
+	return nil
+}
+
+// DeleteEnvironment removes an environment from SQLite.
+func (a *App) DeleteEnvironment(id string) error {
+	if err := db.DeleteEnvironment(id); err != nil {
+		return fmt.Errorf("DeleteEnvironment: %w", err)
+	}
+	return nil
+}
+
+// GetActiveEnvironment returns the ID of the currently active environment.
+// Returns an empty string when no environment is selected.
+func (a *App) GetActiveEnvironment() (string, error) {
+	id, err := db.GetSetting("active_environment_id")
+	if err != nil {
+		return "", fmt.Errorf("GetActiveEnvironment: %w", err)
+	}
+	return id, nil
+}
+
+// SetActiveEnvironment persists the active environment ID.
+// Pass an empty string to clear the selection (no active environment).
+func (a *App) SetActiveEnvironment(id string) error {
+	if err := db.SetSetting("active_environment_id", id); err != nil {
+		return fmt.Errorf("SetActiveEnvironment: %w", err)
+	}
+	return nil
+}
+
+// SetVariable upserts a key-value variable for the given environment and returns it.
+func (a *App) SetVariable(environmentID string, key string, value string) (db.EnvironmentVariable, error) {
+	if strings.TrimSpace(environmentID) == "" {
+		return db.EnvironmentVariable{}, fmt.Errorf("environment id cannot be empty")
+	}
+	if strings.TrimSpace(key) == "" {
+		return db.EnvironmentVariable{}, fmt.Errorf("variable key cannot be empty")
+	}
+	v, err := db.SetVariable(environmentID, key, value)
+	if err != nil {
+		return db.EnvironmentVariable{}, fmt.Errorf("SetVariable: %w", err)
+	}
+	return v, nil
+}
+
+// GetVariables returns all variables for the given environment.
+func (a *App) GetVariables(environmentID string) ([]db.EnvironmentVariable, error) {
+	vars, err := db.GetVariables(environmentID)
+	if err != nil {
+		return nil, fmt.Errorf("GetVariables: %w", err)
+	}
+	if vars == nil {
+		return []db.EnvironmentVariable{}, nil
+	}
+	return vars, nil
+}
+
+// DeleteVariable removes a variable by its integer id.
+func (a *App) DeleteVariable(id int64) error {
+	if err := db.DeleteVariable(id); err != nil {
+		return fmt.Errorf("DeleteVariable: %w", err)
+	}
+	return nil
 }
 
 // UpdateRequest persists all mutable fields of a request to SQLite.
