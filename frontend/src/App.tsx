@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
@@ -7,9 +7,70 @@ import EnvironmentSelector from './components/EnvironmentSelector';
 import { useRequestsStore } from './store/requestsStore';
 import './App.css';
 
+const MIN_PANE_HEIGHT = 120;
+const STORAGE_KEY = 'mash-potato:split-ratio';
+
+function loadSplitRatio(): number {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      const ratio = parseFloat(stored);
+      if (!isNaN(ratio) && ratio > 0 && ratio < 1) return ratio;
+    }
+  } catch {
+    // ignore
+  }
+  return 0.5;
+}
+
 const App: React.FC = () => {
   const activeRequest = useRequestsStore((s) => s.activeRequest);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
+  const [splitRatio, setSplitRatio] = useState<number>(loadSplitRatio);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging.current || !workspaceRef.current) return;
+    const rect = workspaceRef.current.getBoundingClientRect();
+    const totalHeight = rect.height;
+    const offsetY = e.clientY - rect.top;
+    const minRatio = MIN_PANE_HEIGHT / totalHeight;
+    const maxRatio = 1 - MIN_PANE_HEIGHT / totalHeight;
+    const newRatio = Math.min(Math.max(offsetY / totalHeight, minRatio), maxRatio);
+    setSplitRatio(newRatio);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    setSplitRatio((ratio) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, String(ratio));
+      } catch {
+        // ignore
+      }
+      return ratio;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
 
   return (
     <div className="app-layout">
@@ -32,9 +93,21 @@ const App: React.FC = () => {
           </div>
         </div>
         {activeRequest ? (
-          <div className="app-workspace">
-            <div className="app-request-pane">
+          <div className="app-workspace" ref={workspaceRef}>
+            <div
+              className="app-request-pane"
+              style={{ height: `calc(${splitRatio * 100}% - 5px)` }}
+            >
               <RequestEditor request={activeRequest} />
+            </div>
+            <div
+              className="app-divider"
+              onMouseDown={handleDividerMouseDown}
+              aria-label="Resize panels"
+              role="separator"
+              aria-orientation="horizontal"
+            >
+              <span className="app-divider-dots" aria-hidden="true" />
             </div>
             <div className="app-response-pane">
               <ResponseViewer />
