@@ -36,7 +36,7 @@ const UrlBar: React.FC<UrlBarProps> = ({ value, onChange }) => {
       type="text"
       className="url-bar"
       value={local}
-      placeholder="https://example.com/api"
+      placeholder="https://example.com/api  or  {{base_url}}/path"
       onChange={handleChange}
       onBlur={handleBlur}
       aria-label="Request URL"

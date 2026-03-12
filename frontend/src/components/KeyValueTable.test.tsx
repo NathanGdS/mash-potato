@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import KeyValueTable, { KVRow } from './KeyValueTable';
@@ -110,5 +110,21 @@ describe('KeyValueTable', () => {
     );
     render(<KeyValueTable rows={rows} onChange={() => {}} />);
     expect(screen.getAllByRole('row')).toHaveLength(4); // thead + 3 body rows
+  });
+
+  // US-4: Use Variables in Requests — {{variable}} syntax must not be transformed
+  it('preserves {{api_key}} exactly when entered as a header value', () => {
+    // Use fireEvent.change to set the value directly, bypassing userEvent special-char escaping.
+    // This confirms the input performs no filtering or transformation of {{ }} characters.
+    render(<Controlled initial={makeRows({ key: 'Authorization', value: '', enabled: true })} />);
+    const valueInput = screen.getAllByPlaceholderText('Value')[0];
+    fireEvent.change(valueInput, { target: { value: '{{api_key}}' } });
+    expect(valueInput).toHaveValue('{{api_key}}');
+  });
+
+  it('renders an existing row whose value contains {{ }} without modification', () => {
+    const rows = makeRows({ key: 'X-Token', value: '{{auth_token}}' });
+    render(<KeyValueTable rows={rows} onChange={() => {}} />);
+    expect(screen.getByDisplayValue('{{auth_token}}')).toBeInTheDocument();
   });
 });
