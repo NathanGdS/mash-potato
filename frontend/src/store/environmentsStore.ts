@@ -124,15 +124,11 @@ export const useEnvironmentsStore = create<EnvironmentsState>((set) => ({
 
   setVariable: async (environmentId: string, key: string, value: string) => {
     const v = await SetVariable(environmentId, key, value);
-    set((state) => {
-      const existing = state.variables[environmentId] ?? [];
-      const idx = existing.findIndex((x) => x.id === v.id);
-      const updated =
-        idx >= 0
-          ? existing.map((x) => (x.id === v.id ? v : x))
-          : [...existing, v];
-      return { variables: { ...state.variables, [environmentId]: updated } };
-    });
+    // Re-fetch all variables to ensure local state is fully in sync
+    const vars = await GetVariables(environmentId);
+    set((state) => ({
+      variables: { ...state.variables, [environmentId]: vars ?? [] },
+    }));
     return v;
   },
 

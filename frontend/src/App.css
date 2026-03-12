@@ -850,6 +850,82 @@
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
 }
 
+/* ── Save-as-variable floating action button ────────────── */
+.rb-save-var-btn-wrapper {
+  pointer-events: auto;
+}
+
+.rb-save-var-btn {
+  background: #f97316;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: background 0.12s, box-shadow 0.12s;
+  letter-spacing: 0.02em;
+}
+
+.rb-save-var-btn:hover:not(:disabled) {
+  background: #ea6c0a;
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.45);
+}
+
+.rb-save-var-btn:disabled {
+  background: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.rb-save-var-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #a0aec0;
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Save-variable success toast ───────────────────────── */
+.rb-save-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a3a2a;
+  border: 1px solid #2f6b47;
+  border-radius: 6px;
+  color: #68d391;
+  font-size: 13px;
+  padding: 8px 16px;
+  z-index: 11000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  animation: rb-toast-in 0.15s ease-out;
+}
+
+.rb-save-toast-name {
+  color: #f97316;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-weight: 600;
+}
+
+@keyframes rb-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* ── Body textarea with highlight overlay ───────────────── */
 .body-textarea-wrapper {
   flex: 1;

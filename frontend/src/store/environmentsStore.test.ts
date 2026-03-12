@@ -102,6 +102,7 @@ describe('deleteEnvironment', () => {
 describe('setVariable', () => {
   it('appends a new variable to the environment variables list', async () => {
     vi.mocked(App.SetVariable).mockResolvedValue(mockVar);
+    vi.mocked(App.GetVariables).mockResolvedValue([mockVar]);
     const result = await useEnvironmentsStore.getState().setVariable('env-1', 'API_KEY', 'secret');
     expect(result).toEqual(mockVar);
     expect(useEnvironmentsStore.getState().variables['env-1']).toContainEqual(mockVar);
@@ -111,6 +112,7 @@ describe('setVariable', () => {
     const updated = { ...mockVar, value: 'new-secret' };
     useEnvironmentsStore.setState({ variables: { 'env-1': [mockVar] } });
     vi.mocked(App.SetVariable).mockResolvedValue(updated);
+    vi.mocked(App.GetVariables).mockResolvedValue([updated]);
     await useEnvironmentsStore.getState().setVariable('env-1', 'API_KEY', 'new-secret');
     const vars = useEnvironmentsStore.getState().variables['env-1'];
     expect(vars).toHaveLength(1);

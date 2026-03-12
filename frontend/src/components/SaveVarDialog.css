@@ -1,0 +1,199 @@
+/* ── SaveVarDialog overlay ──────────────────────────────── */
+.svd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.svd-dialog {
+  background: #1e2532;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  padding: 20px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.svd-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.svd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.svd-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #718096;
+}
+
+.svd-value-preview {
+  background: #141922;
+  border: 1px solid #2d3748;
+  border-radius: 4px;
+  color: #a0aec0;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svd-input {
+  background: #141922;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  padding: 6px 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.svd-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.svd-input::placeholder {
+  color: #4a5568;
+}
+
+.svd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.svd-cancel-btn {
+  background: none;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #a0aec0;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.svd-cancel-btn:hover {
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.svd-save-btn {
+  background: #f97316;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.svd-save-btn:hover:not(:disabled) {
+  background: #ea6c0a;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.28);
+}
+
+.svd-save-btn:disabled {
+  background: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ── Mode tabs ──────────────────────────────────────────── */
+.svd-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.svd-tab {
+  flex: 1;
+  background: #141922;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.svd-tab + .svd-tab {
+  border-left: 1px solid #2d3748;
+}
+
+.svd-tab:hover:not(:disabled):not(.svd-tab--active) {
+  background: #1e2532;
+  color: #a0aec0;
+}
+
+.svd-tab--active {
+  background: #1e2532;
+  color: #f97316;
+  font-weight: 600;
+}
+
+.svd-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Existing-var select ────────────────────────────────── */
+.svd-select {
+  background: #141922;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  padding: 6px 8px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.svd-select:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.svd-select option {
+  background: #1e2532;
+}
+
+/* ── Error ──────────────────────────────────────────────── */
+.svd-error {
+  margin: 0;
+  font-size: 12px;
+  color: #fc8181;
+  background: rgba(138, 32, 32, 0.18);
+  border: 1px solid rgba(252, 129, 129, 0.2);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
