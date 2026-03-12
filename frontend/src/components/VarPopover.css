@@ -1,0 +1,51 @@
+/* ── Variable autocomplete popover ──────────────────────── */
+.var-popover {
+  position: fixed;
+  z-index: 9999;
+  background: #1e2532;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.var-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: #a0aec0;
+  transition: background 0.08s, color 0.08s;
+  white-space: nowrap;
+}
+
+.var-popover-item:hover,
+.var-popover-item--active {
+  background: rgba(249, 115, 22, 0.1);
+  color: #e2e8f0;
+}
+
+.var-popover-item--active {
+  background: rgba(249, 115, 22, 0.14);
+}
+
+.var-popover-braces {
+  color: #4a5568;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.var-popover-name {
+  color: #f97316;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-weight: 600;
+  font-size: 12px;
+  margin: 0 1px;
+}
