@@ -84,6 +84,14 @@
   font-style: normal;
 }
 
+/* ── JSON highlighting ────────────────────────────────── */
+.json-key     { color: var(--json-key); }
+.json-string  { color: var(--json-string); }
+.json-number  { color: var(--json-number); }
+.json-boolean { color: var(--json-boolean); }
+.json-null    { color: var(--json-null); }
+.json-structural { color: var(--json-structural); }
+
 /* ── URL bar with highlight overlay ────────────────────── */
 .url-bar-wrapper {
   flex: 1;
@@ -344,10 +352,48 @@
   height: 100%;
 }
 
+.body-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
 .body-type-selector {
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
+}
+
+.body-beautify-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  transition: all 0.15s ease;
+}
+
+.body-beautify-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.body-validation-error {
+  background: var(--status-5xx-bg);
+  border: 1px solid var(--status-5xx-border);
+  border-radius: var(--radius-sm);
+  color: var(--status-5xx-fg);
+  font-size: 12px;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-1);
 }
 
 .body-type-option {
@@ -699,6 +745,39 @@
   background: var(--bg-secondary);
   flex-wrap: wrap;
   min-height: 48px;
+}
+
+.rv-copy-btn {
+  margin-left: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rv-copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.rv-copy-btn--success {
+  border-color: var(--status-2xx-border);
+  color: var(--status-2xx-fg);
+  background: var(--status-2xx-bg);
+}
+
+.rv-copy-btn--success:hover {
+  border-color: var(--status-2xx-border);
+  color: var(--status-2xx-fg);
+  background: var(--status-2xx-bg);
 }
 
 .response-viewer-tabs {
