@@ -102,3 +102,45 @@ func (a *App) ListRequests(collectionID string) ([]db.Request, error) {
 	}
 	return reqs, nil
 }
+
+// GetRequest returns a single request by ID.
+func (a *App) GetRequest(id string) (db.Request, error) {
+	if strings.TrimSpace(id) == "" {
+		return db.Request{}, fmt.Errorf("request id cannot be empty")
+	}
+	req, err := db.GetRequest(id)
+	if err != nil {
+		return db.Request{}, fmt.Errorf("GetRequest: %w", err)
+	}
+	return req, nil
+}
+
+// RequestPayload carries all mutable request fields for UpdateRequest.
+type RequestPayload struct {
+	ID       string `json:"id"`
+	Method   string `json:"method"`
+	URL      string `json:"url"`
+	Headers  string `json:"headers"`
+	Params   string `json:"params"`
+	BodyType string `json:"body_type"`
+	Body     string `json:"body"`
+}
+
+// UpdateRequest persists all mutable fields of a request to SQLite.
+func (a *App) UpdateRequest(payload RequestPayload) error {
+	if strings.TrimSpace(payload.ID) == "" {
+		return fmt.Errorf("request id cannot be empty")
+	}
+	if err := db.UpdateRequest(
+		payload.ID,
+		payload.Method,
+		payload.URL,
+		payload.Headers,
+		payload.Params,
+		payload.BodyType,
+		payload.Body,
+	); err != nil {
+		return fmt.Errorf("UpdateRequest: %w", err)
+	}
+	return nil
+}

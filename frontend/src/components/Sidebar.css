@@ -146,3 +146,130 @@
 .collection-delete-btn:hover {
   color: #fc8181;
 }
+
+/* ── Collection tree: expand / add-request buttons ─────── */
+.collection-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.collection-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+}
+
+.collection-expand-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.collection-expand-btn:hover {
+  color: #e2e8f0;
+}
+
+.collection-add-request-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color 0.15s;
+}
+
+.collection-item:hover .collection-add-request-btn {
+  display: block;
+}
+
+.collection-add-request-btn:hover {
+  color: #49cc90;
+}
+
+/* ── Request list ───────────────────────────────────────── */
+.request-list {
+  list-style: none;
+  padding: 0 0 0 28px;
+  margin: 2px 0 4px;
+  width: 100%;
+}
+
+.request-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #a0aec0;
+  transition: background 0.1s;
+}
+
+.request-item:hover {
+  background: #1e2532;
+  color: #e2e8f0;
+}
+
+.request-item--active {
+  background: #1e2532;
+  color: #f97316 !important;
+}
+
+.request-item--status,
+.request-item--error,
+.request-item--empty {
+  color: #4a5568;
+  font-style: italic;
+  cursor: default;
+}
+
+.request-item--error {
+  color: #fc8181;
+}
+
+.request-item--new {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.request-method {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #61affe;
+  flex-shrink: 0;
+  min-width: 42px;
+}
+
+.request-item--active .request-method {
+  color: #f97316;
+}
+
+.request-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.request-name-input {
+  width: 100%;
+  background: #1e2532;
+  border: 1px solid #f97316;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 2px 4px;
+  outline: none;
+}

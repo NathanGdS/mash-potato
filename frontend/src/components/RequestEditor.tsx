@@ -1,0 +1,159 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Request } from '../types/request';
+import { useRequestsStore } from '../store/requestsStore';
+import MethodSelector, { HttpMethod } from './MethodSelector';
+import UrlBar from './UrlBar';
+import KeyValueTable, { KVRow } from './KeyValueTable';
+import BodyEditor, { BodyType } from './BodyEditor';
+import { RequestPayload } from '../wailsjs/go/main/App';
+
+type Tab = 'params' | 'headers' | 'body';
+
+interface RequestEditorProps {
+  request: Request;
+}
+
+/** Parse a JSON string into KVRow[]; returns [] on failure. */
+function parseKV(json: string): KVRow[] {
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) return parsed as KVRow[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
+  const updateRequest = useRequestsStore((s) => s.updateRequest);
+
+  // Local editable state — initialized from prop, synced when request.id changes
+  const [method, setMethod] = useState(request.method);
+  const [url, setUrl] = useState(request.url);
+  const [headers, setHeaders] = useState<KVRow[]>(parseKV(request.headers));
+  const [params, setParams] = useState<KVRow[]>(parseKV(request.params));
+  const [bodyType, setBodyType] = useState<BodyType>(request.body_type as BodyType);
+  const [body, setBody] = useState(request.body);
+  const [activeTab, setActiveTab] = useState<Tab>('params');
+
+  // Reset local state when the selected request changes
+  useEffect(() => {
+    setMethod(request.method);
+    setUrl(request.url);
+    setHeaders(parseKV(request.headers));
+    setParams(parseKV(request.params));
+    setBodyType(request.body_type as BodyType);
+    setBody(request.body);
+  }, [request.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Build a payload from current local state, then persist. */
+  const persist = useCallback(
+    (overrides: Partial<RequestPayload> = {}) => {
+      const payload: RequestPayload = {
+        id: request.id,
+        method,
+        url,
+        headers: JSON.stringify(headers),
+        params: JSON.stringify(params),
+        body_type: bodyType,
+        body,
+        ...overrides,
+      };
+      updateRequest(payload).catch((err) => console.error('UpdateRequest failed:', err));
+    },
+    [request.id, method, url, headers, params, bodyType, body, updateRequest]
+  );
+
+  /** Debounce ref for URL changes */
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedulePersist = (overrides: Partial<RequestPayload> = {}) => {
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => persist(overrides), 0);
+  };
+
+  const handleMethodChange = (m: HttpMethod) => {
+    setMethod(m);
+    schedulePersist({ method: m });
+  };
+
+  const handleUrlChange = (u: string) => {
+    setUrl(u);
+    schedulePersist({ url: u });
+  };
+
+  const handleHeadersChange = (rows: KVRow[]) => {
+    setHeaders(rows);
+    schedulePersist({ headers: JSON.stringify(rows) });
+  };
+
+  const handleParamsChange = (rows: KVRow[]) => {
+    setParams(rows);
+    schedulePersist({ params: JSON.stringify(rows) });
+  };
+
+  const handleBodyTypeChange = (t: BodyType) => {
+    setBodyType(t);
+    schedulePersist({ body_type: t });
+  };
+
+  const handleBodyChange = (b: string) => {
+    setBody(b);
+    schedulePersist({ body: b });
+  };
+
+  return (
+    <div className="request-editor">
+      {/* Top bar: method + url */}
+      <div className="request-editor-bar">
+        <MethodSelector value={method} onChange={handleMethodChange} />
+        <UrlBar value={url} onChange={handleUrlChange} />
+      </div>
+
+      {/* Tab navigation */}
+      <div className="request-editor-tabs">
+        {(['params', 'headers', 'body'] as Tab[]).map((tab) => (
+          <button
+            key={tab}
+            className={`re-tab${activeTab === tab ? ' re-tab--active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab panels */}
+      <div className="request-editor-panel">
+        {activeTab === 'params' && (
+          <KeyValueTable
+            rows={params}
+            onChange={handleParamsChange}
+            keyPlaceholder="Parameter"
+            valuePlaceholder="Value"
+          />
+        )}
+
+        {activeTab === 'headers' && (
+          <KeyValueTable
+            rows={headers}
+            onChange={handleHeadersChange}
+            keyPlaceholder="Header"
+            valuePlaceholder="Value"
+          />
+        )}
+
+        {activeTab === 'body' && (
+          <BodyEditor
+            method={method}
+            bodyType={bodyType}
+            body={body}
+            onBodyTypeChange={handleBodyTypeChange}
+            onBodyChange={handleBodyChange}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default RequestEditor;

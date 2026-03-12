@@ -45,6 +45,51 @@ func InsertRequest(id, collectionID, name string) (Request, error) {
 	}, nil
 }
 
+// GetRequest returns a single request by its ID.
+func GetRequest(id string) (Request, error) {
+	row := DB.QueryRow(
+		`SELECT id, collection_id, name, method, url, headers, params, body_type, body, created_at
+		   FROM requests
+		  WHERE id = ?`,
+		id,
+	)
+	var r Request
+	var createdAtStr string
+	if err := row.Scan(
+		&r.ID, &r.CollectionID, &r.Name, &r.Method, &r.URL,
+		&r.Headers, &r.Params, &r.BodyType, &r.Body, &createdAtStr,
+	); err != nil {
+		return Request{}, fmt.Errorf("GetRequest: %w", err)
+	}
+	var parseErr error
+	r.CreatedAt, parseErr = time.Parse(time.RFC3339, createdAtStr)
+	if parseErr != nil {
+		r.CreatedAt = time.Time{}
+	}
+	return r, nil
+}
+
+// UpdateRequest updates all mutable fields of a request row.
+func UpdateRequest(id, method, url, headers, params, bodyType, body string) error {
+	res, err := DB.Exec(
+		`UPDATE requests
+		    SET method = ?, url = ?, headers = ?, params = ?, body_type = ?, body = ?
+		  WHERE id = ?`,
+		method, url, headers, params, bodyType, body, id,
+	)
+	if err != nil {
+		return fmt.Errorf("UpdateRequest: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("UpdateRequest rows affected: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("UpdateRequest: no row with id %s", id)
+	}
+	return nil
+}
+
 // ListRequests returns all requests for a given collection, ordered by creation time.
 func ListRequests(collectionID string) ([]Request, error) {
 	rows, err := DB.Query(

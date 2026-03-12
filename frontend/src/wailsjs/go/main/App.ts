@@ -31,3 +31,21 @@ export function CreateRequest(collectionId: string, name: string): Promise<impor
 export function ListRequests(collectionId: string): Promise<import('../../../types/request').Request[]> {
   return go?.main?.App?.ListRequests(collectionId);
 }
+
+export function GetRequest(id: string): Promise<import('../../../types/request').Request> {
+  return go?.main?.App?.GetRequest(id);
+}
+
+export interface RequestPayload {
+  id: string;
+  method: string;
+  url: string;
+  headers: string;
+  params: string;
+  body_type: string;
+  body: string;
+}
+
+export function UpdateRequest(payload: RequestPayload): Promise<void> {
+  return go?.main?.App?.UpdateRequest(payload);
+}

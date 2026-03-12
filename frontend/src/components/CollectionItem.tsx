@@ -13,6 +13,8 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
 
   const fetchRequests = useRequestsStore((s) => s.fetchRequests);
   const createRequest = useRequestsStore((s) => s.createRequest);
+  const openRequest = useRequestsStore((s) => s.openRequest);
+  const activeRequest = useRequestsStore((s) => s.activeRequest);
   const requests = useRequestsStore((s) => s.requestsByCollection[collection.id] ?? []);
   const requestsLoading = useRequestsStore((s) => s.loadingFor[collection.id] ?? false);
   const requestsError = useRequestsStore((s) => s.errorFor[collection.id] ?? null);
@@ -212,7 +214,12 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
             <li className="request-item request-item--empty">No requests yet.</li>
           )}
           {requests.map((req) => (
-            <li key={req.id} className="request-item">
+            <li
+              key={req.id}
+              className={`request-item${activeRequest?.id === req.id ? ' request-item--active' : ''}`}
+              onClick={() => openRequest(req.id)}
+              style={{ cursor: 'pointer' }}
+            >
               <span className="request-method">{req.method}</span>
               <span className="request-name">{req.name}</span>
             </li>
