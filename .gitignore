@@ -1,1 +1,24 @@
 .claude/
+
+# Go build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test / coverage
+*.test
+*.out
+coverage.html
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Wails build output
+build/bin/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
