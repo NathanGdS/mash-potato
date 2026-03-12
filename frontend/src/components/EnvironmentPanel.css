@@ -1,0 +1,379 @@
+/* ── Modal shell ─────────────────────────────────────────── */
+.env-modal {
+  background: #1e2532;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  width: 740px;
+  max-width: 92vw;
+  height: 520px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.env-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #2d3748;
+  flex-shrink: 0;
+}
+
+.env-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.env-modal-close {
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.env-modal-close:hover {
+  color: #e2e8f0;
+  background: #2d3748;
+}
+
+/* ── Body: two columns ───────────────────────────────────── */
+.env-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Left panel: environment list ────────────────────────── */
+.env-list-panel {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid #2d3748;
+  display: flex;
+  flex-direction: column;
+  background: #141922;
+}
+
+.env-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 8px 14px;
+  border-bottom: 1px solid #2d3748;
+  flex-shrink: 0;
+}
+
+.env-list-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4a5568;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.env-list-add-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+
+.env-list-add-btn:hover { color: #f97316; }
+
+.env-new-row {
+  padding: 6px 8px;
+  border-bottom: 1px solid #2d3748;
+}
+
+.env-new-input {
+  width: 100%;
+  background: #1e2532;
+  border: 1px solid #f97316;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.env-list {
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.env-list-hint {
+  font-size: 12px;
+  color: #4a5568;
+  font-style: italic;
+  padding: 14px 14px;
+}
+
+.env-list-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px 8px 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 1px 4px;
+  font-size: 13px;
+  color: #a0aec0;
+  transition: background 0.1s, color 0.1s;
+  min-width: 0;
+}
+
+.env-list-item:hover {
+  background: #1e2532;
+  color: #e2e8f0;
+}
+
+.env-list-item--active {
+  background: #1e2532;
+  color: #f97316;
+}
+
+.env-list-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.env-list-actions {
+  display: none;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.env-list-item:hover .env-list-actions { display: flex; }
+
+.env-list-btn {
+  background: none;
+  border: none;
+  color: #4a5568;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.env-list-btn:hover {
+  color: #e2e8f0;
+  background: #2d3748;
+}
+
+.env-list-btn--danger:hover {
+  color: #fc8181;
+  background: #3a1a1a;
+}
+
+.env-rename-input {
+  width: 100%;
+  background: #141922;
+  border: 1px solid #f97316;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* ── Right panel: variables ──────────────────────────────── */
+.env-vars-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.env-vars-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a5568;
+  font-size: 13px;
+}
+
+.env-vars-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #2d3748;
+  flex-shrink: 0;
+}
+
+.env-vars-env-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.env-vars-hint {
+  font-size: 11px;
+  color: #4a5568;
+}
+
+.env-vars-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.env-vars-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.env-vars-table thead th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid #2d3748;
+  background: #1a202c;
+  z-index: 1;
+}
+
+.env-vars-col-key { width: 38%; }
+.env-vars-col-val { width: auto; }
+.env-vars-col-del { width: 36px; }
+
+.env-vars-td {
+  padding: 2px 4px;
+  border-bottom: 1px solid #191f2a;
+}
+
+.env-vars-td-del {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.env-var-cell {
+  padding: 7px 12px !important;
+  color: #cbd5e0;
+  cursor: text;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.env-vars-row:hover .env-var-cell {
+  background: #1a2236;
+  color: #e2e8f0;
+}
+
+.env-var-empty {
+  color: #4a5568;
+}
+
+.env-var-input {
+  width: 100%;
+  background: #141922;
+  border: 1px solid #f97316;
+  border-radius: 3px;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  padding: 5px 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.env-var-input--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: #a0aec0;
+}
+
+.env-var-input--ghost::placeholder {
+  color: #2d3748;
+}
+
+.env-var-input--ghost:focus {
+  border-color: #f97316;
+  background: #141922;
+  color: #e2e8f0;
+}
+
+.env-var-del-btn {
+  background: none;
+  border: none;
+  color: #4a5568;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.env-vars-row:hover .env-var-del-btn { opacity: 1; }
+
+.env-var-del-btn:hover {
+  color: #fc8181;
+  background: #3a1a1a;
+}
+
+.env-var-add-row .env-vars-td {
+  border-bottom: none;
+  border-top: 1px solid #2d3748;
+}
+
+.env-var-add-icon-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+
+.env-var-add-icon-btn:hover:not(:disabled) { color: #f97316; }
+
+.env-var-add-icon-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.env-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid #2d3748;
+  flex-shrink: 0;
+}
