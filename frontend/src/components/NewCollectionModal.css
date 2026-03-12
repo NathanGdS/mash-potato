@@ -90,10 +90,16 @@
 .btn--primary {
   background: #f97316;
   color: #fff;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
 .btn--primary:hover:not(:disabled) {
   background: #ea6c0a;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.28);
+}
+
+.btn--primary:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn--secondary {

@@ -220,7 +220,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
               onClick={() => openRequest(req.id)}
               style={{ cursor: 'pointer' }}
             >
-              <span className="request-method">{req.method}</span>
+              <span className="request-method" data-method={req.method}>{req.method}</span>
               <span className="request-name">{req.name}</span>
             </li>
           ))}

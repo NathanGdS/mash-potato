@@ -9,6 +9,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 2;
 }
 
 /* Header row */
@@ -16,9 +19,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid #2d3748;
   flex-shrink: 0;
+  background: linear-gradient(180deg, #191d28 0%, #141922 100%);
 }
 
 .sidebar-title {
@@ -26,22 +30,24 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #718096;
+  color: #4a5568;
 }
 
 .sidebar-new-btn {
   background: none;
   border: none;
-  color: #a0aec0;
+  color: #718096;
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
-  transition: color 0.15s;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
 }
 
 .sidebar-new-btn:hover {
   color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
 }
 
 /* Body / scroll area */
@@ -212,7 +218,8 @@
   border-radius: 3px;
   font-size: 12px;
   color: #a0aec0;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
+  border-left: 2px solid transparent;
 }
 
 .request-item:hover {
@@ -221,8 +228,10 @@
 }
 
 .request-item--active {
-  background: #1e2532;
+  background: rgba(249, 115, 22, 0.08) !important;
   color: #f97316 !important;
+  border-left-color: #f97316 !important;
+  padding-left: 6px;
 }
 
 .request-item--status,
@@ -252,8 +261,15 @@
   min-width: 42px;
 }
 
+.request-method[data-method="GET"]    { color: #61affe; }
+.request-method[data-method="POST"]   { color: #49cc90; }
+.request-method[data-method="PUT"]    { color: #fca130; }
+.request-method[data-method="PATCH"]  { color: #50e3c2; }
+.request-method[data-method="DELETE"] { color: #f93e3e; }
+.request-method[data-method="HEAD"]   { color: #9e6aff; }
+
 .request-item--active .request-method {
-  color: #f97316;
+  color: #f97316 !important;
 }
 
 .request-name {
