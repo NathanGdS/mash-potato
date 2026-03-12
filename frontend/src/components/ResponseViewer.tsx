@@ -8,17 +8,8 @@ import ResponseHeaders from './ResponseHeaders';
 type ResponseTab = 'body' | 'headers';
 
 const ResponseViewer: React.FC = () => {
-  const { response, isLoading, error } = useResponseStore();
+  const { response, error } = useResponseStore();
   const [activeTab, setActiveTab] = useState<ResponseTab>('body');
-
-  if (isLoading) {
-    return (
-      <div className="response-viewer response-viewer--loading">
-        <span className="response-viewer-spinner" aria-label="Loading" />
-        <span className="response-viewer-loading-text">Sending request…</span>
-      </div>
-    );
-  }
 
   if (error) {
     return (
