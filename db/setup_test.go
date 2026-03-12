@@ -15,6 +15,8 @@ func TestMain(m *testing.M) {
 
 // clearTables truncates all tables to isolate each test.
 func clearTables() {
+	DB.Exec("DELETE FROM environment_variables")
 	DB.Exec("DELETE FROM requests")
 	DB.Exec("DELETE FROM collections")
+	DB.Exec("DELETE FROM environments")
 }
