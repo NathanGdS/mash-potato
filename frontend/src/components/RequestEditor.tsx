@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Request } from '../types/request';
 import { useRequestsStore } from '../store/requestsStore';
+import { useResponseStore } from '../store/responseStore';
 import MethodSelector, { HttpMethod } from './MethodSelector';
 import UrlBar from './UrlBar';
 import KeyValueTable, { KVRow } from './KeyValueTable';
@@ -26,6 +27,7 @@ function parseKV(json: string): KVRow[] {
 
 const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
   const updateRequest = useRequestsStore((s) => s.updateRequest);
+  const { sendRequest, isLoading, error: responseError } = useResponseStore();
 
   // Local editable state — initialized from prop, synced when request.id changes
   const [method, setMethod] = useState(request.method);
@@ -101,13 +103,34 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
     schedulePersist({ body: b });
   };
 
+  const handleSend = useCallback(() => {
+    sendRequest(request.id).catch(() => {
+      // errors are stored in responseStore; nothing extra needed here
+    });
+  }, [sendRequest, request.id]);
+
   return (
     <div className="request-editor">
-      {/* Top bar: method + url */}
+      {/* Top bar: method + url + send */}
       <div className="request-editor-bar">
         <MethodSelector value={method} onChange={handleMethodChange} />
         <UrlBar value={url} onChange={handleUrlChange} />
+        <button
+          className={`send-btn${isLoading ? ' send-btn--loading' : ''}`}
+          onClick={handleSend}
+          disabled={isLoading}
+          aria-label="Send request"
+        >
+          {isLoading ? <span className="send-btn-spinner" aria-hidden="true" /> : 'Send'}
+        </button>
       </div>
+
+      {/* Inline error from last send */}
+      {responseError && (
+        <div className="send-error" role="alert">
+          {responseError}
+        </div>
+      )}
 
       {/* Tab navigation */}
       <div className="request-editor-tabs">

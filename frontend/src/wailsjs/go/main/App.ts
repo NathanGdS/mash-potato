@@ -49,3 +49,16 @@ export interface RequestPayload {
 export function UpdateRequest(payload: RequestPayload): Promise<void> {
   return go?.main?.App?.UpdateRequest(payload);
 }
+
+export interface ResponseResult {
+  StatusCode: number;
+  StatusText: string;
+  Body: string;
+  Headers: Record<string, string[]>;
+  DurationMs: number;
+  SizeBytes: number;
+}
+
+export function SendRequest(id: string): Promise<ResponseResult> {
+  return go?.main?.App?.SendRequest(id);
+}

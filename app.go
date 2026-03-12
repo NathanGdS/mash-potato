@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"mash-potato/db"
+	"mash-potato/httpclient"
 )
 
 // App holds application state and exposes Wails-bound methods.
@@ -124,6 +125,23 @@ type RequestPayload struct {
 	Params   string `json:"params"`
 	BodyType string `json:"body_type"`
 	Body     string `json:"body"`
+}
+
+// SendRequest fetches the request from SQLite by id, executes it via net/http,
+// and returns a ResponseResult with status, body, headers, duration, and size.
+func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
+	if strings.TrimSpace(id) == "" {
+		return httpclient.ResponseResult{}, fmt.Errorf("request id cannot be empty")
+	}
+	req, err := db.GetRequest(id)
+	if err != nil {
+		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: load request: %w", err)
+	}
+	result, err := httpclient.ExecuteRequest(req)
+	if err != nil {
+		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: %w", err)
+	}
+	return result, nil
 }
 
 // UpdateRequest persists all mutable fields of a request to SQLite.
