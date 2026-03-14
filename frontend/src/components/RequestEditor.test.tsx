@@ -35,6 +35,7 @@ vi.mock('../store/responseStore', () => {
 const makeRequest = (overrides: Partial<Request> = {}): Request => ({
   id: 'req-1',
   collection_id: 'col-1',
+  folder_id: null,
   name: 'Test Request',
   method: 'GET',
   url: '',
@@ -42,6 +43,10 @@ const makeRequest = (overrides: Partial<Request> = {}): Request => ({
   params: '[]',
   body_type: 'none',
   body: '',
+  auth_type: 'none',
+  auth_config: '{}',
+  timeout_seconds: 30,
+  tests: '',
   created_at: '2026-01-01T00:00:00Z',
   ...overrides,
 });

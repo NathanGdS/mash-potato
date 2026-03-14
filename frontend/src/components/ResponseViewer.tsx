@@ -4,12 +4,14 @@ import StatusBadge from './StatusBadge';
 import MetricsBar from './MetricsBar';
 import ResponseBody from './ResponseBody';
 import ResponseHeaders from './ResponseHeaders';
+import TestResults from './TestResults';
 import { tryPrettyPrint } from '../utils/jsonHighlighter';
+import { httpclient } from '../../wailsjs/go/models';
 
-type ResponseTab = 'body' | 'headers';
+type ResponseTab = 'body' | 'headers' | 'tests';
 
 const ResponseViewer: React.FC = () => {
-  const { response, error } = useResponseStore();
+  const { response, error } = useResponseStore() as { response: httpclient.ResponseResult | null, error: string | null };
   const [activeTab, setActiveTab] = useState<ResponseTab>('body');
   const [copied, setCopied] = useState(false);
 
@@ -59,7 +61,7 @@ const ResponseViewer: React.FC = () => {
 
       {/* Tab navigation */}
       <div className="response-viewer-tabs">
-        {(['body', 'headers'] as ResponseTab[]).map((tab) => (
+        {(['body', 'headers', 'tests'] as ResponseTab[]).map((tab) => (
           <button
             key={tab}
             className={`rv-tab${activeTab === tab ? ' rv-tab--active' : ''}`}
@@ -71,6 +73,11 @@ const ResponseViewer: React.FC = () => {
                 {Object.keys(response.Headers).length}
               </span>
             )}
+            {tab === 'tests' && response.TestResults && response.TestResults.length > 0 && (
+              <span className="rv-tab-count">
+                {response.TestResults.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -79,6 +86,7 @@ const ResponseViewer: React.FC = () => {
       <div className="response-viewer-panel">
         {activeTab === 'body' && <ResponseBody body={response.Body} />}
         {activeTab === 'headers' && <ResponseHeaders headers={response.Headers} />}
+        {activeTab === 'tests' && <TestResults results={response.TestResults} />}
       </div>
     </div>
   );
