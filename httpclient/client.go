@@ -16,12 +16,13 @@ import (
 
 // ResponseResult holds the result of an executed HTTP request.
 type ResponseResult struct {
-	StatusCode int                 `json:"StatusCode"`
-	StatusText string              `json:"StatusText"`
-	Body       string              `json:"Body"`
-	Headers    map[string][]string `json:"Headers"`
-	DurationMs int64               `json:"DurationMs"`
-	SizeBytes  int64               `json:"SizeBytes"`
+	StatusCode  int                 `json:"StatusCode"`
+	StatusText  string              `json:"StatusText"`
+	Body        string              `json:"Body"`
+	Headers     map[string][]string `json:"Headers"`
+	DurationMs  int64               `json:"DurationMs"`
+	SizeBytes   int64               `json:"SizeBytes"`
+	TestResults []AssertionResult   `json:"TestResults"`
 }
 
 // kvRow mirrors the JSON structure stored for headers/params/form-data.
@@ -67,6 +68,49 @@ func buildURL(rawURL string, params []kvRow) (string, error) {
 	return u.String(), nil
 }
 
+// authConfig holds the type-specific fields stored in auth_config JSON.
+type authConfig struct {
+	Token    string `json:"token"`    // bearer
+	Username string `json:"username"` // basic
+	Password string `json:"password"` // basic
+	KeyName  string `json:"keyName"`  // apikey: header/param name
+	KeyValue string `json:"keyValue"` // apikey: value
+	AddTo    string `json:"addTo"`    // apikey: "header" | "query"
+}
+
+// applyAuth injects the appropriate Authorization header (or query param) based on auth_type.
+// It mutates httpReq in place. Errors are silently swallowed so a bad config never blocks the send.
+func applyAuth(httpReq *http.Request, authType string, authConfigJSON string) {
+	if authType == "" || authType == "none" {
+		return
+	}
+	var cfg authConfig
+	if err := json.Unmarshal([]byte(authConfigJSON), &cfg); err != nil {
+		return
+	}
+	switch authType {
+	case "bearer":
+		if cfg.Token != "" {
+			httpReq.Header.Set("Authorization", "Bearer "+cfg.Token)
+		}
+	case "basic":
+		if cfg.Username != "" {
+			httpReq.SetBasicAuth(cfg.Username, cfg.Password)
+		}
+	case "apikey":
+		if cfg.KeyName != "" && cfg.KeyValue != "" {
+			if cfg.AddTo == "query" {
+				q := httpReq.URL.Query()
+				q.Set(cfg.KeyName, cfg.KeyValue)
+				httpReq.URL.RawQuery = q.Encode()
+			} else {
+				// Default: inject as header
+				httpReq.Header.Set(cfg.KeyName, cfg.KeyValue)
+			}
+		}
+	}
+}
+
 // ExecuteRequest executes the HTTP request described by req and returns a ResponseResult.
 func ExecuteRequest(req db.Request) (ResponseResult, error) {
 	params := parseKV(req.Params)
@@ -107,6 +151,17 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		contentType = writer.FormDataContentType()
 		bodyReader = &buf
 
+	case "urlencoded":
+		urlencodedRows := parseKV(req.Body)
+		vals := url.Values{}
+		for _, row := range urlencodedRows {
+			if row.Enabled && row.Key != "" {
+				vals.Add(row.Key, row.Value)
+			}
+		}
+		contentType = "application/x-www-form-urlencoded"
+		bodyReader = strings.NewReader(vals.Encode())
+
 	default: // "none" or anything else
 		bodyReader = http.NoBody
 	}
@@ -123,12 +178,17 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		}
 	}
 
+	// Apply auth (injected ephemerally — not persisted to stored headers).
+	applyAuth(httpReq, req.AuthType, req.AuthConfig)
+
 	// Set Content-Type if the body requires it and the caller has not already set it.
 	if contentType != "" && httpReq.Header.Get("Content-Type") == "" {
 		httpReq.Header.Set("Content-Type", contentType)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	timeout := time.Duration(req.TimeoutSeconds) * time.Second
+	// Note: http.Client.Timeout of 0 means no timeout.
+	client := &http.Client{Timeout: timeout}
 
 	start := time.Now()
 	resp, err := client.Do(httpReq)
@@ -143,12 +203,17 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		return ResponseResult{}, fmt.Errorf("read response body: %w", err)
 	}
 
-	return ResponseResult{
+	result := ResponseResult{
 		StatusCode: resp.StatusCode,
 		StatusText: resp.Status,
 		Body:       string(bodyBytes),
 		Headers:    map[string][]string(resp.Header),
 		DurationMs: elapsed.Milliseconds(),
 		SizeBytes:  int64(len(bodyBytes)),
-	}, nil
+	}
+
+	// Phase 010: Evaluate assertions.
+	result.TestResults = EvaluateAssertions(req.Tests, result)
+
+	return result, nil
 }

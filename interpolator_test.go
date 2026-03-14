@@ -83,7 +83,7 @@ func TestSendRequest_InterpolatesURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertRequest: %v", err)
 	}
-	if err := db.UpdateRequest(req.ID, "GET", srv.URL+"/{{path}}", "[]", "[]", "none", ""); err != nil {
+	if err := db.UpdateRequest(req.ID, "GET", srv.URL+"/{{path}}", "[]", "[]", "none", "", "none", "{}", 30, ""); err != nil {
 		t.Fatalf("UpdateRequest: %v", err)
 	}
 
@@ -112,5 +112,46 @@ func TestSendRequest_InterpolatesURL(t *testing.T) {
 	}
 	if !strings.HasSuffix(gotPath, "/ping") {
 		t.Errorf("expected path to end with /ping, got %q", gotPath)
+	}
+}
+
+func TestSendRequest_InterpolatesAuth(t *testing.T) {
+	// Initialise an in-memory DB.
+	if err := db.Init(":memory:"); err != nil {
+		t.Fatalf("db.Init: %v", err)
+	}
+	defer db.DB.Close()
+
+	var gotAuthHeader string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuthHeader = r.Header.Get("X-My-Auth")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	// Create collection and request with {{auth_key}} and {{auth_val}}
+	col, _ := db.InsertCollection("col-auth", "Auth Test")
+	req, _ := db.InsertRequest("req-auth", col.ID, "Auth Request")
+	
+	// auth_config with variables
+	authConfig := `{"keyName":"{{name_var}}","keyValue":"{{val_var}}","addTo":"header"}`
+	if err := db.UpdateRequest(req.ID, "GET", srv.URL, "[]", "[]", "none", "", "apikey", authConfig, 30, ""); err != nil {
+		t.Fatalf("UpdateRequest: %v", err)
+	}
+
+	// Environment with variables
+	env, _ := db.InsertEnvironment("env-auth", "Auth Env")
+	db.SetVariable(env.ID, "name_var", "X-My-Auth")
+	db.SetVariable(env.ID, "val_var", "secret-123")
+	db.SetSetting("active_environment_id", env.ID)
+
+	app := newApp()
+	_, err := app.SendRequest(req.ID)
+	if err != nil {
+		t.Fatalf("SendRequest: %v", err)
+	}
+
+	if gotAuthHeader != "secret-123" {
+		t.Errorf("expected secret-123 in X-My-Auth header, got %q", gotAuthHeader)
 	}
 }

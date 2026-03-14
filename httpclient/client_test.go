@@ -382,3 +382,116 @@ func TestExecuteRequest_SizeBytesMatchesBody(t *testing.T) {
 		t.Errorf("expected SizeBytes=%d, got %d", len(responseBody), result.SizeBytes)
 	}
 }
+
+// ─── Authentication ──────────────────────────────────────────────────────────
+
+func TestExecuteRequest_Auth_Bearer(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	req.AuthType = "bearer"
+	req.AuthConfig = `{"token":"secret-token"}`
+	_, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+	if gotAuth != "Bearer secret-token" {
+		t.Errorf("expected 'Bearer secret-token', got %q", gotAuth)
+	}
+}
+
+func TestExecuteRequest_Auth_Basic(t *testing.T) {
+	var user, pass string
+	var ok bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok = r.BasicAuth()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	req.AuthType = "basic"
+	req.AuthConfig = `{"username":"alice","password":"password123"}`
+	_, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+	if !ok || user != "alice" || pass != "password123" {
+		t.Errorf("expected user=alice, pass=password123, got user=%q, pass=%q, ok=%v", user, pass, ok)
+	}
+}
+
+func TestExecuteRequest_Auth_ApiKey_Header(t *testing.T) {
+	var gotValue string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotValue = r.Header.Get("X-API-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	req.AuthType = "apikey"
+	req.AuthConfig = `{"keyName":"X-API-Key","keyValue":"my-secret-key","addTo":"header"}`
+	_, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+	if gotValue != "my-secret-key" {
+		t.Errorf("expected my-secret-key in header, got %q", gotValue)
+	}
+}
+
+func TestExecuteRequest_Auth_ApiKey_Query(t *testing.T) {
+	var gotValue string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotValue = r.URL.Query().Get("api_key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	req.AuthType = "apikey"
+	req.AuthConfig = `{"keyName":"api_key","keyValue":"my-secret-key","addTo":"query"}`
+	_, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+	if gotValue != "my-secret-key" {
+		t.Errorf("expected my-secret-key in query, got %q", gotValue)
+	}
+}
+
+// ─── Assertions ─────────────────────────────────────────────────────────────
+
+func TestExecuteRequest_Assertions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"id": 123, "name": "test", "active": true}`))
+	}))
+	defer srv.Close()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	req.Tests = "status == 200\nbody.id == 123\nbody.name == test\nheader[\"Content-Type\"] contains json"
+	
+	result, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+
+	if len(result.TestResults) != 4 {
+		t.Fatalf("expected 4 test results, got %d", len(result.TestResults))
+	}
+
+	for _, res := range result.TestResults {
+		if !res.Passed {
+			t.Errorf("assertion failed: %s - %s", res.Expression, res.Message)
+		}
+	}
+}
+
