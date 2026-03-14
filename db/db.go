@@ -127,6 +127,11 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE requests ADD COLUMN timeout_seconds INTEGER NOT NULL DEFAULT 30`,
 		// Phase 013: add tests to requests
 		`ALTER TABLE requests ADD COLUMN tests TEXT NOT NULL DEFAULT ''`,
+		// Phase 0007: store full response in history
+		`ALTER TABLE request_history ADD COLUMN response_body        TEXT    NOT NULL DEFAULT ''`,
+		`ALTER TABLE request_history ADD COLUMN response_headers     TEXT    NOT NULL DEFAULT '{}'`,
+		`ALTER TABLE request_history ADD COLUMN response_duration_ms INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE request_history ADD COLUMN response_size_bytes  INTEGER NOT NULL DEFAULT 0`,
 	}
 	for _, stmt := range addColumns {
 		if _, execErr := db.Exec(stmt); execErr != nil {

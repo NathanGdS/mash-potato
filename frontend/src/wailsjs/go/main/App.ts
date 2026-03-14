@@ -129,6 +129,10 @@ export interface HistoryEntry {
   body_type: string;
   body: string;
   response_status: number;
+  response_body: string;
+  response_headers: string;
+  response_duration_ms: number;
+  response_size_bytes: number;
   executed_at: string;
 }
 

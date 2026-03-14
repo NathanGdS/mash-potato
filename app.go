@@ -193,7 +193,8 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	}
 
 	// Log to history — best-effort, never fail the response on write error.
-	if _, herr := db.InsertHistory(req.Method, req.URL, req.Headers, req.Params, req.BodyType, req.Body, result.StatusCode); herr != nil {
+	responseHeadersJSON, _ := json.Marshal(result.Headers)
+	if _, herr := db.InsertHistory(req.Method, req.URL, req.Headers, req.Params, req.BodyType, req.Body, result.StatusCode, result.Body, string(responseHeadersJSON), result.DurationMs, result.SizeBytes); herr != nil {
 		// Silently ignore history write failures.
 		_ = herr
 	}

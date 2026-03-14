@@ -138,6 +138,10 @@ export namespace db {
 	    body_type: string;
 	    body: string;
 	    response_status: number;
+	    response_body: string;
+	    response_headers: string;
+	    response_duration_ms: number;
+	    response_size_bytes: number;
 	    executed_at: string;
 	
 	    static createFrom(source: any = {}) {
@@ -154,6 +158,10 @@ export namespace db {
 	        this.body_type = source["body_type"];
 	        this.body = source["body"];
 	        this.response_status = source["response_status"];
+	        this.response_body = source["response_body"];
+	        this.response_headers = source["response_headers"];
+	        this.response_duration_ms = source["response_duration_ms"];
+	        this.response_size_bytes = source["response_size_bytes"];
 	        this.executed_at = source["executed_at"];
 	    }
 	}

@@ -11,7 +11,8 @@ import { httpclient } from '../../wailsjs/go/models';
 type ResponseTab = 'body' | 'headers' | 'tests';
 
 const ResponseViewer: React.FC = () => {
-  const { response, error } = useResponseStore() as { response: httpclient.ResponseResult | null, error: string | null };
+  const { responses, activeRequestId, error } = useResponseStore();
+  const response = (activeRequestId ? responses[activeRequestId] : null) as httpclient.ResponseResult | null;
   const [activeTab, setActiveTab] = useState<ResponseTab>('body');
   const [copied, setCopied] = useState(false);
 

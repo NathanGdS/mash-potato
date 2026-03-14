@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useHistoryStore, HistoryEntry } from '../store/historyStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
+import { useResponseStore } from '../store/responseStore';
 import './HistoryList.css';
 
 function methodClass(method: string): string {
@@ -36,17 +37,35 @@ const HistoryList: React.FC = () => {
   const { entries, loading, error, fetchHistory, clearHistory } = useHistoryStore();
   const { setActiveRequest } = useRequestsStore();
   const { setActiveTab } = useTabsStore();
+  const { setResponse, setActiveRequestId } = useResponseStore();
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
 
   function loadEntry(entry: HistoryEntry) {
+    const historyId = `__history__${entry.id}`;
+
+    // Reconstruct the stored response into the response panel.
+    let parsedHeaders: Record<string, string[]> = {};
+    try { parsedHeaders = JSON.parse(entry.response_headers || '{}'); } catch { /* ignore */ }
+    setResponse(historyId, {
+      StatusCode: entry.response_status,
+      StatusText: String(entry.response_status),
+      Body: entry.response_body || '',
+      Headers: parsedHeaders,
+      DurationMs: entry.response_duration_ms || 0,
+      SizeBytes: entry.response_size_bytes || 0,
+    });
+
     // History entries are ephemeral and don't have tabs; focus no tab.
     setActiveTab(null);
+    // Restore the active request ID after setActiveTab clears it.
+    setActiveRequestId(historyId);
+
     // Build an ephemeral Request object (no collection_id, no persisted id).
     setActiveRequest({
-      id: `__history__${entry.id}`,
+      id: historyId,
       collection_id: '',
       folder_id: null,
       name: `${entry.method} ${entry.url}`,

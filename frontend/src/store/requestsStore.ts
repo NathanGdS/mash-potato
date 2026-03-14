@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Request } from '../types/request';
 import { CreateRequest, DeleteRequest, DuplicateRequest, GetRequest, ListRequests, UpdateRequest } from '../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
+import { useResponseStore } from './responseStore';
 
 interface RequestsState {
   /** Map of collectionId -> requests array */
@@ -80,6 +81,7 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
   openRequest: async (id: string) => {
     const req = await GetRequest(id);
     set({ activeRequest: req });
+    useResponseStore.getState().setActiveRequestId(id);
   },
 
   duplicateRequest: async (requestId: string) => {

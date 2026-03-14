@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GetRequest, GetSetting, SetSetting } from '../wailsjs/go/main/App';
 import { useRequestsStore } from './requestsStore';
+import { useResponseStore } from './responseStore';
 
 export interface RequestTab {
   requestId: string;
@@ -114,6 +115,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   setActiveTab: (requestId: string | null) => {
     set({ activeTabId: requestId });
     scheduleSave(get().openTabs, requestId);
+    useResponseStore.getState().setActiveRequestId(requestId);
   },
 
   updateTab: (requestId: string, updates) => {
@@ -180,7 +182,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     set({ openTabs: validated, activeTabId: activeId });
 
-    // Hydrate the active request in requestsStore.
+    // Hydrate the active request in requestsStore (also sets active response slot).
     if (activeId) {
       useRequestsStore.getState().openRequest(activeId).catch(() => {
         // Best-effort — if it fails, the editor will just be empty.
