@@ -12,6 +12,7 @@ const EnvironmentPanel: React.FC<Props> = ({ onClose }) => {
     environments,
     loading,
     variables,
+    globalEnvironmentId,
     fetchEnvironments,
     createEnvironment,
     renameEnvironment,
@@ -37,7 +38,9 @@ const EnvironmentPanel: React.FC<Props> = ({ onClose }) => {
 
   useEffect(() => {
     if (environments.length > 0 && !selectedId) {
-      setSelectedId(environments[0].id);
+      // Default-select the Global environment if present, otherwise the first env.
+      const globalEnv = environments.find((e) => e.is_global);
+      setSelectedId(globalEnv ? globalEnv.id : environments[0].id);
     }
   }, [environments, selectedId]);
 
@@ -117,6 +120,7 @@ const EnvironmentPanel: React.FC<Props> = ({ onClose }) => {
 
   const selectedEnv = environments.find((e) => e.id === selectedId) ?? null;
   const selectedVars = selectedId ? (variables[selectedId] ?? []) : [];
+  const selectedIsGlobal = selectedEnv?.is_global || selectedEnv?.id === globalEnvironmentId;
 
   return ReactDOM.createPortal(
     <div
@@ -171,48 +175,57 @@ const EnvironmentPanel: React.FC<Props> = ({ onClose }) => {
               {!loading && environments.length === 0 && !addingEnv && (
                 <li className="env-list-hint">No environments yet.</li>
               )}
-              {environments.map((env) => (
-                <li
-                  key={env.id}
-                  className={`env-list-item${selectedId === env.id ? ' env-list-item--active' : ''}`}
-                  onClick={() => handleSelectEnv(env.id)}
-                >
-                  {renamingId === env.id ? (
-                    <input
-                      className="env-rename-input"
-                      autoFocus
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') commitRename();
-                        if (e.key === 'Escape') setRenamingId(null);
-                      }}
-                      onBlur={commitRename}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <>
-                      <span className="env-list-name" onDoubleClick={(e) => startRename(e, env.id, env.name)}>
-                        {env.name}
-                      </span>
-                      <div className="env-list-actions">
-                        <button
-                          className="env-list-btn"
-                          title="Rename"
-                          onClick={(e) => startRename(e, env.id, env.name)}
-                          aria-label={`Rename ${env.name}`}
-                        >✎</button>
-                        <button
-                          className="env-list-btn env-list-btn--danger"
-                          title="Delete"
-                          onClick={(e) => handleDeleteEnv(e, env.id)}
-                          aria-label={`Delete ${env.name}`}
-                        >✕</button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
+              {environments.map((env) => {
+                const isGlobal = env.is_global || env.id === globalEnvironmentId;
+                return (
+                  <li
+                    key={env.id}
+                    className={`env-list-item${selectedId === env.id ? ' env-list-item--active' : ''}${isGlobal ? ' env-list-item--global' : ''}`}
+                    onClick={() => handleSelectEnv(env.id)}
+                  >
+                    {renamingId === env.id ? (
+                      <input
+                        className="env-rename-input"
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitRename();
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                        onBlur={commitRename}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <>
+                        <span
+                          className="env-list-name"
+                          onDoubleClick={isGlobal ? undefined : (e) => startRename(e, env.id, env.name)}
+                        >
+                          {env.name}
+                          {isGlobal && <span className="env-global-badge">global</span>}
+                        </span>
+                        {!isGlobal && (
+                          <div className="env-list-actions">
+                            <button
+                              className="env-list-btn"
+                              title="Rename"
+                              onClick={(e) => startRename(e, env.id, env.name)}
+                              aria-label={`Rename ${env.name}`}
+                            >✎</button>
+                            <button
+                              className="env-list-btn env-list-btn--danger"
+                              title="Delete"
+                              onClick={(e) => handleDeleteEnv(e, env.id)}
+                              aria-label={`Delete ${env.name}`}
+                            >✕</button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -220,15 +233,20 @@ const EnvironmentPanel: React.FC<Props> = ({ onClose }) => {
           <div className="env-vars-panel">
             {!selectedEnv ? (
               <div className="env-vars-empty">
-                {environments.length === 0
-                  ? 'Create an environment to get started.'
-                  : 'Select an environment.'}
+                Select an environment.
               </div>
             ) : (
               <>
                 <div className="env-vars-header">
                   <span className="env-vars-env-name">{selectedEnv.name}</span>
-                  <span className="env-vars-hint">Click a cell to edit · Enter to save · Esc to cancel</span>
+                  {selectedIsGlobal && (
+                    <span className="env-vars-hint env-vars-hint--global">
+                      Always active · overridden by environment variables with the same key
+                    </span>
+                  )}
+                  {!selectedIsGlobal && (
+                    <span className="env-vars-hint">Click a cell to edit · Enter to save · Esc to cancel</span>
+                  )}
                 </div>
                 <div className="env-vars-scroll">
                   <table className="env-vars-table">

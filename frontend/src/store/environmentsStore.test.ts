@@ -16,7 +16,7 @@ vi.mock('../wailsjs/go/main/App', () => ({
 import * as App from '../wailsjs/go/main/App';
 import { useEnvironmentsStore } from './environmentsStore';
 
-const mockEnv = { id: 'env-1', name: 'Development', created_at: '2024-01-01T00:00:00Z' };
+const mockEnv = { id: 'env-1', name: 'Development', created_at: '2024-01-01T00:00:00Z', is_global: false };
 const mockVar = { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'secret' };
 
 beforeEach(() => {

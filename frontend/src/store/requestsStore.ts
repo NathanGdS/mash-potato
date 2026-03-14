@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Request } from '../types/request';
-import { CreateRequest, GetRequest, ListRequests, UpdateRequest, RequestPayload } from '../wailsjs/go/main/App';
+import { CreateRequest, DeleteRequest, DuplicateRequest, GetRequest, ListRequests, UpdateRequest } from '../wailsjs/go/main/App';
+import { main } from '../../wailsjs/go/models';
 
 interface RequestsState {
   /** Map of collectionId -> requests array */
@@ -21,7 +22,16 @@ interface RequestsState {
   openRequest: (id: string) => Promise<void>;
 
   /** Update request fields in SQLite and refresh the active request. */
-  updateRequest: (payload: RequestPayload) => Promise<void>;
+  updateRequest: (payload: main.RequestPayload) => Promise<void>;
+
+  /** Duplicate a request and append it to its collection in the store. */
+  duplicateRequest: (requestId: string) => Promise<Request>;
+
+  /** Delete a request from SQLite and remove it from the store. */
+  deleteRequest: (requestId: string, collectionId: string) => Promise<void>;
+
+  /** Directly set the active request without loading from the backend (e.g. from history). */
+  setActiveRequest: (req: Request) => void;
 }
 
 export const useRequestsStore = create<RequestsState>((set, get) => ({
@@ -72,7 +82,38 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
     set({ activeRequest: req });
   },
 
-  updateRequest: async (payload: RequestPayload) => {
+  duplicateRequest: async (requestId: string) => {
+    const req = await DuplicateRequest(requestId);
+    set((state) => ({
+      requestsByCollection: {
+        ...state.requestsByCollection,
+        [req.collection_id]: [...(state.requestsByCollection[req.collection_id] ?? []), req],
+      },
+    }));
+    return req;
+  },
+
+  deleteRequest: async (requestId: string, collectionId: string) => {
+    await DeleteRequest(requestId);
+    set((state) => {
+      const list = state.requestsByCollection[collectionId] ?? [];
+      const updated = list.filter((r) => r.id !== requestId);
+      const nextActive = state.activeRequest?.id === requestId ? null : state.activeRequest;
+      return {
+        requestsByCollection: {
+          ...state.requestsByCollection,
+          [collectionId]: updated,
+        },
+        activeRequest: nextActive,
+      };
+    });
+  },
+
+  setActiveRequest: (req: Request) => {
+    set({ activeRequest: req });
+  },
+
+  updateRequest: async (payload: main.RequestPayload) => {
     await UpdateRequest(payload);
     // Refresh active request from store fields (optimistic update)
     const current = get().activeRequest;
@@ -86,6 +127,10 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
           params: payload.params,
           body_type: payload.body_type,
           body: payload.body,
+          auth_type: payload.auth_type,
+          auth_config: payload.auth_config,
+          timeout_seconds: payload.timeout_seconds,
+          tests: payload.tests,
         },
       });
     }
@@ -100,7 +145,7 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
           ...state.requestsByCollection,
           [collId]: list.map((r) =>
             r.id === payload.id
-              ? { ...r, method: payload.method, url: payload.url, headers: payload.headers, params: payload.params, body_type: payload.body_type, body: payload.body }
+              ? { ...r, method: payload.method, url: payload.url, headers: payload.headers, params: payload.params, body_type: payload.body_type, body: payload.body, auth_type: payload.auth_type, auth_config: payload.auth_config, timeout_seconds: payload.timeout_seconds, tests: payload.tests }
               : r
           ),
         },

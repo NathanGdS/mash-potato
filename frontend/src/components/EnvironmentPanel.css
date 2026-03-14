@@ -369,6 +369,31 @@
   cursor: not-allowed;
 }
 
+/* ── Global environment badge ────────────────────────────── */
+.env-list-item--global {
+  opacity: 0.9;
+}
+
+.env-global-badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.env-vars-hint--global {
+  font-style: italic;
+}
+
 /* ── Footer ──────────────────────────────────────────────── */
 .env-modal-footer {
   display: flex;

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 export type HttpMethod = (typeof METHODS)[number];
 
 interface MethodSelectorProps {
@@ -14,6 +14,8 @@ const methodColors: Record<string, string> = {
   PUT: '#fca130',
   PATCH: '#50e3c2',
   DELETE: '#f93e3e',
+  HEAD: '#a0aec0',
+  OPTIONS: '#b794f4',
 };
 
 const MethodSelector: React.FC<MethodSelectorProps> = ({ value, onChange }) => {

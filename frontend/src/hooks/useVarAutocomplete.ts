@@ -32,18 +32,36 @@ export function useVarAutocomplete<T extends InputEl>({
   const triggerStart = useRef<number>(-1);
 
   const activeId = useEnvironmentsStore((s) => s.activeEnvironmentId);
+  const globalId = useEnvironmentsStore((s) => s.globalEnvironmentId);
   const variables = useEnvironmentsStore((s) => s.variables);
   const fetchVariables = useEnvironmentsStore((s) => s.fetchVariables);
 
-  // Pre-fetch variables for the active environment so they are ready when the
-  // user first types {{.
+  // Pre-fetch variables for the active and global environments so they are
+  // ready when the user first types {{.
+  useEffect(() => {
+    if (globalId && !variables[globalId]) {
+      fetchVariables(globalId);
+    }
+  }, [globalId, variables, fetchVariables]);
+
   useEffect(() => {
     if (activeId && !variables[activeId]) {
       fetchVariables(activeId);
     }
   }, [activeId, variables, fetchVariables]);
 
-  const allVarKeys = activeId ? (variables[activeId] ?? []).map((v) => v.key) : [];
+  // Merge global vars and active env vars; active env takes precedence.
+  const mergedVarKeys = (() => {
+    const globalVars = globalId ? (variables[globalId] ?? []) : [];
+    const activeVars = activeId && activeId !== globalId ? (variables[activeId] ?? []) : [];
+    const keyMap = new Map<string, string>();
+    for (const v of globalVars) keyMap.set(v.key, v.key);
+    for (const v of activeVars) keyMap.set(v.key, v.key);
+    return Array.from(keyMap.keys());
+  })();
+
+  // Keep the old name for compatibility with downstream code.
+  const allVarKeys = mergedVarKeys;
 
   const filteredVars = filter
     ? allVarKeys.filter((k) => k.toLowerCase().includes(filter.toLowerCase()))

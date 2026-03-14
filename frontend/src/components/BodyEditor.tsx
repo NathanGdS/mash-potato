@@ -5,7 +5,7 @@ import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
 import { parseVarSegments } from '../utils/varSegments';
 import { JsonHighlighted } from '../utils/jsonHighlighter';
 
-export type BodyType = 'none' | 'json' | 'raw' | 'form-data';
+export type BodyType = 'none' | 'json' | 'raw' | 'form-data' | 'urlencoded';
 
 interface BodyEditorProps {
   method: string;
@@ -15,7 +15,15 @@ interface BodyEditorProps {
   onBodyChange: (body: string) => void;
 }
 
-const BODY_TYPES: BodyType[] = ['none', 'json', 'raw', 'form-data'];
+const BODY_TYPES: BodyType[] = ['none', 'json', 'raw', 'form-data', 'urlencoded'];
+
+const BODY_TYPE_LABELS: Record<BodyType, string> = {
+  none: 'none',
+  json: 'json',
+  raw: 'raw',
+  'form-data': 'form-data',
+  urlencoded: 'Form URL Encoded',
+};
 
 const BodyEditor: React.FC<BodyEditorProps> = ({
   method,
@@ -102,7 +110,7 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
                 checked={bodyType === t}
                 onChange={() => onBodyTypeChange(t)}
               />
-              {t}
+              {BODY_TYPE_LABELS[t]}
             </label>
           ))}
         </div>
@@ -180,6 +188,15 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
           rows={parseFormData()}
           onChange={handleFormDataChange}
           keyPlaceholder="Field"
+          valuePlaceholder="Value"
+        />
+      )}
+
+      {bodyType === 'urlencoded' && (
+        <KeyValueTable
+          rows={parseFormData()}
+          onChange={handleFormDataChange}
+          keyPlaceholder="Key"
           valuePlaceholder="Value"
         />
       )}

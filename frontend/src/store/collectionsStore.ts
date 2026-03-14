@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Collection } from '../types/collection';
-import { CreateCollection, DeleteCollection, ListCollections, RenameCollection } from '../wailsjs/go/main/App';
+import { CreateCollection, DeleteCollection, ImportCollection, ListCollections, RenameCollection } from '../wailsjs/go/main/App';
 
 interface CollectionsState {
   collections: Collection[];
@@ -18,6 +18,13 @@ interface CollectionsState {
 
   /** Delete a collection by id. Throws on backend error. */
   deleteCollection: (id: string) => Promise<void>;
+
+  /**
+   * Open a native file dialog and import the chosen collection JSON.
+   * Resolves with the imported collection, or null if the user cancelled.
+   * Throws on parse / backend errors.
+   */
+  importCollection: () => Promise<Collection | null>;
 }
 
 export const useCollectionsStore = create<CollectionsState>((set) => ({
@@ -63,5 +70,15 @@ export const useCollectionsStore = create<CollectionsState>((set) => ({
     set((state) => ({
       collections: state.collections.filter((c) => c.id !== id),
     }));
+  },
+
+  importCollection: async () => {
+    const col = await ImportCollection();
+    // col.id is empty string when the user cancelled the dialog.
+    if (!col || !col.id) {
+      return null;
+    }
+    set((state) => ({ collections: [...state.collections, col] }));
+    return col;
   },
 }));

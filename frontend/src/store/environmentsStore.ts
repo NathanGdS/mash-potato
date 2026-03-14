@@ -6,6 +6,7 @@ import {
   DeleteVariable,
   EnvironmentVariable,
   GetActiveEnvironment,
+  GetGlobalEnvironmentID,
   GetVariables,
   ListEnvironments,
   RenameEnvironment,
@@ -18,6 +19,8 @@ interface EnvironmentsState {
   loading: boolean;
   error: string | null;
   activeEnvironmentId: string;
+  /** ID of the built-in Global environment (never changes after first load). */
+  globalEnvironmentId: string;
 
   /** Variables keyed by environment id. */
   variables: Record<string, EnvironmentVariable[]>;
@@ -55,13 +58,17 @@ export const useEnvironmentsStore = create<EnvironmentsState>((set) => ({
   loading: false,
   error: null,
   activeEnvironmentId: '',
+  globalEnvironmentId: '',
   variables: {},
 
   fetchEnvironments: async () => {
     set({ loading: true, error: null });
     try {
-      const envs = await ListEnvironments();
-      set({ environments: envs ?? [], loading: false });
+      const [envs, globalId] = await Promise.all([
+        ListEnvironments(),
+        GetGlobalEnvironmentID(),
+      ]);
+      set({ environments: envs ?? [], globalEnvironmentId: globalId ?? '', loading: false });
     } catch (err) {
       set({ error: String(err), loading: false });
     }
