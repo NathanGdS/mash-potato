@@ -30,6 +30,8 @@ export function DuplicateRequest(arg1:string):Promise<db.Request>;
 
 export function ExportCollection(arg1:string):Promise<void>;
 
+export function ExportRequestAsCurl(arg1:string):Promise<string>;
+
 export function GetActiveEnvironment():Promise<string>;
 
 export function GetGlobalEnvironmentID():Promise<string>;
@@ -43,6 +45,8 @@ export function GetSetting(arg1:string):Promise<string>;
 export function GetVariables(arg1:string):Promise<Array<db.EnvironmentVariable>>;
 
 export function ImportCollection():Promise<db.Collection>;
+
+export function ImportFromCurl(arg1:string,arg2:string):Promise<db.Request>;
 
 export function ListCollections():Promise<Array<db.Collection>>;
 

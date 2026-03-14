@@ -4,6 +4,7 @@ import { Request } from '../types/request';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
 import { useFoldersStore } from '../store/foldersStore';
+import { ExportRequestAsCurl } from '../wailsjs/go/main/App';
 
 function methodBadgeClass(method: string): string {
   switch (method.toUpperCase()) {
@@ -57,6 +58,9 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
 
   // Move-to submenu for requests
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+
+  // Toast
+  const [curlToast, setCurlToast] = useState(false);
 
   // Requests directly inside this folder
   const folderRequests = allRequests.filter((r) => r.folder_id === folder.id);
@@ -208,6 +212,20 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
       await moveRequest(req.id, req.collection_id, targetFolderId);
     } catch (err) {
       console.error('Move request failed:', err);
+    }
+  };
+
+  const handleCopyAsCurl = async () => {
+    if (!requestMenu) return;
+    const req = requestMenu.request;
+    setRequestMenu(null);
+    try {
+      const curl = await ExportRequestAsCurl(req.id);
+      await navigator.clipboard.writeText(curl);
+      setCurlToast(true);
+      setTimeout(() => setCurlToast(false), 2000);
+    } catch (err) {
+      console.error('Copy as cURL failed:', err);
     }
   };
 
@@ -405,6 +423,9 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
               </div>
             )}
           </div>
+          <button className="request-context-menu-item" onClick={handleCopyAsCurl}>
+            Copy as cURL
+          </button>
           <button
             className="request-context-menu-item request-context-menu-item--danger"
             onClick={handleDeleteRequest}
@@ -412,6 +433,11 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
             Delete
           </button>
         </div>
+      )}
+
+      {/* cURL copy toast */}
+      {curlToast && (
+        <div className="rb-save-toast">Copied to clipboard</div>
       )}
     </li>
   );

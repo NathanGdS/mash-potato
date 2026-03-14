@@ -183,3 +183,11 @@ export function GetSetting(key: string): Promise<string> {
 export function SetSetting(key: string, value: string): Promise<void> {
   return _app()?.SetSetting(key, value);
 }
+
+export function ExportRequestAsCurl(id: string): Promise<string> {
+  return _app()?.ExportRequestAsCurl(id);
+}
+
+export function ImportFromCurl(collectionId: string, curlCommand: string): Promise<import('../../../types/request').Request> {
+  return _app()?.ImportFromCurl(collectionId, curlCommand);
+}

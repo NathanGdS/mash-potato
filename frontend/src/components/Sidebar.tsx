@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useCollectionsStore } from '../store/collectionsStore';
 import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
+import ImportCurlDialog from './ImportCurlDialog';
 import HistoryList from './HistoryList';
 import './Sidebar.css';
 
@@ -10,8 +11,15 @@ type SidebarTab = 'collections' | 'history';
 const Sidebar: React.FC = () => {
   const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
   const [showModal, setShowModal] = useState(false);
+  const [showImportCurl, setShowImportCurl] = useState(false);
+  const [importCurlCollectionId, setImportCurlCollectionId] = useState('');
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections');
   const [importError, setImportError] = useState<string | null>(null);
+
+  const handleOpenImportCurl = (collectionId = '') => {
+    setImportCurlCollectionId(collectionId);
+    setShowImportCurl(true);
+  };
 
   const handleImport = async () => {
     setImportError(null);
@@ -48,6 +56,14 @@ const Sidebar: React.FC = () => {
           <div className="sidebar-header">
             <span className="sidebar-title">Collections</span>
             <div className="sidebar-header-actions">
+              <button
+                className="sidebar-new-btn"
+                title="Import from cURL"
+                onClick={() => handleOpenImportCurl()}
+                aria-label="Import from cURL"
+              >
+                ⌨
+              </button>
               <button
                 className="sidebar-new-btn"
                 title="Import Collection"
@@ -88,13 +104,24 @@ const Sidebar: React.FC = () => {
 
             <ul className="collection-list">
               {collections.map((col) => (
-                <CollectionItem key={col.id} collection={col} />
+                <CollectionItem
+                  key={col.id}
+                  collection={col}
+                  onImportCurl={handleOpenImportCurl}
+                />
               ))}
             </ul>
           </div>
 
           {showModal && (
             <NewCollectionModal onClose={() => setShowModal(false)} />
+          )}
+
+          {showImportCurl && (
+            <ImportCurlDialog
+              defaultCollectionId={importCurlCollectionId}
+              onClose={() => setShowImportCurl(false)}
+            />
           )}
         </>
       )}

@@ -5,7 +5,7 @@ import { useTabsStore } from '../store/tabsStore';
 import { useFoldersStore } from '../store/foldersStore';
 import { Collection } from '../types/collection';
 import { Request } from '../types/request';
-import { ExportCollection } from '../wailsjs/go/main/App';
+import { ExportCollection, ExportRequestAsCurl } from '../wailsjs/go/main/App';
 import FolderItem from './FolderItem';
 
 function methodBadgeClass(method: string): string {
@@ -21,9 +21,11 @@ function methodBadgeClass(method: string): string {
 
 interface CollectionItemProps {
   collection: Collection;
+  /** Called when the user picks "Import from cURL…" from the collection context menu. */
+  onImportCurl?: (collectionId: string) => void;
 }
 
-const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
+const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCurl }) => {
   const renameCollection = useCollectionsStore((s) => s.renameCollection);
   const deleteCollection = useCollectionsStore((s) => s.deleteCollection);
 
@@ -63,6 +65,9 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; request: Request } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+
+  // Toast
+  const [curlToast, setCurlToast] = useState(false);
 
   // Collection context menu state
   const [collectionMenu, setCollectionMenu] = useState<{ x: number; y: number } | null>(null);
@@ -110,6 +115,11 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
     }
   };
 
+  const handleImportCurl = () => {
+    setCollectionMenu(null);
+    onImportCurl?.(collection.id);
+  };
+
   const handleRequestContextMenu = (e: React.MouseEvent, req: Request) => {
     e.preventDefault();
     e.stopPropagation();
@@ -153,6 +163,20 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
       await moveRequest(req.id, req.collection_id, targetFolderId);
     } catch (err) {
       console.error('Move request failed:', err);
+    }
+  };
+
+  const handleCopyAsCurl = async () => {
+    if (!contextMenu) return;
+    const req = contextMenu.request;
+    setContextMenu(null);
+    try {
+      const curl = await ExportRequestAsCurl(req.id);
+      await navigator.clipboard.writeText(curl);
+      setCurlToast(true);
+      setTimeout(() => setCurlToast(false), 2000);
+    } catch (err) {
+      console.error('Copy as cURL failed:', err);
     }
   };
 
@@ -471,6 +495,9 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
               )}
             </div>
           )}
+          <button className="request-context-menu-item" onClick={handleCopyAsCurl}>
+            Copy as cURL
+          </button>
           <button className="request-context-menu-item request-context-menu-item--danger" onClick={handleDeleteRequest}>
             Delete
           </button>
@@ -490,7 +517,15 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
           <button className="request-context-menu-item" onClick={handleExport}>
             Export
           </button>
+          <button className="request-context-menu-item" onClick={handleImportCurl}>
+            Import from cURL…
+          </button>
         </div>
+      )}
+
+      {/* cURL copy toast */}
+      {curlToast && (
+        <div className="rb-save-toast">Copied to clipboard</div>
       )}
     </li>
   );

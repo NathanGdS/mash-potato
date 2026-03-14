@@ -54,6 +54,10 @@ export function ExportCollection(arg1) {
   return window['go']['main']['App']['ExportCollection'](arg1);
 }
 
+export function ExportRequestAsCurl(arg1) {
+  return window['go']['main']['App']['ExportRequestAsCurl'](arg1);
+}
+
 export function GetActiveEnvironment() {
   return window['go']['main']['App']['GetActiveEnvironment']();
 }
@@ -80,6 +84,10 @@ export function GetVariables(arg1) {
 
 export function ImportCollection() {
   return window['go']['main']['App']['ImportCollection']();
+}
+
+export function ImportFromCurl(arg1, arg2) {
+  return window['go']['main']['App']['ImportFromCurl'](arg1, arg2);
 }
 
 export function ListCollections() {
