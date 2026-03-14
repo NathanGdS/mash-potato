@@ -1,0 +1,108 @@
+/* ── TabBar ──────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.tab-bar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tab-bar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.tab-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-right: 1px solid var(--border);
+  color: var(--text-subtle);
+  cursor: pointer;
+  font-size: 12px;
+  max-width: 180px;
+  min-width: 90px;
+  padding: 0 var(--space-3);
+  height: 34px;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s, border-bottom-color 0.12s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tab-bar-item:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.tab-bar-item--active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.tab-bar-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tab-bar-dirty {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.tab-bar-close {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: color 0.1s, background 0.1s;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.tab-bar-close:hover {
+  color: var(--text-primary);
+  background: var(--border);
+}
+
+/* ── Method badge inside tab ─────────────────────────────── */
+.tab-method {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
+.tab-method--get    { background: var(--method-get-bg);    color: var(--method-get-fg); }
+.tab-method--post   { background: var(--method-post-bg);   color: var(--method-post-fg); }
+.tab-method--put    { background: var(--method-put-bg);    color: var(--method-put-fg); }
+.tab-method--patch  { background: var(--method-patch-bg);  color: var(--method-patch-fg); }
+.tab-method--delete { background: var(--method-delete-bg); color: var(--method-delete-fg); }
+.tab-method--other  { background: var(--method-other-bg);  color: var(--method-other-fg); }

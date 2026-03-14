@@ -78,6 +78,53 @@
   border-color: var(--accent);
 }
 
+.timeout-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  height: 28px;
+  transition: border-color 0.15s;
+}
+
+.timeout-input-wrapper:focus-within {
+  border-color: var(--accent);
+}
+
+.timeout-input {
+  width: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  text-align: right;
+  padding: 0;
+}
+
+/* Hide spin buttons for Chrome, Safari, Edge, Opera */
+.timeout-input::-webkit-outer-spin-button,
+.timeout-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spin buttons for Firefox */
+.timeout-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.timeout-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  user-select: none;
+  font-weight: 600;
+}
+
 /* ── Shared var-token highlight ─────────────────────────── */
 .var-token {
   color: var(--accent);
@@ -1128,4 +1175,255 @@
   font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* ── Auth Editor ─────────────────────────────────────────── */
+.auth-editor {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-type-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.auth-type-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.auth-type-options {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.auth-type-options--inline {
+  margin-top: 0;
+}
+
+.auth-type-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.auth-type-option input[type='radio'] {
+  display: none;
+}
+
+.auth-type-option:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.auth-type-option.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.auth-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.auth-field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 160px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.auth-field-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 6px var(--space-3);
+  outline: none;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.auth-field-input:focus {
+  border-color: var(--accent);
+}
+
+.auth-field-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  padding-left: 172px;
+}
+
+.auth-field-hint code {
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  background: var(--bg-surface);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.auth-editor-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+  padding: var(--space-2) 0;
+}
+
+/* ── Tests Editor & Results ──────────────────────────────── */
+.tests-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.tests-editor-header {
+  margin-bottom: var(--space-2);
+  background: var(--bg-surface);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.tests-editor-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.tests-editor-hint code {
+  background-color: var(--bg-secondary);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  color: var(--accent);
+}
+
+.tests-editor-textarea {
+  flex: 1;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  resize: none;
+  line-height: 1.5;
+  outline: none;
+}
+
+.tests-editor-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+.test-results {
+  padding: var(--space-4);
+}
+
+.test-results-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.test-results-summary {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-4);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.test-results-summary.pass {
+  background-color: var(--status-2xx-bg);
+  color: var(--status-2xx-fg);
+  border: 1px solid var(--status-2xx-border);
+}
+
+.test-results-summary.fail {
+  background-color: var(--status-5xx-bg);
+  color: var(--status-5xx-fg);
+  border: 1px solid var(--status-5xx-border);
+}
+
+.test-results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.test-result-item {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: var(--space-3);
+  padding: 12px var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.test-result-item:last-child {
+  border-bottom: none;
+}
+
+.test-result-status {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding-top: 2px;
+}
+
+.test-result-item.pass .test-result-status {
+  color: var(--status-2xx-fg);
+}
+
+.test-result-item.fail .test-result-status {
+  color: var(--status-5xx-fg);
+}
+
+.test-result-expression {
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.test-result-message {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--status-5xx-fg);
+  margin-top: 4px;
 }

@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import TabBar from './components/TabBar';
 import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import EnvironmentPanel from './components/EnvironmentPanel';
 import EnvironmentSelector from './components/EnvironmentSelector';
 import { useRequestsStore } from './store/requestsStore';
+import { useTabsStore } from './store/tabsStore';
 import './App.css';
 
 const MIN_PANE_HEIGHT = 120;
@@ -25,7 +27,23 @@ function loadSplitRatio(): number {
 
 const App: React.FC = () => {
   const activeRequest = useRequestsStore((s) => s.activeRequest);
+  const updateTab = useTabsStore((s) => s.updateTab);
+  const restoreTabs = useTabsStore((s) => s.restoreTabs);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
+
+  // Restore open tabs on app load.
+  useEffect(() => {
+    restoreTabs();
+  }, [restoreTabs]);
+
+  // Keep the open tab's method/name in sync when the active request is saved
+  useEffect(() => {
+    if (!activeRequest) return;
+    updateTab(activeRequest.id, {
+      requestName: activeRequest.name,
+      method: activeRequest.method,
+    });
+  }, [activeRequest?.id, activeRequest?.name, activeRequest?.method, updateTab]); // eslint-disable-line react-hooks/exhaustive-deps
   const [splitRatio, setSplitRatio] = useState<number>(loadSplitRatio);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -92,6 +110,7 @@ const App: React.FC = () => {
             <EnvironmentSelector />
           </div>
         </div>
+        <TabBar />
         {activeRequest ? (
           <div className="app-workspace" ref={workspaceRef}>
             <div
