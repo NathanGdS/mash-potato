@@ -44,10 +44,20 @@ export interface RequestPayload {
   params: string;
   body_type: string;
   body: string;
+  auth_type: string;
+  auth_config: string;
 }
 
 export function UpdateRequest(payload: RequestPayload): Promise<void> {
   return _app()?.UpdateRequest(payload);
+}
+
+export function DeleteRequest(id: string): Promise<void> {
+  return _app()?.DeleteRequest(id);
+}
+
+export function DuplicateRequest(requestId: string): Promise<import('../../../types/request').Request> {
+  return _app()?.DuplicateRequest(requestId);
 }
 
 export interface ResponseResult {
@@ -79,6 +89,10 @@ export function DeleteEnvironment(id: string): Promise<void> {
   return _app()?.DeleteEnvironment(id);
 }
 
+export function GetGlobalEnvironmentID(): Promise<string> {
+  return _app()?.GetGlobalEnvironmentID();
+}
+
 export function GetActiveEnvironment(): Promise<string> {
   return _app()?.GetActiveEnvironment();
 }
@@ -104,4 +118,64 @@ export function GetVariables(environmentId: string): Promise<EnvironmentVariable
 
 export function DeleteVariable(id: number): Promise<void> {
   return _app()?.DeleteVariable(id);
+}
+
+export interface HistoryEntry {
+  id: number;
+  method: string;
+  url: string;
+  headers: string;
+  params: string;
+  body_type: string;
+  body: string;
+  response_status: number;
+  executed_at: string;
+}
+
+export function GetHistory(): Promise<HistoryEntry[]> {
+  return _app()?.GetHistory();
+}
+
+export function ClearHistory(): Promise<void> {
+  return _app()?.ClearHistory();
+}
+
+export function ExportCollection(collectionId: string): Promise<void> {
+  return _app()?.ExportCollection(collectionId);
+}
+
+export function ImportCollection(): Promise<import('../../../types/collection').Collection> {
+  return _app()?.ImportCollection();
+}
+
+export function CreateFolder(collectionId: string, parentFolderId: string, name: string): Promise<import('../../../types/folder').Folder> {
+  return _app()?.CreateFolder(collectionId, parentFolderId, name);
+}
+
+export function RenameFolder(id: string, name: string): Promise<void> {
+  return _app()?.RenameFolder(id, name);
+}
+
+export function DeleteFolder(id: string): Promise<void> {
+  return _app()?.DeleteFolder(id);
+}
+
+export function ListFolders(collectionId: string): Promise<import('../../../types/folder').Folder[]> {
+  return _app()?.ListFolders(collectionId);
+}
+
+export function CreateRequestInFolder(collectionId: string, folderId: string, name: string): Promise<import('../../../types/request').Request> {
+  return _app()?.CreateRequestInFolder(collectionId, folderId, name);
+}
+
+export function MoveRequest(requestId: string, folderId: string): Promise<void> {
+  return _app()?.MoveRequest(requestId, folderId);
+}
+
+export function GetSetting(key: string): Promise<string> {
+  return _app()?.GetSetting(key);
+}
+
+export function SetSetting(key: string, value: string): Promise<void> {
+  return _app()?.SetSetting(key, value);
 }
