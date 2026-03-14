@@ -58,6 +58,23 @@ func DeleteCollection(id string) error {
 	return nil
 }
 
+// GetCollection returns a single collection by ID.
+func GetCollection(id string) (Collection, error) {
+	var c Collection
+	var createdAtStr string
+	err := DB.QueryRow(
+		`SELECT id, name, created_at FROM collections WHERE id = ?`, id,
+	).Scan(&c.ID, &c.Name, &createdAtStr)
+	if err != nil {
+		return Collection{}, fmt.Errorf("GetCollection: %w", err)
+	}
+	c.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
+	if err != nil {
+		c.CreatedAt = time.Time{}
+	}
+	return c, nil
+}
+
 // ListCollections returns all collections ordered by creation time.
 func ListCollections() ([]Collection, error) {
 	rows, err := DB.Query(`SELECT id, name, created_at FROM collections ORDER BY created_at ASC`)

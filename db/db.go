@@ -97,12 +97,36 @@ func migrate(db *sql.DB) error {
 		return fmt.Errorf("migrate environment_variables: %w", err)
 	}
 
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS folders (
+			id               TEXT PRIMARY KEY,
+			collection_id    TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+			parent_folder_id TEXT REFERENCES folders(id) ON DELETE CASCADE,
+			name             TEXT NOT NULL,
+			created_at       DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate folders: %w", err)
+	}
+
 	// Add columns that may be missing if the table was created by an older migration.
 	addColumns := []string{
 		`ALTER TABLE requests ADD COLUMN headers   TEXT NOT NULL DEFAULT '[]'`,
 		`ALTER TABLE requests ADD COLUMN params    TEXT NOT NULL DEFAULT '[]'`,
 		`ALTER TABLE requests ADD COLUMN body_type TEXT NOT NULL DEFAULT 'none'`,
 		`ALTER TABLE requests ADD COLUMN body      TEXT NOT NULL DEFAULT ''`,
+		// Phase 006: add is_global flag to environments
+		`ALTER TABLE environments ADD COLUMN is_global INTEGER NOT NULL DEFAULT 0`,
+		// Phase 008: add folder_id to requests
+		`ALTER TABLE requests ADD COLUMN folder_id TEXT REFERENCES folders(id)`,
+		// Phase 009: add auth fields to requests
+		`ALTER TABLE requests ADD COLUMN auth_type   TEXT NOT NULL DEFAULT 'none'`,
+		`ALTER TABLE requests ADD COLUMN auth_config TEXT NOT NULL DEFAULT '{}'`,
+		// Phase 012: add timeout_seconds to requests
+		`ALTER TABLE requests ADD COLUMN timeout_seconds INTEGER NOT NULL DEFAULT 30`,
+		// Phase 013: add tests to requests
+		`ALTER TABLE requests ADD COLUMN tests TEXT NOT NULL DEFAULT ''`,
 	}
 	for _, stmt := range addColumns {
 		if _, execErr := db.Exec(stmt); execErr != nil {
@@ -111,5 +135,46 @@ func migrate(db *sql.DB) error {
 		}
 	}
 
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS request_history (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			method          TEXT    NOT NULL DEFAULT 'GET',
+			url             TEXT    NOT NULL DEFAULT '',
+			headers         TEXT    NOT NULL DEFAULT '[]',
+			params          TEXT    NOT NULL DEFAULT '[]',
+			body_type       TEXT    NOT NULL DEFAULT 'none',
+			body            TEXT    NOT NULL DEFAULT '',
+			response_status INTEGER NOT NULL DEFAULT 0,
+			executed_at     DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate request_history: %w", err)
+	}
+
+	// Seed the built-in global environment if it does not yet exist.
+	if err := seedGlobalEnvironment(db); err != nil {
+		return fmt.Errorf("migrate seed global env: %w", err)
+	}
+
+	return nil
+}
+
+// seedGlobalEnvironment inserts the built-in "Global" environment (is_global=1)
+// exactly once. Safe to call on every startup — it is a no-op when the row exists.
+func seedGlobalEnvironment(db *sql.DB) error {
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM environments WHERE is_global = 1`).Scan(&count); err != nil {
+		return fmt.Errorf("seedGlobalEnvironment count: %w", err)
+	}
+	if count > 0 {
+		return nil // already seeded
+	}
+	_, err := db.Exec(
+		`INSERT INTO environments (id, name, is_global, created_at) VALUES ('__global__', 'Global', 1, '2000-01-01T00:00:00Z')`,
+	)
+	if err != nil {
+		return fmt.Errorf("seedGlobalEnvironment insert: %w", err)
+	}
 	return nil
 }

@@ -17,20 +17,21 @@ type EnvironmentVariable struct {
 type Environment struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
+	IsGlobal  bool      `json:"is_global"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// InsertEnvironment persists a new environment row and returns it.
+// InsertEnvironment persists a new (non-global) environment row and returns it.
 func InsertEnvironment(id, name string) (Environment, error) {
 	now := time.Now().UTC()
 	_, err := DB.Exec(
-		`INSERT INTO environments (id, name, created_at) VALUES (?, ?, ?)`,
+		`INSERT INTO environments (id, name, is_global, created_at) VALUES (?, ?, 0, ?)`,
 		id, name, now.Format(time.RFC3339),
 	)
 	if err != nil {
 		return Environment{}, fmt.Errorf("InsertEnvironment: %w", err)
 	}
-	return Environment{ID: id, Name: name, CreatedAt: now}, nil
+	return Environment{ID: id, Name: name, IsGlobal: false, CreatedAt: now}, nil
 }
 
 // UpdateEnvironment updates the name of an existing environment by ID.
@@ -49,8 +50,16 @@ func UpdateEnvironment(id, name string) error {
 	return nil
 }
 
-// DeleteEnvironment removes an environment by ID.
+// DeleteEnvironment removes an environment by ID. Returns an error if the
+// environment is the built-in global environment (is_global = 1).
 func DeleteEnvironment(id string) error {
+	var isGlobal int
+	if err := DB.QueryRow(`SELECT is_global FROM environments WHERE id = ?`, id).Scan(&isGlobal); err != nil {
+		return fmt.Errorf("DeleteEnvironment: lookup: %w", err)
+	}
+	if isGlobal == 1 {
+		return fmt.Errorf("DeleteEnvironment: cannot delete the built-in Global environment")
+	}
 	res, err := DB.Exec(`DELETE FROM environments WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("DeleteEnvironment: %w", err)
@@ -66,8 +75,9 @@ func DeleteEnvironment(id string) error {
 }
 
 // ListEnvironments returns all environments ordered by creation time.
+// The built-in Global environment (is_global=1) is always returned first.
 func ListEnvironments() ([]Environment, error) {
-	rows, err := DB.Query(`SELECT id, name, created_at FROM environments ORDER BY created_at ASC`)
+	rows, err := DB.Query(`SELECT id, name, is_global, created_at FROM environments ORDER BY is_global DESC, created_at ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("ListEnvironments: %w", err)
 	}
@@ -77,9 +87,11 @@ func ListEnvironments() ([]Environment, error) {
 	for rows.Next() {
 		var e Environment
 		var createdAtStr string
-		if err := rows.Scan(&e.ID, &e.Name, &createdAtStr); err != nil {
+		var isGlobal int
+		if err := rows.Scan(&e.ID, &e.Name, &isGlobal, &createdAtStr); err != nil {
 			return nil, fmt.Errorf("ListEnvironments scan: %w", err)
 		}
+		e.IsGlobal = isGlobal == 1
 		e.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
 		if err != nil {
 			e.CreatedAt = time.Time{}
@@ -90,6 +102,16 @@ func ListEnvironments() ([]Environment, error) {
 		return nil, fmt.Errorf("ListEnvironments rows: %w", err)
 	}
 	return envs, nil
+}
+
+// GetGlobalEnvironmentID returns the id of the built-in global environment.
+func GetGlobalEnvironmentID() (string, error) {
+	var id string
+	err := DB.QueryRow(`SELECT id FROM environments WHERE is_global = 1 LIMIT 1`).Scan(&id)
+	if err != nil {
+		return "", fmt.Errorf("GetGlobalEnvironmentID: %w", err)
+	}
+	return id, nil
 }
 
 // SetVariable upserts a key-value variable for the given environment.
