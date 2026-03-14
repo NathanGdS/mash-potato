@@ -1,0 +1,109 @@
+.history-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.history-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--space-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.history-list-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.history-clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.history-clear-btn:hover {
+  color: var(--status-5xx-fg);
+  border-color: var(--status-5xx-fg);
+}
+
+.history-status {
+  font-size: 12px;
+  color: var(--text-subtle);
+  padding: var(--space-2) var(--space-4);
+}
+
+.history-status--error {
+  color: var(--status-5xx-fg);
+}
+
+.history-status--empty {
+  font-style: italic;
+}
+
+.history-entries {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px var(--space-3);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  border-bottom: 1px solid transparent;
+}
+
+.history-entry:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.history-entry-url {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+.history-entry-status {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.history-status--2xx { color: var(--status-2xx-fg, #4ade80); }
+.history-status--3xx { color: var(--status-3xx-fg, #60a5fa); }
+.history-status--4xx { color: var(--status-4xx-fg, #facc15); }
+.history-status--5xx { color: var(--status-5xx-fg, #f87171); }
+.history-status--other { color: var(--text-muted); }
+
+.history-entry-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}

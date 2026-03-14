@@ -2,11 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useCollectionsStore } from '../store/collectionsStore';
 import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
+import HistoryList from './HistoryList';
 import './Sidebar.css';
 
+type SidebarTab = 'collections' | 'history';
+
 const Sidebar: React.FC = () => {
-  const { collections, loading, error, fetchCollections } = useCollectionsStore();
+  const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
   const [showModal, setShowModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<SidebarTab>('collections');
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImport = async () => {
+    setImportError(null);
+    try {
+      await importCollection();
+    } catch (err) {
+      setImportError(String(err));
+    }
+  };
 
   useEffect(() => {
     fetchCollections();
@@ -14,42 +28,81 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <span className="sidebar-title">Collections</span>
+      <div className="sidebar-tabs">
         <button
-          className="sidebar-new-btn"
-          title="New Collection"
-          onClick={() => setShowModal(true)}
-          aria-label="New Collection"
+          className={`sidebar-tab-btn${activeTab === 'collections' ? ' sidebar-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('collections')}
         >
-          +
+          Collections
+        </button>
+        <button
+          className={`sidebar-tab-btn${activeTab === 'history' ? ' sidebar-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          History
         </button>
       </div>
 
-      <div className="sidebar-body">
-        {loading && (
-          <p className="sidebar-status">Loading…</p>
-        )}
+      {activeTab === 'collections' && (
+        <>
+          <div className="sidebar-header">
+            <span className="sidebar-title">Collections</span>
+            <div className="sidebar-header-actions">
+              <button
+                className="sidebar-new-btn"
+                title="Import Collection"
+                onClick={handleImport}
+                aria-label="Import Collection"
+              >
+                ↑
+              </button>
+              <button
+                className="sidebar-new-btn"
+                title="New Collection"
+                onClick={() => setShowModal(true)}
+                aria-label="New Collection"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
-        {!loading && error && (
-          <p className="sidebar-status sidebar-status--error">{error}</p>
-        )}
+          {importError && (
+            <p className="sidebar-status sidebar-status--error">{importError}</p>
+          )}
 
-        {!loading && !error && collections.length === 0 && (
-          <p className="sidebar-status sidebar-status--empty">
-            No collections yet. Click <strong>+</strong> to create one.
-          </p>
-        )}
+          <div className="sidebar-body">
+            {loading && (
+              <p className="sidebar-status">Loading…</p>
+            )}
 
-        <ul className="collection-list">
-          {collections.map((col) => (
-            <CollectionItem key={col.id} collection={col} />
-          ))}
-        </ul>
-      </div>
+            {!loading && error && (
+              <p className="sidebar-status sidebar-status--error">{error}</p>
+            )}
 
-      {showModal && (
-        <NewCollectionModal onClose={() => setShowModal(false)} />
+            {!loading && !error && collections.length === 0 && (
+              <p className="sidebar-status sidebar-status--empty">
+                No collections yet. Click <strong>+</strong> to create one.
+              </p>
+            )}
+
+            <ul className="collection-list">
+              {collections.map((col) => (
+                <CollectionItem key={col.id} collection={col} />
+              ))}
+            </ul>
+          </div>
+
+          {showModal && (
+            <NewCollectionModal onClose={() => setShowModal(false)} />
+          )}
+        </>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="sidebar-body sidebar-body--fill">
+          <HistoryList />
+        </div>
       )}
     </aside>
   );

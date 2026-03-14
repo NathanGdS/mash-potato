@@ -1,7 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCollectionsStore } from '../store/collectionsStore';
 import { useRequestsStore } from '../store/requestsStore';
+import { useTabsStore } from '../store/tabsStore';
+import { useFoldersStore } from '../store/foldersStore';
 import { Collection } from '../types/collection';
+import { Request } from '../types/request';
+import { ExportCollection } from '../wailsjs/go/main/App';
+import FolderItem from './FolderItem';
 
 function methodBadgeClass(method: string): string {
   switch (method.toUpperCase()) {
@@ -25,10 +30,16 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   const fetchRequests = useRequestsStore((s) => s.fetchRequests);
   const createRequest = useRequestsStore((s) => s.createRequest);
   const openRequest = useRequestsStore((s) => s.openRequest);
+  const duplicateRequest = useRequestsStore((s) => s.duplicateRequest);
+  const deleteRequest = useRequestsStore((s) => s.deleteRequest);
   const activeRequest = useRequestsStore((s) => s.activeRequest);
+  const openTab = useTabsStore((s) => s.openTab);
   const requests = useRequestsStore((s) => s.requestsByCollection[collection.id] ?? []);
   const requestsLoading = useRequestsStore((s) => s.loadingFor[collection.id] ?? false);
   const requestsError = useRequestsStore((s) => s.errorFor[collection.id] ?? null);
+
+  const { fetchFolders, createFolder, moveRequest } = useFoldersStore();
+  const folders = useFoldersStore((s) => s.foldersByCollection[collection.id] ?? []);
 
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(collection.name);
@@ -42,9 +53,112 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   const [newRequestError, setNewRequestError] = useState<string | null>(null);
   const newRequestInputRef = useRef<HTMLInputElement>(null);
 
+  // Add folder inline
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
+
+  // Request context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; request: Request } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+
+  // Collection context menu state
+  const [collectionMenu, setCollectionMenu] = useState<{ x: number; y: number } | null>(null);
+  const collectionMenuRef = useRef<HTMLDivElement>(null);
+
+  const closeTab = useTabsStore((s) => s.closeTab);
+
+  // Close request context menu when clicking outside
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+        setMoveMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [contextMenu]);
+
+  // Close collection context menu when clicking outside
+  useEffect(() => {
+    if (!collectionMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (collectionMenuRef.current && !collectionMenuRef.current.contains(e.target as Node)) {
+        setCollectionMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [collectionMenu]);
+
+  const handleCollectionContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCollectionMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleExport = async () => {
+    setCollectionMenu(null);
+    try {
+      await ExportCollection(collection.id);
+    } catch (err) {
+      console.error('Export collection failed:', err);
+    }
+  };
+
+  const handleRequestContextMenu = (e: React.MouseEvent, req: Request) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, request: req });
+    setMoveMenuOpen(false);
+  };
+
+  const handleDuplicate = async () => {
+    if (!contextMenu) return;
+    const req = contextMenu.request;
+    setContextMenu(null);
+    try {
+      const copy = await duplicateRequest(req.id);
+      if (!expanded) setExpanded(true);
+      openRequest(copy.id);
+      openTab({ requestId: copy.id, requestName: copy.name, method: copy.method });
+    } catch (err) {
+      console.error('Duplicate request failed:', err);
+    }
+  };
+
+  const handleDeleteRequest = async () => {
+    if (!contextMenu) return;
+    const req = contextMenu.request;
+    setContextMenu(null);
+    const confirmed = window.confirm(`Delete request "${req.name}"?`);
+    if (!confirmed) return;
+    try {
+      await deleteRequest(req.id, req.collection_id);
+      closeTab(req.id);
+    } catch (err) {
+      console.error('Delete request failed:', err);
+    }
+  };
+
+  const handleMoveToFolder = async (targetFolderId: string) => {
+    if (!contextMenu) return;
+    const req = contextMenu.request;
+    setContextMenu(null);
+    try {
+      await moveRequest(req.id, req.collection_id, targetFolderId);
+    } catch (err) {
+      console.error('Move request failed:', err);
+    }
+  };
+
   const toggleExpand = async () => {
     if (!expanded) {
-      await fetchRequests(collection.id);
+      await Promise.all([fetchRequests(collection.id), fetchFolders(collection.id)]);
     }
     setExpanded((prev) => !prev);
   };
@@ -96,22 +210,15 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commitRename();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelEditing();
-    }
+    if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelEditing(); }
   };
 
   const startAddingRequest = () => {
     setNewRequestName('New Request');
     setNewRequestError(null);
     setAddingRequest(true);
-    setTimeout(() => {
-      newRequestInputRef.current?.select();
-    }, 0);
+    setTimeout(() => { newRequestInputRef.current?.select(); }, 0);
   };
 
   const commitAddRequest = async () => {
@@ -140,20 +247,60 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
   };
 
   const handleNewRequestKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commitAddRequest();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelAddRequest();
+    if (e.key === 'Enter') { e.preventDefault(); commitAddRequest(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelAddRequest(); }
+  };
+
+  // --- Add folder ---
+  const startAddingFolder = () => {
+    setCollectionMenu(null);
+    setExpanded(true);
+    setNewFolderName('New Folder');
+    setNewFolderError(null);
+    setAddingFolder(true);
+    setTimeout(() => { newFolderInputRef.current?.select(); }, 0);
+  };
+
+  const commitAddFolder = async () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) {
+      setNewFolderError('Folder name cannot be empty.');
+      newFolderInputRef.current?.focus();
+      return;
+    }
+    try {
+      await createFolder(collection.id, '', trimmed);
+      setAddingFolder(false);
+      setNewFolderName('');
+      setNewFolderError(null);
+    } catch (err) {
+      setNewFolderError(String(err));
+      newFolderInputRef.current?.focus();
     }
   };
+
+  const cancelAddFolder = () => {
+    setAddingFolder(false);
+    setNewFolderName('');
+    setNewFolderError(null);
+  };
+
+  const handleNewFolderKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitAddFolder(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelAddFolder(); }
+  };
+
+  // Root-level requests: those with no folder_id
+  const rootRequests = requests.filter((r) => r.folder_id == null);
+  // Root-level folders: those with no parent_folder_id
+  const rootFolders = folders.filter((f) => f.parent_folder_id == null);
 
   return (
     <li className="collection-item">
       <div
         className="collection-item-header"
         onDoubleClick={!editing ? startEditing : undefined}
+        onContextMenu={!editing ? handleCollectionContextMenu : undefined}
       >
         <button
           className="collection-expand-btn"
@@ -221,20 +368,57 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
           {!requestsLoading && requestsError && (
             <li className="request-item request-item--error">{requestsError}</li>
           )}
-          {!requestsLoading && !requestsError && requests.length === 0 && !addingRequest && (
-            <li className="request-item request-item--empty">No requests yet.</li>
-          )}
-          {requests.map((req) => (
+
+          {/* Root-level folders */}
+          {!requestsLoading && !requestsError && rootFolders.map((folder) => (
+            <FolderItem
+              key={folder.id}
+              folder={folder}
+              allRequests={requests}
+              allFolders={folders}
+              depth={0}
+            />
+          ))}
+
+          {/* Root-level requests (no folder) */}
+          {!requestsLoading && !requestsError && rootRequests.map((req) => (
             <li
               key={req.id}
               className={`request-item${activeRequest?.id === req.id ? ' request-item--active' : ''}`}
-              onClick={() => openRequest(req.id)}
+              onClick={() => {
+                openRequest(req.id);
+                openTab({ requestId: req.id, requestName: req.name, method: req.method });
+              }}
+              onContextMenu={(e) => handleRequestContextMenu(e, req)}
               style={{ cursor: 'pointer' }}
             >
               <span className={methodBadgeClass(req.method)} data-method={req.method}>{req.method}</span>
               <span className="request-name">{req.name}</span>
             </li>
           ))}
+
+          {!requestsLoading && !requestsError && rootRequests.length === 0 && rootFolders.length === 0 && !addingRequest && !addingFolder && (
+            <li className="request-item request-item--empty">No requests yet.</li>
+          )}
+
+          {addingFolder && (
+            <li className="request-item request-item--new">
+              <input
+                ref={newFolderInputRef}
+                className="request-name-input"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={handleNewFolderKeyDown}
+                onBlur={commitAddFolder}
+                autoFocus
+                aria-label="New folder name"
+              />
+              {newFolderError && (
+                <span className="collection-rename-error">{newFolderError}</span>
+              )}
+            </li>
+          )}
+
           {addingRequest && (
             <li className="request-item request-item--new">
               <input
@@ -253,6 +437,60 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection }) => {
             </li>
           )}
         </ul>
+      )}
+
+      {/* Request context menu (root-level requests) */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="request-context-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button className="request-context-menu-item" onClick={handleDuplicate}>
+            Duplicate
+          </button>
+          {folders.length > 0 && (
+            <div
+              className="request-context-menu-item request-context-menu-item--submenu"
+              onMouseEnter={() => setMoveMenuOpen(true)}
+              onMouseLeave={() => setMoveMenuOpen(false)}
+            >
+              Move to ▸
+              {moveMenuOpen && (
+                <div className="request-context-submenu">
+                  {folders.map((f) => (
+                    <button
+                      key={f.id}
+                      className="request-context-menu-item"
+                      onClick={() => handleMoveToFolder(f.id)}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <button className="request-context-menu-item request-context-menu-item--danger" onClick={handleDeleteRequest}>
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Collection context menu */}
+      {collectionMenu && (
+        <div
+          ref={collectionMenuRef}
+          className="request-context-menu"
+          style={{ top: collectionMenu.y, left: collectionMenu.x }}
+        >
+          <button className="request-context-menu-item" onClick={startAddingFolder}>
+            New Folder
+          </button>
+          <button className="request-context-menu-item" onClick={handleExport}>
+            Export
+          </button>
+        </div>
       )}
     </li>
   );

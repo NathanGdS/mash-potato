@@ -14,6 +14,45 @@
   z-index: 2;
 }
 
+/* Tab switcher */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+
+.sidebar-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.sidebar-tab-btn:hover {
+  color: var(--text-secondary);
+}
+
+.sidebar-tab-btn--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Body fill variant (for tabs that manage their own scroll) */
+.sidebar-body--fill {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Header row */
 .sidebar-header {
   display: flex;
@@ -31,6 +70,12 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+}
+
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .sidebar-new-btn {
@@ -299,4 +344,106 @@
   font-size: 12px;
   padding: 2px var(--space-1);
   outline: none;
+}
+
+/* ── Request context menu ───────────────────────────────── */
+.request-context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.request-context-menu-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.request-context-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.request-context-menu-item--danger {
+  color: var(--status-5xx-fg);
+}
+
+.request-context-menu-item--danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ── Folder items ───────────────────────────────────────── */
+.folder-item {
+  list-style: none;
+  width: 100%;
+}
+
+.folder-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px var(--space-2);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.folder-item-header:hover {
+  background: var(--bg-surface);
+}
+
+.folder-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.folder-item-header:hover .collection-add-request-btn,
+.folder-item-header:hover .collection-delete-btn {
+  display: block;
+}
+
+/* ── Submenu (Move to) ──────────────────────────────────── */
+.request-context-menu-item--submenu {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.request-context-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 140px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
 }
