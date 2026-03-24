@@ -16,13 +16,15 @@ import (
 
 // ResponseResult holds the result of an executed HTTP request.
 type ResponseResult struct {
-	StatusCode  int                 `json:"StatusCode"`
-	StatusText  string              `json:"StatusText"`
-	Body        string              `json:"Body"`
-	Headers     map[string][]string `json:"Headers"`
-	DurationMs  int64               `json:"DurationMs"`
-	SizeBytes   int64               `json:"SizeBytes"`
-	TestResults []AssertionResult   `json:"TestResults"`
+	StatusCode   int                 `json:"StatusCode"`
+	StatusText   string              `json:"StatusText"`
+	Body         string              `json:"Body"`
+	Headers      map[string][]string `json:"Headers"`
+	DurationMs   int64               `json:"DurationMs"`
+	SizeBytes    int64               `json:"SizeBytes"`
+	TestResults  []AssertionResult   `json:"TestResults"`
+	ConsoleLogs  []string            `json:"consoleLogs"`
+	ScriptErrors []string            `json:"scriptErrors"`
 }
 
 // kvRow mirrors the JSON structure stored for headers/params/form-data.

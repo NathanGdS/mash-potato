@@ -221,6 +221,8 @@ func (a *App) ImportFromCurl(collectionID string, curlCommand string) (db.Reques
 		authConfig,
 		30,
 		"",
+		"",
+		"",
 	); err != nil {
 		return db.Request{}, fmt.Errorf("ImportFromCurl: update: %w", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"mash-potato/db"
 	"mash-potato/httpclient"
+	"mash-potato/scripter"
 )
 
 // App holds application state and exposes Wails-bound methods.
@@ -132,12 +133,14 @@ type RequestPayload struct {
 	AuthConfig     string `json:"auth_config"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
 	Tests          string `json:"tests"`
+	PreScript      string `json:"pre_script"`
+	PostScript     string `json:"post_script"`
 }
 
 // SendRequest fetches the request from SQLite by id, executes it via net/http,
 // and returns a ResponseResult with status, body, headers, duration, and size.
-// Before dispatching, all {{variable}} tokens in URL, headers, params, and body
-// are replaced with values from the active environment (if one is set).
+// Pre-script runs before interpolation; post-script runs after the HTTP call.
+// Script errors are non-fatal — the request proceeds regardless.
 // Interpolation is ephemeral — resolved values are never written back to the DB.
 func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	if strings.TrimSpace(id) == "" {
@@ -178,6 +181,59 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 		}
 	}
 
+	// Accumulators for script output across pre and post execution.
+	var consoleLogs []string
+	var scriptErrors []string
+
+	// applyMutations writes env mutations into the in-memory vars map and
+	// persists them to SQLite when an active environment is available.
+	applyMutations := func(mutations map[string]string) {
+		for k, v := range mutations {
+			vars[k] = v
+			if envID != "" {
+				// Best-effort — never fail the request on a persistence error.
+				_, _ = db.SetVariable(envID, k, v)
+			}
+		}
+	}
+
+	// Build a flat headers map from the JSON KV array for the script snapshot.
+	buildHeadersMap := func(headersJSON string) map[string]string {
+		type kvRow struct {
+			Key     string `json:"key"`
+			Value   string `json:"value"`
+			Enabled bool   `json:"enabled"`
+		}
+		var rows []kvRow
+		_ = json.Unmarshal([]byte(headersJSON), &rows)
+		m := make(map[string]string, len(rows))
+		for _, r := range rows {
+			if r.Enabled && r.Key != "" {
+				m[r.Key] = r.Value
+			}
+		}
+		return m
+	}
+
+	reqSnapshot := scripter.RequestSnapshot{
+		URL:     req.URL,
+		Method:  req.Method,
+		Headers: buildHeadersMap(req.Headers),
+		Body:    req.Body,
+	}
+
+	// --- Pre-script ---
+	if req.PreScript != "" {
+		preResult := scripter.RunPreScript(req.PreScript, scripter.ScriptContext{
+			EnvVars:  vars,
+			Request:  reqSnapshot,
+			Response: nil,
+		})
+		applyMutations(preResult.EnvMutations)
+		consoleLogs = append(consoleLogs, preResult.Logs...)
+		scriptErrors = append(scriptErrors, preResult.Errors...)
+	}
+
 	// Apply interpolation to all text fields (ephemeral — not saved to DB).
 	if len(vars) > 0 {
 		req.URL = Interpolate(req.URL, vars)
@@ -191,6 +247,41 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	if err != nil {
 		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: %w", err)
 	}
+
+	// --- Post-script ---
+	if req.PostScript != "" {
+		// Flatten response headers to map[string]string (first value per key).
+		respHeaders := make(map[string]string, len(result.Headers))
+		for k, vals := range result.Headers {
+			if len(vals) > 0 {
+				respHeaders[k] = vals[0]
+			}
+		}
+		respSnapshot := &scripter.ResponseSnapshot{
+			Status:     result.StatusCode,
+			StatusText: result.StatusText,
+			Body:       result.Body,
+			Headers:    respHeaders,
+		}
+		postResult := scripter.RunPostScript(req.PostScript, scripter.ScriptContext{
+			EnvVars:  vars,
+			Request:  reqSnapshot,
+			Response: respSnapshot,
+		})
+		applyMutations(postResult.EnvMutations)
+		consoleLogs = append(consoleLogs, postResult.Logs...)
+		scriptErrors = append(scriptErrors, postResult.Errors...)
+	}
+
+	// Attach script output to the result.
+	if consoleLogs == nil {
+		consoleLogs = []string{}
+	}
+	if scriptErrors == nil {
+		scriptErrors = []string{}
+	}
+	result.ConsoleLogs = consoleLogs
+	result.ScriptErrors = scriptErrors
 
 	// Log to history — best-effort, never fail the response on write error.
 	responseHeadersJSON, _ := json.Marshal(result.Headers)
@@ -495,6 +586,8 @@ func (a *App) UpdateRequest(payload RequestPayload) error {
 		authConfig,
 		payload.TimeoutSeconds,
 		payload.Tests,
+		payload.PreScript,
+		payload.PostScript,
 	); err != nil {
 		return fmt.Errorf("UpdateRequest: %w", err)
 	}
@@ -580,6 +673,8 @@ func (a *App) ImportCollection() (db.Collection, error) {
 			authConfig,
 			r.TimeoutSeconds,
 			r.Tests,
+			r.PreScript,
+			r.PostScript,
 		); err != nil {
 			return db.Collection{}, fmt.Errorf("ImportCollection: update request %q: %w", r.Name, err)
 		}
