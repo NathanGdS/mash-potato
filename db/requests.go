@@ -22,6 +22,8 @@ type Request struct {
 	AuthConfig     string    `json:"auth_config"`
 	TimeoutSeconds int       `json:"timeout_seconds"`
 	Tests          string    `json:"tests"`
+	PreScript      string    `json:"pre_script"`
+	PostScript     string    `json:"post_script"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
@@ -41,8 +43,8 @@ func InsertRequestInFolder(id, collectionID, folderID, name string) (Request, er
 	}
 	_, err := DB.Exec(
 		`INSERT INTO requests
-			(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, created_at)
-		 VALUES (?, ?, ?, ?, 'GET', '', '[]', '[]', 'none', '', 'none', '{}', 30, '', ?)`,
+			(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at)
+		 VALUES (?, ?, ?, ?, 'GET', '', '[]', '[]', 'none', '', 'none', '{}', 30, '', '', '', ?)`,
 		id, collectionID, nullableString(folderID), name, now.Format(time.RFC3339),
 	)
 	if err != nil {
@@ -63,6 +65,8 @@ func InsertRequestInFolder(id, collectionID, folderID, name string) (Request, er
 		AuthConfig:     "{}",
 		TimeoutSeconds: 30,
 		Tests:          "",
+		PreScript:      "",
+		PostScript:     "",
 		CreatedAt:      now,
 	}, nil
 }
@@ -70,7 +74,7 @@ func InsertRequestInFolder(id, collectionID, folderID, name string) (Request, er
 // GetRequest returns a single request by its ID.
 func GetRequest(id string) (Request, error) {
 	row := DB.QueryRow(
-		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, created_at
+		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at
 		   FROM requests
 		  WHERE id = ?`,
 		id,
@@ -80,7 +84,7 @@ func GetRequest(id string) (Request, error) {
 	var folderID sql.NullString
 	if err := row.Scan(
 		&r.ID, &r.CollectionID, &folderID, &r.Name, &r.Method, &r.URL,
-		&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &createdAtStr,
+		&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &r.PreScript, &r.PostScript, &createdAtStr,
 	); err != nil {
 		return Request{}, fmt.Errorf("GetRequest: %w", err)
 	}
@@ -96,12 +100,12 @@ func GetRequest(id string) (Request, error) {
 }
 
 // UpdateRequest updates all mutable fields of a request row.
-func UpdateRequest(id, method, url, headers, params, bodyType, body, authType, authConfig string, timeoutSeconds int, tests string) error {
+func UpdateRequest(id, method, url, headers, params, bodyType, body, authType, authConfig string, timeoutSeconds int, tests, preScript, postScript string) error {
 	res, err := DB.Exec(
 		`UPDATE requests
-		    SET method = ?, url = ?, headers = ?, params = ?, body_type = ?, body = ?, auth_type = ?, auth_config = ?, timeout_seconds = ?, tests = ?
+		    SET method = ?, url = ?, headers = ?, params = ?, body_type = ?, body = ?, auth_type = ?, auth_config = ?, timeout_seconds = ?, tests = ?, pre_script = ?, post_script = ?
 		  WHERE id = ?`,
-		method, url, headers, params, bodyType, body, authType, authConfig, timeoutSeconds, tests, id,
+		method, url, headers, params, bodyType, body, authType, authConfig, timeoutSeconds, tests, preScript, postScript, id,
 	)
 	if err != nil {
 		return fmt.Errorf("UpdateRequest: %w", err)
@@ -147,11 +151,11 @@ func DuplicateRequest(id, newID string) (Request, error) {
 	}
 	_, err = DB.Exec(
 		`INSERT INTO requests
-			(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newID, orig.CollectionID, folderIDVal, copyName, orig.Method, orig.URL,
 		orig.Headers, orig.Params, orig.BodyType, orig.Body, orig.AuthType, orig.AuthConfig,
-		orig.TimeoutSeconds, orig.Tests, now.Format(time.RFC3339),
+		orig.TimeoutSeconds, orig.Tests, orig.PreScript, orig.PostScript, now.Format(time.RFC3339),
 	)
 	if err != nil {
 		return Request{}, fmt.Errorf("DuplicateRequest: insert copy: %w", err)
@@ -171,6 +175,8 @@ func DuplicateRequest(id, newID string) (Request, error) {
 		AuthConfig:     orig.AuthConfig,
 		TimeoutSeconds: orig.TimeoutSeconds,
 		Tests:          orig.Tests,
+		PreScript:      orig.PreScript,
+		PostScript:     orig.PostScript,
 		CreatedAt:      now,
 	}, nil
 }
@@ -178,7 +184,7 @@ func DuplicateRequest(id, newID string) (Request, error) {
 // ListRequests returns all requests for a given collection, ordered by creation time.
 func ListRequests(collectionID string) ([]Request, error) {
 	rows, err := DB.Query(
-		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, created_at
+		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at
 		   FROM requests
 		  WHERE collection_id = ?
 		  ORDER BY created_at ASC`,
@@ -196,7 +202,7 @@ func ListRequests(collectionID string) ([]Request, error) {
 		var folderID sql.NullString
 		if err := rows.Scan(
 			&r.ID, &r.CollectionID, &folderID, &r.Name, &r.Method, &r.URL,
-			&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &createdAtStr,
+			&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &r.PreScript, &r.PostScript, &createdAtStr,
 		); err != nil {
 			return nil, fmt.Errorf("ListRequests scan: %w", err)
 		}

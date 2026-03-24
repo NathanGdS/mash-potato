@@ -83,7 +83,7 @@ func TestSendRequest_InterpolatesURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertRequest: %v", err)
 	}
-	if err := db.UpdateRequest(req.ID, "GET", srv.URL+"/{{path}}", "[]", "[]", "none", "", "none", "{}", 30, ""); err != nil {
+	if err := db.UpdateRequest(req.ID, "GET", srv.URL+"/{{path}}", "[]", "[]", "none", "", "none", "{}", 30, "", "", ""); err != nil {
 		t.Fatalf("UpdateRequest: %v", err)
 	}
 
@@ -135,7 +135,7 @@ func TestSendRequest_InterpolatesAuth(t *testing.T) {
 	
 	// auth_config with variables
 	authConfig := `{"keyName":"{{name_var}}","keyValue":"{{val_var}}","addTo":"header"}`
-	if err := db.UpdateRequest(req.ID, "GET", srv.URL, "[]", "[]", "none", "", "apikey", authConfig, 30, ""); err != nil {
+	if err := db.UpdateRequest(req.ID, "GET", srv.URL, "[]", "[]", "none", "", "apikey", authConfig, 30, "", "", ""); err != nil {
 		t.Fatalf("UpdateRequest: %v", err)
 	}
 

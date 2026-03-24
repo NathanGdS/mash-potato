@@ -67,7 +67,7 @@ func TestUpdateRequest_Method(t *testing.T) {
 	clearTables()
 	InsertCollection("col-3", "Col")
 	InsertRequest("req-3", "col-3", "R")
-	err := UpdateRequest("req-3", "POST", "", "[]", "[]", "none", "", "none", "{}", 30, "")
+	err := UpdateRequest("req-3", "POST", "", "[]", "[]", "none", "", "none", "{}", 30, "", "", "")
 	if err != nil {
 		t.Fatalf("UpdateRequest: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestUpdateRequest_URL(t *testing.T) {
 	clearTables()
 	InsertCollection("col-4", "Col")
 	InsertRequest("req-4", "col-4", "R")
-	UpdateRequest("req-4", "GET", "https://api.example.com", "[]", "[]", "none", "", "none", "{}", 30, "")
+	UpdateRequest("req-4", "GET", "https://api.example.com", "[]", "[]", "none", "", "none", "{}", 30, "", "", "")
 	req, _ := GetRequest("req-4")
 	if req.URL != "https://api.example.com" {
 		t.Errorf("expected URL, got %q", req.URL)
@@ -93,7 +93,7 @@ func TestUpdateRequest_Headers(t *testing.T) {
 	InsertCollection("col-5", "Col")
 	InsertRequest("req-5", "col-5", "R")
 	headers := `[{"key":"Authorization","value":"Bearer token","enabled":true}]`
-	UpdateRequest("req-5", "GET", "", headers, "[]", "none", "", "none", "{}", 30, "")
+	UpdateRequest("req-5", "GET", "", headers, "[]", "none", "", "none", "{}", 30, "", "", "")
 	req, _ := GetRequest("req-5")
 	if req.Headers != headers {
 		t.Errorf("headers not persisted: got %q", req.Headers)
@@ -105,7 +105,7 @@ func TestUpdateRequest_Params(t *testing.T) {
 	InsertCollection("col-6", "Col")
 	InsertRequest("req-6", "col-6", "R")
 	params := `[{"key":"page","value":"1","enabled":true}]`
-	UpdateRequest("req-6", "GET", "", "[]", params, "none", "", "none", "{}", 30, "")
+	UpdateRequest("req-6", "GET", "", "[]", params, "none", "", "none", "{}", 30, "", "", "")
 	req, _ := GetRequest("req-6")
 	if req.Params != params {
 		t.Errorf("params not persisted: got %q", req.Params)
@@ -117,7 +117,7 @@ func TestUpdateRequest_Body_JSON(t *testing.T) {
 	InsertCollection("col-7", "Col")
 	InsertRequest("req-7", "col-7", "R")
 	body := `{"hello":"world"}`
-	UpdateRequest("req-7", "POST", "", "[]", "[]", "json", body, "none", "{}", 30, "")
+	UpdateRequest("req-7", "POST", "", "[]", "[]", "json", body, "none", "{}", 30, "", "", "")
 	req, _ := GetRequest("req-7")
 	if req.BodyType != "json" {
 		t.Errorf("expected body_type=json, got %q", req.BodyType)
@@ -129,7 +129,7 @@ func TestUpdateRequest_Body_JSON(t *testing.T) {
 
 func TestUpdateRequest_NotFound(t *testing.T) {
 	clearTables()
-	err := UpdateRequest("ghost", "GET", "", "[]", "[]", "none", "", "none", "{}", 30, "")
+	err := UpdateRequest("ghost", "GET", "", "[]", "[]", "none", "", "none", "{}", 30, "", "", "")
 	if err == nil {
 		t.Fatal("expected error for non-existent request")
 	}
@@ -212,7 +212,7 @@ func TestUpdateRequest_PersistsAllFields(t *testing.T) {
 	bodyType := "raw"
 	body := "plain text body"
 
-	err := UpdateRequest("req-12", method, url, headers, params, bodyType, body, "none", "{}", 30, "")
+	err := UpdateRequest("req-12", method, url, headers, params, bodyType, body, "none", "{}", 30, "", "", "")
 	if err != nil {
 		t.Fatalf("UpdateRequest: %v", err)
 	}

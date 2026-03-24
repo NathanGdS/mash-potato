@@ -127,6 +127,9 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE requests ADD COLUMN timeout_seconds INTEGER NOT NULL DEFAULT 30`,
 		// Phase 013: add tests to requests
 		`ALTER TABLE requests ADD COLUMN tests TEXT NOT NULL DEFAULT ''`,
+		// Phase 0009: add pre/post scripting to requests
+		`ALTER TABLE requests ADD COLUMN pre_script  TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE requests ADD COLUMN post_script TEXT NOT NULL DEFAULT ''`,
 		// Phase 0007: store full response in history
 		`ALTER TABLE request_history ADD COLUMN response_body        TEXT    NOT NULL DEFAULT ''`,
 		`ALTER TABLE request_history ADD COLUMN response_headers     TEXT    NOT NULL DEFAULT '{}'`,
