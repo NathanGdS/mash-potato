@@ -1351,6 +1351,237 @@
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
 }
 
+/* ── Scripts Tab ─────────────────────────────────────────── */
+.scripts-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scripts-subtabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.scripts-subtab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: var(--space-1) var(--space-3);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.scripts-subtab:hover {
+  color: var(--text-primary);
+}
+
+.scripts-subtab--active {
+  color: var(--text-primary);
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+.scripts-editor-area {
+  display: flex;
+  flex: 1;
+  padding: var(--space-4);
+}
+
+.script-editor-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 200px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  resize: none;
+  line-height: 1.5;
+  outline: none;
+}
+
+.script-editor-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+/* ── Scripts tab help button ─────────────────────────────── */
+.re-tab-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  vertical-align: middle;
+  user-select: none;
+  opacity: 0.85;
+  position: relative;
+}
+
+.re-tab-help:hover {
+  opacity: 1;
+}
+
+.re-tab-help::after {
+  content: 'View scripting API docs';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.re-tab-help:hover::after {
+  opacity: 1;
+}
+
+/* ── Script Docs Modal ───────────────────────────────────── */
+.script-docs-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.script-docs-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 640px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.script-docs-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.script-docs-modal__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.script-docs-modal__close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.script-docs-modal__close:hover {
+  color: var(--text-primary);
+}
+
+.script-docs-modal__body {
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7, 28px);
+}
+
+.script-docs-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.script-docs-modal__section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.script-docs-modal__text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, var(--text-muted));
+  line-height: 1.6;
+}
+
+.script-docs-modal__note {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.script-docs-modal__label {
+  margin: 4px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.script-docs-modal__code {
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow-x: auto;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.script-docs-modal__code code {
+  font-family: inherit;
+}
+
 .test-results {
   padding: var(--space-4);
 }
@@ -1426,4 +1657,73 @@
   font-size: 12px;
   color: var(--status-5xx-fg);
   margin-top: 4px;
+}
+
+/* ── ConsolePanel ────────────────────────────────────────── */
+.console-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.console-panel--empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.console-panel-placeholder {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+  margin: 0;
+}
+
+.console-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.console-panel-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
+  margin: 0;
+}
+
+.console-panel-section-title--error {
+  color: var(--status-5xx-fg);
+}
+
+.console-panel-pre {
+  margin: 0;
+  padding: var(--space-3);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.console-panel-pre--error {
+  background: var(--status-5xx-bg);
+  border-color: var(--status-5xx-border);
+  color: var(--status-5xx-fg);
+}
+
+.rv-tab-count--error {
+  background: var(--status-5xx-bg);
+  color: var(--status-5xx-fg);
 }
