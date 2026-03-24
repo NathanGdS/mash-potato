@@ -5,10 +5,11 @@ import MetricsBar from './MetricsBar';
 import ResponseBody from './ResponseBody';
 import ResponseHeaders from './ResponseHeaders';
 import TestResults from './TestResults';
+import ConsolePanel from './ConsolePanel';
 import { tryPrettyPrint } from '../utils/jsonHighlighter';
 import { httpclient } from '../../wailsjs/go/models';
 
-type ResponseTab = 'body' | 'headers' | 'tests';
+type ResponseTab = 'body' | 'headers' | 'tests' | 'console';
 
 const ResponseViewer: React.FC = () => {
   const { responses, activeRequestId, error } = useResponseStore();
@@ -62,25 +63,35 @@ const ResponseViewer: React.FC = () => {
 
       {/* Tab navigation */}
       <div className="response-viewer-tabs">
-        {(['body', 'headers', 'tests'] as ResponseTab[]).map((tab) => (
-          <button
-            key={tab}
-            className={`rv-tab${activeTab === tab ? ' rv-tab--active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === 'headers' && (
-              <span className="rv-tab-count">
-                {Object.keys(response.Headers).length}
-              </span>
-            )}
-            {tab === 'tests' && response.TestResults && response.TestResults.length > 0 && (
-              <span className="rv-tab-count">
-                {response.TestResults.length}
-              </span>
-            )}
-          </button>
-        ))}
+        {(['body', 'headers', 'tests', 'console'] as ResponseTab[]).map((tab) => {
+          const consoleLogs = (response as any).consoleLogs as string[] | undefined;
+          const scriptErrors = (response as any).scriptErrors as string[] | undefined;
+          const consoleCount = (consoleLogs?.length ?? 0) + (scriptErrors?.length ?? 0);
+          return (
+            <button
+              key={tab}
+              className={`rv-tab${activeTab === tab ? ' rv-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'headers' && (
+                <span className="rv-tab-count">
+                  {Object.keys(response.Headers).length}
+                </span>
+              )}
+              {tab === 'tests' && response.TestResults && response.TestResults.length > 0 && (
+                <span className="rv-tab-count">
+                  {response.TestResults.length}
+                </span>
+              )}
+              {tab === 'console' && consoleCount > 0 && (
+                <span className={`rv-tab-count${scriptErrors && scriptErrors.length > 0 ? ' rv-tab-count--error' : ''}`}>
+                  {consoleCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}
@@ -88,6 +99,12 @@ const ResponseViewer: React.FC = () => {
         {activeTab === 'body' && <ResponseBody body={response.Body} />}
         {activeTab === 'headers' && <ResponseHeaders headers={response.Headers} />}
         {activeTab === 'tests' && <TestResults results={response.TestResults} />}
+        {activeTab === 'console' && (
+          <ConsolePanel
+            logs={(response as any).consoleLogs ?? []}
+            errors={(response as any).scriptErrors ?? []}
+          />
+        )}
       </div>
     </div>
   );
