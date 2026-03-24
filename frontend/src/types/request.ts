@@ -13,5 +13,7 @@ export interface Request {
   auth_config: string;
   timeout_seconds: number;
   tests: string;
+  pre_script: string;
+  post_script: string;
   created_at: string;
 }

@@ -9,9 +9,11 @@ import KeyValueTable, { KVRow } from './KeyValueTable';
 import BodyEditor, { BodyType } from './BodyEditor';
 import AuthEditor, { AuthType, AuthConfig } from './AuthEditor';
 import TestsEditor from './TestsEditor';
+import ScriptsTab from './ScriptsTab';
+import ScriptDocsModal from './ScriptDocsModal';
 import { main } from '../../wailsjs/go/models';
 
-type Tab = 'params' | 'headers' | 'body' | 'auth' | 'tests';
+type Tab = 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts';
 
 interface RequestEditorProps {
   request: Request;
@@ -55,7 +57,10 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
   const [authConfig, setAuthConfig] = useState<AuthConfig>(parseAuthConfig(request.auth_config));
   const [timeoutSeconds, setTimeoutSeconds] = useState(request.timeout_seconds);
   const [tests, setTests] = useState(request.tests);
+  const [preScript, setPreScript] = useState(request.pre_script ?? '');
+  const [postScript, setPostScript] = useState(request.post_script ?? '');
   const [activeTab, setActiveTab] = useState<Tab>('params');
+  const [showScriptDocs, setShowScriptDocs] = useState(false);
 
   // Reset local state when the selected request changes
   useEffect(() => {
@@ -69,6 +74,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
     setAuthConfig(parseAuthConfig(request.auth_config));
     setTimeoutSeconds(request.timeout_seconds);
     setTests(request.tests);
+    setPreScript(request.pre_script ?? '');
+    setPostScript(request.post_script ?? '');
   }, [request.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** True when the active request is a read-only history snapshot (not persisted). */
@@ -90,13 +97,15 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
         auth_config: JSON.stringify(authConfig),
         timeout_seconds: timeoutSeconds,
         tests,
+        pre_script: preScript,
+        post_script: postScript,
         ...overrides,
       } as main.RequestPayload;
       updateRequest(payload)
         .then(() => markClean(request.id))
         .catch((err) => console.error('UpdateRequest failed:', err));
     },
-    [isEphemeral, request.id, method, url, headers, params, bodyType, body, authType, authConfig, timeoutSeconds, tests, updateRequest, markClean]
+    [isEphemeral, request.id, method, url, headers, params, bodyType, body, authType, authConfig, timeoutSeconds, tests, preScript, postScript, updateRequest, markClean]
   );
 
   /** Debounce ref for URL changes */
@@ -168,6 +177,18 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
     schedulePersist({ tests: t });
   };
 
+  const handlePreScriptChange = (v: string) => {
+    setPreScript(v);
+    markDirty(request.id);
+    schedulePersist({ pre_script: v });
+  };
+
+  const handlePostScriptChange = (v: string) => {
+    setPostScript(v);
+    markDirty(request.id);
+    schedulePersist({ post_script: v });
+  };
+
   const handleSendOrCancel = useCallback(() => {
     if (isLoading) {
       cancelRequest();
@@ -226,6 +247,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
         const hasBody = body.trim().length > 0;
         const hasAuth = authType !== 'none';
         const testsCount = tests.split('\n').filter(line => line.trim()).length;
+        const hasScripts = preScript.trim().length > 0 || postScript.trim().length > 0;
 
         const tabLabels: Record<Tab, { label: string; badge: number | boolean }> = {
           params:  { label: 'Params',  badge: paramsCount },
@@ -233,11 +255,12 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
           body:    { label: 'Body',    badge: hasBody },
           auth:    { label: 'Auth',    badge: hasAuth },
           tests:   { label: 'Tests',   badge: testsCount },
+          scripts: { label: 'Scripts', badge: hasScripts },
         };
 
         return (
           <div className="request-editor-tabs">
-            {(['params', 'headers', 'body', 'auth', 'tests'] as Tab[]).map((tab) => {
+            {(['params', 'headers', 'body', 'auth', 'tests', 'scripts'] as Tab[]).map((tab) => {
               const { label, badge } = tabLabels[tab];
               const showBadge = typeof badge === 'boolean' ? badge : badge > 0;
               const badgeText = typeof badge === 'boolean' ? '●' : String(badge);
@@ -248,6 +271,20 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
                   onClick={() => setActiveTab(tab)}
                 >
                   {label}
+                  {tab === 'scripts' && (
+                    <span
+                      className="re-tab-help"
+                      role="button"
+                      aria-label="Scripting documentation"
+                      title="View scripting documentation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowScriptDocs(true);
+                      }}
+                    >
+                      ?
+                    </span>
+                  )}
                   {showBadge && (
                     <span className="re-tab-count">{badgeText}</span>
                   )}
@@ -303,7 +340,20 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
             onChange={handleTestsChange}
           />
         )}
+
+        {activeTab === 'scripts' && (
+          <ScriptsTab
+            preScript={preScript}
+            postScript={postScript}
+            onPreScriptChange={handlePreScriptChange}
+            onPostScriptChange={handlePostScriptChange}
+          />
+        )}
       </div>
+
+      {showScriptDocs && (
+        <ScriptDocsModal onClose={() => setShowScriptDocs(false)} />
+      )}
     </div>
   );
 };

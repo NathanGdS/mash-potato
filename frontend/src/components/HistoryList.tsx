@@ -56,6 +56,8 @@ const HistoryList: React.FC = () => {
       Headers: parsedHeaders,
       DurationMs: entry.response_duration_ms || 0,
       SizeBytes: entry.response_size_bytes || 0,
+      consoleLogs: [],
+      scriptErrors: [],
     });
 
     // History entries are ephemeral and don't have tabs; focus no tab.
@@ -79,6 +81,8 @@ const HistoryList: React.FC = () => {
       auth_config: '{}',
       timeout_seconds: 30,
       tests: '',
+      pre_script: '',
+      post_script: '',
       created_at: entry.executed_at,
     });
   }

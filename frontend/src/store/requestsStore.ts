@@ -133,6 +133,8 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
           auth_config: payload.auth_config,
           timeout_seconds: payload.timeout_seconds,
           tests: payload.tests,
+          pre_script: payload.pre_script,
+          post_script: payload.post_script,
         },
       });
     }
@@ -147,7 +149,7 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
           ...state.requestsByCollection,
           [collId]: list.map((r) =>
             r.id === payload.id
-              ? { ...r, method: payload.method, url: payload.url, headers: payload.headers, params: payload.params, body_type: payload.body_type, body: payload.body, auth_type: payload.auth_type, auth_config: payload.auth_config, timeout_seconds: payload.timeout_seconds, tests: payload.tests }
+              ? { ...r, method: payload.method, url: payload.url, headers: payload.headers, params: payload.params, body_type: payload.body_type, body: payload.body, auth_type: payload.auth_type, auth_config: payload.auth_config, timeout_seconds: payload.timeout_seconds, tests: payload.tests, pre_script: payload.pre_script, post_script: payload.post_script }
               : r
           ),
         },

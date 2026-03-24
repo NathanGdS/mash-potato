@@ -47,6 +47,8 @@ const makeRequest = (overrides: Partial<Request> = {}): Request => ({
   auth_config: '{}',
   timeout_seconds: 30,
   tests: '',
+  pre_script: '',
+  post_script: '',
   created_at: '2026-01-01T00:00:00Z',
   ...overrides,
 });
