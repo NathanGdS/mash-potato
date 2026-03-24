@@ -46,6 +46,10 @@ export interface RequestPayload {
   body: string;
   auth_type: string;
   auth_config: string;
+  timeout_seconds: number;
+  tests: string;
+  pre_script: string;
+  post_script: string;
 }
 
 export function UpdateRequest(payload: RequestPayload): Promise<void> {
@@ -67,6 +71,8 @@ export interface ResponseResult {
   Headers: Record<string, string[]>;
   DurationMs: number;
   SizeBytes: number;
+  consoleLogs: string[];
+  scriptErrors: string[];
 }
 
 export function SendRequest(id: string): Promise<ResponseResult> {

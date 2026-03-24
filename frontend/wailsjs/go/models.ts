@@ -180,6 +180,8 @@ export namespace db {
 	    auth_config: string;
 	    timeout_seconds: number;
 	    tests: string;
+	    pre_script: string;
+	    post_script: string;
 	    // Go type: time
 	    created_at: any;
 	
@@ -203,6 +205,8 @@ export namespace db {
 	        this.auth_config = source["auth_config"];
 	        this.timeout_seconds = source["timeout_seconds"];
 	        this.tests = source["tests"];
+	        this.pre_script = source["pre_script"];
+	        this.post_script = source["post_script"];
 	        this.created_at = this.convertValues(source["created_at"], null);
 	    }
 	
@@ -253,6 +257,8 @@ export namespace httpclient {
 	    DurationMs: number;
 	    SizeBytes: number;
 	    TestResults: AssertionResult[];
+	    consoleLogs: string[];
+	    scriptErrors: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ResponseResult(source);
@@ -267,6 +273,8 @@ export namespace httpclient {
 	        this.DurationMs = source["DurationMs"];
 	        this.SizeBytes = source["SizeBytes"];
 	        this.TestResults = this.convertValues(source["TestResults"], AssertionResult);
+	        this.consoleLogs = source["consoleLogs"];
+	        this.scriptErrors = source["scriptErrors"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -304,6 +312,8 @@ export namespace main {
 	    auth_config: string;
 	    timeout_seconds: number;
 	    tests: string;
+	    pre_script: string;
+	    post_script: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new RequestPayload(source);
@@ -322,6 +332,8 @@ export namespace main {
 	        this.auth_config = source["auth_config"];
 	        this.timeout_seconds = source["timeout_seconds"];
 	        this.tests = source["tests"];
+	        this.pre_script = source["pre_script"];
+	        this.post_script = source["post_script"];
 	    }
 	}
 
