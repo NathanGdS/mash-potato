@@ -86,13 +86,39 @@
   line-height: 1;
   cursor: pointer;
   padding: 0 var(--space-1);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: color 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar-new-btn:hover {
   color: var(--accent);
   background: rgba(249, 115, 22, 0.1);
+}
+
+.sidebar-new-btn:active {
+  background: rgba(249, 115, 22, 0.18);
+  color: var(--accent-hover);
+}
+
+.sidebar-new-btn:disabled,
+.sidebar-new-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* SVG icon variant — normalizes size so the button doesn't rely on font-size */
+.sidebar-new-btn--icon {
+  font-size: 0;
+  padding: 3px var(--space-1);
+}
+
+.sidebar-new-btn--icon svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 /* Body / scroll area */
@@ -361,7 +387,9 @@
 }
 
 .request-context-menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   width: 100%;
   background: none;
   border: none;
@@ -370,11 +398,22 @@
   font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
 }
 
 .request-context-menu-item:hover {
   background: var(--bg-secondary);
+}
+
+.request-context-menu-item:active {
+  background: var(--bg-primary);
+}
+
+.request-context-menu-item:disabled,
+.request-context-menu-item[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .request-context-menu-item--danger {
@@ -383,6 +422,10 @@
 
 .request-context-menu-item--danger:hover {
   background: rgba(239, 68, 68, 0.1);
+}
+
+.request-context-menu-item--danger:active {
+  background: rgba(239, 68, 68, 0.18);
 }
 
 /* ── Folder items ───────────────────────────────────────── */
@@ -424,6 +467,69 @@
 .folder-item-header:hover .collection-add-request-btn,
 .folder-item-header:hover .collection-delete-btn {
   display: block;
+}
+
+/* ── Context menu icon-bearing items ───────────────────── */
+.context-menu-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: inherit;
+  display: block;
+}
+
+.request-context-menu-item--export,
+.request-context-menu-item--curl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  color: var(--text-primary);
+  transition: background 0.1s, color 0.1s;
+}
+
+.request-context-menu-item--export:hover,
+.request-context-menu-item--curl:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.request-context-menu-item--export:active,
+.request-context-menu-item--curl:active {
+  background: var(--bg-primary);
+}
+
+.request-context-menu-item--export:disabled,
+.request-context-menu-item--curl:disabled,
+.request-context-menu-item--export[disabled],
+.request-context-menu-item--curl[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── cURL copy toast (scoped, replaces rb-save-toast usage) */
+.context-menu-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--status-2xx-bg);
+  border: 1px solid var(--status-2xx-border);
+  border-radius: var(--radius-md);
+  color: var(--status-2xx-fg);
+  font-size: 13px;
+  padding: var(--space-2) var(--space-4);
+  z-index: 11000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  animation: context-menu-toast-in 0.15s ease-out;
+}
+
+@keyframes context-menu-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ── Submenu (Move to) ──────────────────────────────────── */

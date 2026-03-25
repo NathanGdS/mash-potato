@@ -57,12 +57,29 @@ const Sidebar: React.FC = () => {
             <span className="sidebar-title">Collections</span>
             <div className="sidebar-header-actions">
               <button
-                className="sidebar-new-btn"
+                className="sidebar-new-btn sidebar-new-btn--icon"
                 title="Import from cURL"
                 onClick={() => handleOpenImportCurl()}
                 aria-label="Import from cURL"
               >
-                ⌨
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="3 4 1 6 3 8" />
+                  <polyline points="9 4 11 6 9 8" />
+                  <line x1="7" y1="2" x2="5" y2="10" />
+                  <line x1="1" y1="13" x2="11" y2="13" />
+                  <polyline points="9 11 11 13 9 15" />
+                </svg>
               </button>
               <button
                 className="sidebar-new-btn"

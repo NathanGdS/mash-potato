@@ -522,7 +522,12 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
               )}
             </div>
           )}
-          <button className="request-context-menu-item" onClick={handleCopyAsCurl}>
+          <button className="request-context-menu-item request-context-menu-item--curl" onClick={handleCopyAsCurl}>
+            <svg className="context-menu-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.25"/>
+              <path d="M4 6l3 2-3 2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 10h3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
+            </svg>
             Copy as cURL
           </button>
           <button className="request-context-menu-item request-context-menu-item--danger" onClick={handleDeleteRequest}>
@@ -544,7 +549,11 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
           <button className="request-context-menu-item" onClick={startAddingFolder}>
             New Folder
           </button>
-          <button className="request-context-menu-item" onClick={handleExport}>
+          <button className="request-context-menu-item request-context-menu-item--export" onClick={handleExport}>
+            <svg className="context-menu-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
+            </svg>
             Export
           </button>
           <button className="request-context-menu-item" onClick={handleImportCurl}>
@@ -555,7 +564,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
 
       {/* cURL copy toast */}
       {curlToast && (
-        <div className="rb-save-toast">Copied to clipboard</div>
+        <div className="collection-curl-toast">Copied to clipboard</div>
       )}
     </li>
   );

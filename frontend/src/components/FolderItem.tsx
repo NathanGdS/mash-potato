@@ -443,7 +443,24 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
               </div>
             )}
           </div>
-          <button className="request-context-menu-item" onClick={handleCopyAsCurl}>
+          <button className="request-context-menu-item request-context-menu-item--curl" onClick={handleCopyAsCurl}>
+            <svg
+              className="context-menu-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="4 5 1 8 4 11" />
+              <polyline points="12 5 15 8 12 11" />
+              <line x1="9" y1="3" x2="7" y2="13" />
+            </svg>
             Copy as cURL
           </button>
           <button
@@ -457,7 +474,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
 
       {/* cURL copy toast */}
       {curlToast && (
-        <div className="rb-save-toast">Copied to clipboard</div>
+        <div className="context-menu-toast">Copied to clipboard</div>
       )}
     </li>
   );
