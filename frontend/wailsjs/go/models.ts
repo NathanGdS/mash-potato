@@ -336,6 +336,58 @@ export namespace main {
 	        this.post_script = source["post_script"];
 	    }
 	}
+	export class RunResult {
+	    RequestId: string;
+	    RequestName: string;
+	    Status: number;
+	    DurationMs: number;
+	    Passed: boolean;
+	    TestsPassed: boolean;
+	    Error: string;
+	    ResponseBody: string;
+	    ResponseHeaders: Record<string, Array<string>>;
+	    TestResults: httpclient.AssertionResult[];
+	    ConsoleLogs: string[];
+	    ScriptErrors: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new RunResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.RequestId = source["RequestId"];
+	        this.RequestName = source["RequestName"];
+	        this.Status = source["Status"];
+	        this.DurationMs = source["DurationMs"];
+	        this.Passed = source["Passed"];
+	        this.TestsPassed = source["TestsPassed"];
+	        this.Error = source["Error"];
+	        this.ResponseBody = source["ResponseBody"];
+	        this.ResponseHeaders = source["ResponseHeaders"];
+	        this.TestResults = this.convertValues(source["TestResults"], httpclient.AssertionResult);
+	        this.ConsoleLogs = source["ConsoleLogs"];
+	        this.ScriptErrors = source["ScriptErrors"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 

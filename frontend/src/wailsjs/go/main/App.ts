@@ -197,3 +197,20 @@ export function ExportRequestAsCurl(id: string): Promise<string> {
 export function ImportFromCurl(collectionId: string, curlCommand: string): Promise<import('../../../types/request').Request> {
   return _app()?.ImportFromCurl(collectionId, curlCommand);
 }
+
+export interface RunResult {
+  RequestId: string;
+  RequestName: string;
+  Status: number;
+  DurationMs: number;
+  Passed: boolean;
+  Error: string;
+}
+
+export function RunCollection(collectionId: string, requestIds: string[], delayMs: number): Promise<RunResult[]> {
+  return _app()?.RunCollection(collectionId, requestIds, delayMs);
+}
+
+export function CancelRun(): Promise<void> {
+  return _app()?.CancelRun();
+}
