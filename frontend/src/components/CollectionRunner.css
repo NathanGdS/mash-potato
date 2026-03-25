@@ -1,0 +1,517 @@
+/* ── Runner modal shell ───────────────────────────────────── */
+.runner-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--space-2);
+  width: 680px;
+  max-width: 94vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.runner-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.runner-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runner-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1) 6px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.runner-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--border);
+}
+
+/* ── Body ────────────────────────────────────────────────── */
+.runner-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--space-2) 0;
+}
+
+.runner-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+/* ── Request list ────────────────────────────────────────── */
+.runner-request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.runner-request-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background 0.1s;
+}
+
+.runner-request-row:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.runner-request-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* ── Config bar ──────────────────────────────────────────── */
+.runner-config-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+
+.runner-delay-label {
+  font-size: 12px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.runner-delay-input {
+  width: 80px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 3px 6px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.runner-delay-input:focus {
+  border-color: var(--accent);
+}
+
+.runner-delay-input--error {
+  border-color: var(--color-red, #e05c5c);
+}
+
+.runner-delay-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.runner-delay-error {
+  font-size: 11px;
+  color: var(--color-red, #e05c5c);
+}
+
+/* ── Checkbox ─────────────────────────────────────────────── */
+.runner-checkbox {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.runner-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Row disabled state ──────────────────────────────────── */
+.runner-request-row--disabled {
+  opacity: 0.45;
+}
+
+/* ── Status dot ──────────────────────────────────────────── */
+.runner-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.runner-status-dot--pending {
+  background: var(--text-muted, #555);
+}
+
+.runner-status-dot--running {
+  background: var(--color-yellow, #d4a830);
+  animation: runner-pulse 0.9s ease-in-out infinite;
+}
+
+.runner-status-dot--pass {
+  background: var(--color-green, #4caf78);
+}
+
+.runner-status-dot--testFailed {
+  background: var(--color-yellow, #d4a830);
+}
+
+.runner-status-dot--fail {
+  background: var(--color-red, #e05c5c);
+}
+
+@keyframes runner-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+/* ── Row meta (duration / error) ─────────────────────────── */
+.runner-row-meta {
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.runner-row-meta--pass {
+  color: var(--color-green, #4caf78);
+}
+
+.runner-row-meta--test-failed {
+  color: var(--color-yellow, #d4a830);
+}
+
+.runner-row-meta--fail {
+  color: var(--color-red, #e05c5c);
+}
+
+/* ── Summary bar ──────────────────────────────────────────── */
+.runner-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.runner-summary-pass {
+  color: var(--color-green, #4caf78);
+  font-weight: 600;
+}
+
+.runner-summary-fail {
+  color: var(--color-red, #e05c5c);
+  font-weight: 600;
+}
+
+.runner-summary-test-fail {
+  color: var(--color-yellow, #d4a830);
+  font-weight: 600;
+}
+
+.runner-summary-sep {
+  color: var(--text-muted);
+}
+
+.runner-summary-total {
+  color: var(--text-subtle);
+}
+
+.runner-summary-stopped {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: 4px;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.runner-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Expandable row ──────────────────────────────────────── */
+.runner-request-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.runner-request-row--clickable {
+  cursor: pointer;
+}
+
+.runner-expand-chevron {
+  font-size: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  line-height: 1;
+  margin-left: auto;
+}
+
+.runner-expand-chevron--open {
+  transform: rotate(90deg);
+}
+
+/* ── Response panel ──────────────────────────────────────── */
+.runner-response-panel {
+  margin: 0 var(--space-2) 6px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.runner-response-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.runner-response-tab {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.runner-response-tab--active {
+  color: var(--accent);
+}
+
+.runner-response-tab-sep {
+  flex: 1;
+}
+
+.runner-response-headers-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.runner-response-body {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--font-mono, 'Fira Code', monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.runner-headers-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid var(--border);
+}
+
+.runner-headers-table tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+.runner-header-key,
+.runner-header-val {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono, 'Fira Code', monospace);
+  vertical-align: top;
+}
+
+.runner-header-key {
+  color: var(--text-subtle);
+  white-space: nowrap;
+  width: 40%;
+}
+
+.runner-header-val {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* ── Test results panel ──────────────────────────────────── */
+.runner-test-results {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.runner-test-results-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-yellow, #d4a830);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.runner-test-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono, 'Fira Code', monospace);
+}
+
+.runner-test-row--pass {
+  color: var(--color-green, #4caf78);
+}
+
+.runner-test-row--fail {
+  color: var(--color-red, #e05c5c);
+}
+
+.runner-test-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.runner-test-expr {
+  flex: 1;
+  word-break: break-all;
+}
+
+.runner-test-msg {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ── Response expand button ──────────────────────────────── */
+.runner-response-footer {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px 6px;
+}
+
+.runner-expand-body-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-subtle);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.runner-expand-body-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+/* ── Response detail modal ───────────────────────────────── */
+.runner-response-detail-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--space-2);
+  width: 780px;
+  max-width: 94vw;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.runner-response-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.runner-response-detail-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runner-response-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.runner-response-detail-body {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: var(--font-mono, 'Fira Code', monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Stop button ─────────────────────────────────────────── */
+.btn--danger {
+  background: var(--color-red, #e05c5c);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.btn--danger:hover {
+  background: #c94040;
+}

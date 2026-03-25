@@ -5,6 +5,7 @@ import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import EnvironmentPanel from './components/EnvironmentPanel';
 import EnvironmentSelector from './components/EnvironmentSelector';
+import CollectionRunner from './components/CollectionRunner';
 import { useRequestsStore } from './store/requestsStore';
 import { useTabsStore } from './store/tabsStore';
 import './App.css';
@@ -139,6 +140,7 @@ const App: React.FC = () => {
         )}
       </main>
       {showEnvPanel && <EnvironmentPanel onClose={() => setShowEnvPanel(false)} />}
+      <CollectionRunner />
     </div>
   );
 };

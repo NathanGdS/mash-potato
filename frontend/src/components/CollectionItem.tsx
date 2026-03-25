@@ -3,9 +3,10 @@ import { useCollectionsStore } from '../store/collectionsStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
 import { useFoldersStore } from '../store/foldersStore';
+import { useRunnerStore } from '../store/runnerStore';
 import { Collection } from '../types/collection';
 import { Request } from '../types/request';
-import { ExportCollection, ExportRequestAsCurl } from '../wailsjs/go/main/App';
+import { ExportCollection, ExportRequestAsCurl, ListRequests, ListFolders } from '../wailsjs/go/main/App';
 import FolderItem from './FolderItem';
 
 function methodBadgeClass(method: string): string {
@@ -74,6 +75,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
   const collectionMenuRef = useRef<HTMLDivElement>(null);
 
   const closeTab = useTabsStore((s) => s.closeTab);
+  const openRunner = useRunnerStore((s) => s.openRunner);
 
   // Close request context menu when clicking outside
   useEffect(() => {
@@ -118,6 +120,31 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
   const handleImportCurl = () => {
     setCollectionMenu(null);
     onImportCurl?.(collection.id);
+  };
+
+  const handleRunCollection = async () => {
+    setCollectionMenu(null);
+    // Fetch fresh from DB — the store only has data when the collection is expanded.
+    const [allRequests, allFolders] = await Promise.all([
+      ListRequests(collection.id),
+      ListFolders(collection.id),
+    ]);
+    const rootFolderList = allFolders.filter((f) => f.parent_folder_id == null);
+    const orderedRequests: { id: string; name: string; method: string }[] = [];
+    for (const folder of rootFolderList) {
+      for (const r of allRequests.filter((r) => r.folder_id === folder.id)) {
+        orderedRequests.push({ id: r.id, name: r.name, method: r.method });
+      }
+    }
+    for (const r of allRequests.filter((r) => r.folder_id == null)) {
+      orderedRequests.push({ id: r.id, name: r.name, method: r.method });
+    }
+    openRunner({
+      scopeName: collection.name,
+      collectionId: collection.id,
+      folderId: null,
+      requests: orderedRequests,
+    });
   };
 
   const handleRequestContextMenu = (e: React.MouseEvent, req: Request) => {
@@ -511,6 +538,9 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
           className="request-context-menu"
           style={{ top: collectionMenu.y, left: collectionMenu.x }}
         >
+          <button className="request-context-menu-item" onClick={handleRunCollection}>
+            Run Collection
+          </button>
           <button className="request-context-menu-item" onClick={startAddingFolder}>
             New Folder
           </button>

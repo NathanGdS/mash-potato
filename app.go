@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -17,6 +18,10 @@ import (
 // App holds application state and exposes Wails-bound methods.
 type App struct {
 	ctx context.Context
+
+	// runner fields — protected by runnerMu.
+	runnerMu     sync.Mutex
+	runnerCancel context.CancelFunc
 }
 
 // newApp creates an App instance.

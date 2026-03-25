@@ -4,6 +4,7 @@ import { Request } from '../types/request';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
 import { useFoldersStore } from '../store/foldersStore';
+import { useRunnerStore } from '../store/runnerStore';
 import { ExportRequestAsCurl } from '../wailsjs/go/main/App';
 
 function methodBadgeClass(method: string): string {
@@ -35,6 +36,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
   const closeTab = useTabsStore((s) => s.closeTab);
 
   const { renameFolder, deleteFolder, createRequestInFolder, moveRequest } = useFoldersStore();
+  const openRunner = useRunnerStore((s) => s.openRunner);
 
   const [expanded, setExpanded] = useState(false);
 
@@ -117,6 +119,21 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     );
     if (!confirmed) return;
     await deleteFolder(folder.id, folder.collection_id);
+  };
+
+  const handleRunFolder = () => {
+    setFolderMenu(null);
+    const orderedRequests = folderRequests.map((r) => ({
+      id: r.id,
+      name: r.name,
+      method: r.method,
+    }));
+    openRunner({
+      scopeName: folder.name,
+      collectionId: folder.collection_id,
+      folderId: folder.id,
+      requests: orderedRequests,
+    });
   };
 
   // --- Add request ---
@@ -375,6 +392,9 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
           className="request-context-menu"
           style={{ top: folderMenu.y, left: folderMenu.x }}
         >
+          <button className="request-context-menu-item" onClick={handleRunFolder}>
+            Run Folder
+          </button>
           <button className="request-context-menu-item" onClick={startEditing}>
             Rename
           </button>

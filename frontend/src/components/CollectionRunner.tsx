@@ -1,0 +1,485 @@
+import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
+import { useRunnerStore, RunnerScope } from '../store/runnerStore';
+import { RunCollection, CancelRun } from '../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
+import { JsonHighlighted, tryPrettyPrint } from '../utils/jsonHighlighter';
+import './CollectionRunner.css';
+
+// ── Types ──────────────────────────────────────────────────
+
+type RowStatus = 'pending' | 'running' | 'pass' | 'testFailed' | 'fail';
+
+interface AssertionResult {
+  expression: string;
+  passed: boolean;
+  message: string;
+}
+
+interface RunRow {
+  id: string;
+  name: string;
+  method: string;
+  enabled: boolean;
+  status: RowStatus;
+  durationMs: number;
+  errorMsg: string;
+  responseBody: string;
+  responseHeaders: Record<string, string[]>;
+  statusCode: number;
+  testResults: AssertionResult[];
+}
+
+interface RunResultEvent {
+  RequestId: string;
+  RequestName: string;
+  Status: number;
+  DurationMs: number;
+  Passed: boolean;
+  TestsPassed: boolean;
+  Error: string;
+  ResponseBody: string;
+  ResponseHeaders: Record<string, string[]>;
+  TestResults: AssertionResult[];
+}
+
+type RunState = 'idle' | 'running' | 'done' | 'stopped';
+
+// ── Helpers ────────────────────────────────────────────────
+
+function methodBadgeClass(method: string): string {
+  switch (method.toUpperCase()) {
+    case 'GET':    return 'request-method request-method--get';
+    case 'POST':   return 'request-method request-method--post';
+    case 'PUT':    return 'request-method request-method--put';
+    case 'PATCH':  return 'request-method request-method--patch';
+    case 'DELETE': return 'request-method request-method--delete';
+    default:       return 'request-method request-method--other';
+  }
+}
+
+function StatusDot({ status }: { status: RowStatus }) {
+  return <span className={`runner-status-dot runner-status-dot--${status}`} aria-label={status} />;
+}
+
+// ── Component ──────────────────────────────────────────────
+
+interface Props {
+  scope: RunnerScope;
+  onClose: () => void;
+}
+
+const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
+  // Derive initial rows from scope
+  const [rows, setRows] = useState<RunRow[]>(() =>
+    scope.requests.map((r) => ({
+      id: r.id,
+      name: r.name,
+      method: r.method,
+      enabled: true,
+      status: 'pending',
+      durationMs: 0,
+      errorMsg: '',
+      responseBody: '',
+      responseHeaders: {},
+      statusCode: 0,
+      testResults: [],
+    }))
+  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [responseModalRow, setResponseModalRow] = useState<RunRow | null>(null);
+
+  const [delayMs, setDelayMs] = useState(0);
+  const [delayRaw, setDelayRaw] = useState('0');
+  const [delayError, setDelayError] = useState('');
+  const [runState, setRunState] = useState<RunState>('idle');
+
+  // ── Event listener for live results ─────────────────────
+  useEffect(() => {
+    const handler = (result: RunResultEvent) => {
+      let status: RowStatus;
+      if (!result.Passed) {
+        status = 'fail';
+      } else if (result.TestResults?.some((t) => !t.passed)) {
+        status = 'testFailed';
+      } else {
+        status = 'pass';
+      }
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === result.RequestId
+            ? {
+                ...row,
+                status,
+                durationMs: result.DurationMs,
+                errorMsg: result.Error ?? '',
+                responseBody: result.ResponseBody ?? '',
+                responseHeaders: result.ResponseHeaders ?? {},
+                statusCode: result.Status,
+                testResults: result.TestResults ?? [],
+              }
+            : row
+        )
+      );
+    };
+
+    EventsOn('runner:result', handler);
+    return () => {
+      EventsOff('runner:result');
+    };
+  }, []);
+
+  // ── Derived values ────────────────────────────────────────
+  const enabledRows = rows.filter((r) => r.enabled);
+  const enabledIDs = enabledRows.map((r) => r.id);
+  const isRunning = runState === 'running';
+
+  const passCount = rows.filter((r) => r.status === 'pass').length;
+  const failCount = rows.filter((r) => r.status === 'fail').length;
+  const testFailCount = rows.filter((r) => r.status === 'testFailed').length;
+  const totalDuration = rows.reduce((sum, r) => sum + r.durationMs, 0);
+  const showSummary = runState === 'done' || runState === 'stopped';
+
+  // ── Handlers ──────────────────────────────────────────────
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget && !isRunning) onClose();
+  };
+
+  const handleBackdropKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && !isRunning) onClose();
+  };
+
+  const handleToggleRow = (id: string) => {
+    if (isRunning) return;
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
+    );
+  };
+
+  const handleDelayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setDelayRaw(raw);
+    const n = parseInt(raw, 10);
+    if (raw === '' || isNaN(n) || n < 0) {
+      setDelayError('Enter a whole number ≥ 0');
+      setDelayMs(0);
+    } else {
+      setDelayError('');
+      setDelayMs(n);
+    }
+  };
+
+  const handleStart = async () => {
+    if (enabledIDs.length === 0 || isRunning || delayError) return;
+
+    // Reset row statuses
+    setExpandedId(null);
+    setRows((prev) =>
+      prev.map((r) => ({
+        ...r,
+        status: 'pending',
+        durationMs: 0,
+        errorMsg: '',
+        responseBody: '',
+        responseHeaders: {},
+        statusCode: 0,
+        testResults: [],
+      }))
+    );
+
+    setRunState('running');
+
+    // Mark enabled rows as "running" sequentially is handled via events.
+    // We pre-mark the first enabled row as running to give immediate feedback.
+    setRows((prev) => {
+      const firstEnabled = prev.find((r) => r.enabled);
+      if (!firstEnabled) return prev;
+      return prev.map((r) => (r.id === firstEnabled.id ? { ...r, status: 'running' } : r));
+    });
+
+    try {
+      await RunCollection(scope.collectionId, enabledIDs, delayMs);
+    } catch {
+      // errors are captured per-row via events; just finish the run
+    } finally {
+      setRunState((prev) => (prev === 'running' ? 'done' : prev));
+    }
+  };
+
+  const handleStop = async () => {
+    await CancelRun();
+    setRunState('stopped');
+  };
+
+  const handleClose = () => {
+    if (!isRunning) onClose();
+  };
+
+  const handleToggleExpand = (id: string, status: RowStatus) => {
+    if (status !== 'pass' && status !== 'fail' && status !== 'testFailed') return;
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
+
+  // ── Render ────────────────────────────────────────────────
+  const runnerPortal = ReactDOM.createPortal(
+    <div
+      className="modal-backdrop"
+      onClick={handleBackdropClick}
+      onKeyDown={handleBackdropKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Run: ${scope.scopeName}`}
+    >
+      <div className="runner-modal">
+        {/* Header */}
+        <div className="runner-modal-header">
+          <span className="runner-modal-title">Run: {scope.scopeName}</span>
+          <button
+            className="runner-modal-close"
+            onClick={handleClose}
+            disabled={isRunning}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Config bar */}
+        <div className="runner-config-bar">
+          <label className="runner-delay-label" htmlFor="runner-delay-input">
+            Delay (ms)
+          </label>
+          <input
+            id="runner-delay-input"
+            className={`runner-delay-input${delayError ? ' runner-delay-input--error' : ''}`}
+            type="number"
+            min={0}
+            step={1}
+            value={delayRaw}
+            onChange={handleDelayChange}
+            disabled={isRunning}
+          />
+          {delayError && (
+            <span className="runner-delay-error">{delayError}</span>
+          )}
+        </div>
+
+        {/* Request list */}
+        <div className="runner-modal-body">
+          {rows.length === 0 ? (
+            <p className="runner-empty">No requests in this scope.</p>
+          ) : enabledIDs.length === 0 && runState === 'idle' ? (
+            <p className="runner-empty">No requests selected.</p>
+          ) : (
+            <ul className="runner-request-list">
+              {rows.map((row) => {
+                const isExpandable = row.status === 'pass' || row.status === 'fail' || row.status === 'testFailed';
+                const isExpanded = expandedId === row.id;
+                return (
+                  <li key={row.id} className="runner-request-item">
+                    <div
+                      className={`runner-request-row${!row.enabled ? ' runner-request-row--disabled' : ''}${isExpandable ? ' runner-request-row--clickable' : ''}`}
+                      onClick={() => handleToggleExpand(row.id, row.status)}
+                    >
+                      <input
+                        type="checkbox"
+                        className="runner-checkbox"
+                        checked={row.enabled}
+                        onChange={() => handleToggleRow(row.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={isRunning}
+                        aria-label={`Include ${row.name}`}
+                      />
+                      <StatusDot status={row.status} />
+                      <span
+                        className={methodBadgeClass(row.method)}
+                        data-method={row.method}
+                      >
+                        {row.method}
+                      </span>
+                      <span className="runner-request-name">{row.name}</span>
+                      {row.status === 'pass' && (
+                        <span className="runner-row-meta runner-row-meta--pass">
+                          {row.statusCode} · {row.durationMs}ms
+                        </span>
+                      )}
+                      {row.status === 'testFailed' && (
+                        <span className="runner-row-meta runner-row-meta--test-failed">
+                          {row.statusCode} · {row.testResults.filter((t) => !t.passed).length} test{row.testResults.filter((t) => !t.passed).length !== 1 ? 's' : ''} failed
+                        </span>
+                      )}
+                      {row.status === 'fail' && (
+                        <span className="runner-row-meta runner-row-meta--fail" title={row.errorMsg}>
+                          {row.statusCode > 0 ? `${row.statusCode} · ` : ''}{row.errorMsg || 'failed'}
+                        </span>
+                      )}
+                      {isExpandable && (
+                        <span className={`runner-expand-chevron${isExpanded ? ' runner-expand-chevron--open' : ''}`}>›</span>
+                      )}
+                    </div>
+                    {isExpanded && (
+                      <div className="runner-response-panel">
+                        {row.status === 'testFailed' && row.testResults.length > 0 && (
+                          <div className="runner-test-results">
+                            <div className="runner-test-results-title">Failed Tests</div>
+                            {row.testResults.map((t, i) => (
+                              <div key={i} className={`runner-test-row runner-test-row--${t.passed ? 'pass' : 'fail'}`}>
+                                <span className="runner-test-icon">{t.passed ? '✓' : '✗'}</span>
+                                <span className="runner-test-expr">{t.expression}</span>
+                                {!t.passed && t.message && (
+                                  <span className="runner-test-msg">{t.message}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="runner-response-tabs">
+                          <span className="runner-response-tab runner-response-tab--active">Response</span>
+                          <span className="runner-response-tab-sep" />
+                          <span className="runner-response-headers-count">
+                            {Object.keys(row.responseHeaders).length} headers
+                          </span>
+                        </div>
+                        <pre className="runner-response-body">{row.responseBody || '(empty body)'}</pre>
+                        {tryPrettyPrint(row.responseBody).isJson && (
+                          <div className="runner-response-footer">
+                            <button
+                              className="runner-expand-body-btn"
+                              onClick={(e) => { e.stopPropagation(); setResponseModalRow(row); }}
+                            >
+                              ⤢ Expand
+                            </button>
+                          </div>
+                        )}
+                        {Object.keys(row.responseHeaders).length > 0 && (
+                          <table className="runner-headers-table">
+                            <tbody>
+                              {Object.entries(row.responseHeaders).map(([key, vals]) => (
+                                <tr key={key}>
+                                  <td className="runner-header-key">{key}</td>
+                                  <td className="runner-header-val">{vals.join(', ')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Summary bar */}
+        {showSummary && (
+          <div className="runner-summary">
+            <span className="runner-summary-pass">{passCount} passed</span>
+            <span className="runner-summary-sep">·</span>
+            <span className="runner-summary-fail">{failCount} failed</span>
+            {testFailCount > 0 && (
+              <>
+                <span className="runner-summary-sep">·</span>
+                <span className="runner-summary-test-fail">{testFailCount} failed (tests)</span>
+              </>
+            )}
+            <span className="runner-summary-sep">·</span>
+            <span className="runner-summary-total">{totalDuration}ms</span>
+            {runState === 'stopped' && (
+              <span className="runner-summary-stopped">(stopped)</span>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="runner-modal-footer">
+          {isRunning ? (
+            <button className="btn btn--danger" onClick={handleStop}>
+              Stop
+            </button>
+          ) : (
+            <button className="btn btn--secondary" onClick={handleClose}>
+              Cancel
+            </button>
+          )}
+          <button
+            className="btn btn--primary"
+            onClick={handleStart}
+            disabled={isRunning || enabledIDs.length === 0 || !!delayError}
+          >
+            {runState === 'done' || runState === 'stopped' ? 'Run Again' : 'Start'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+
+  const responseModalPortal = responseModalRow
+    ? ReactDOM.createPortal(
+        <div
+          className="modal-backdrop"
+          onClick={() => setResponseModalRow(null)}
+          style={{ zIndex: 1100 }}
+        >
+          <div
+            className="runner-response-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="runner-response-detail-header">
+              <span className="runner-response-detail-title">
+                {responseModalRow.name} — Response
+              </span>
+              <div className="runner-response-detail-actions">
+                <button
+                  className="btn btn--secondary"
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      tryPrettyPrint(responseModalRow.responseBody).text
+                    )
+                  }
+                >
+                  Copy
+                </button>
+                <button
+                  className="runner-modal-close"
+                  onClick={() => setResponseModalRow(null)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <pre className="runner-response-detail-body">
+              <JsonHighlighted
+                text={tryPrettyPrint(responseModalRow.responseBody).text}
+              />
+            </pre>
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <>
+      {runnerPortal}
+      {responseModalPortal}
+    </>
+  );
+};
+
+// ── Container ──────────────────────────────────────────────
+
+const CollectionRunnerContainer: React.FC = () => {
+  const open = useRunnerStore((s) => s.open);
+  const scope = useRunnerStore((s) => s.scope);
+  const closeRunner = useRunnerStore((s) => s.closeRunner);
+
+  if (!open || !scope) return null;
+
+  return <CollectionRunner scope={scope} onClose={closeRunner} />;
+};
+
+export default CollectionRunnerContainer;
