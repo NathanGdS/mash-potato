@@ -585,6 +585,82 @@
   color: var(--accent);
 }
 
+/* ── Code Generation Panel ──────────────────────────────── */
+.code-gen-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.code-gen-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.code-gen-lang-selector {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 10px;
+  outline: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.code-gen-lang-selector:hover,
+.code-gen-lang-selector:focus {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.code-gen-placeholder {
+  padding: var(--space-4);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.code-gen-snippet {
+  flex: 1;
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: none;
+  white-space: pre;
+}
+
+.code-gen-code {
+  display: block;
+  /* reset code element defaults */
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  padding: 0;
+  border: none;
+}
+
+.code-gen-copy-btn {
+  margin-left: auto;
+}
+
+/* ── Code syntax highlighting ────────────────────────────── */
+.code-keyword   { color: var(--code-keyword); }
+.code-string    { color: var(--code-string); }
+.code-number    { color: var(--code-number); }
+.code-comment   { color: var(--code-comment); font-style: italic; }
+.code-punctuation { color: var(--code-punctuation); }
+
 /* ── Workspace split layout ─────────────────────────────── */
 .app-workspace {
   display: flex;
