@@ -14,6 +14,17 @@
     </style>
   </head>
   <body>
+    <script>
+      (function () {
+        var theme = localStorage.getItem('mp_theme') || 'dark';
+        var accent = localStorage.getItem('mp_accent') || 'blue';
+        if (theme === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.body.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-accent', accent);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
