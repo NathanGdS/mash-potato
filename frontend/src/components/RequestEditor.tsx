@@ -11,9 +11,10 @@ import AuthEditor, { AuthType, AuthConfig } from './AuthEditor';
 import TestsEditor from './TestsEditor';
 import ScriptsTab from './ScriptsTab';
 import ScriptDocsModal from './ScriptDocsModal';
+import CodeGenPanel from './CodeGenPanel';
 import { main } from '../../wailsjs/go/models';
 
-type Tab = 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts';
+type Tab = 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts' | 'code';
 
 interface RequestEditorProps {
   request: Request;
@@ -256,11 +257,12 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
           auth:    { label: 'Auth',    badge: hasAuth },
           tests:   { label: 'Tests',   badge: testsCount },
           scripts: { label: 'Scripts', badge: hasScripts },
+          code:    { label: 'Code',    badge: false },
         };
 
         return (
           <div className="request-editor-tabs">
-            {(['params', 'headers', 'body', 'auth', 'tests', 'scripts'] as Tab[]).map((tab) => {
+            {(['params', 'headers', 'body', 'auth', 'tests', 'scripts', 'code'] as Tab[]).map((tab) => {
               const { label, badge } = tabLabels[tab];
               const showBadge = typeof badge === 'boolean' ? badge : badge > 0;
               const badgeText = typeof badge === 'boolean' ? '●' : String(badge);
@@ -348,6 +350,10 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
             onPreScriptChange={handlePreScriptChange}
             onPostScriptChange={handlePostScriptChange}
           />
+        )}
+
+        {activeTab === 'code' && (
+          <CodeGenPanel request={request} />
         )}
       </div>
 
