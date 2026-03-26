@@ -27,12 +27,12 @@
 
 .var-popover-item:hover,
 .var-popover-item--active {
-  background: rgba(249, 115, 22, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   color: var(--text-primary);
 }
 
 .var-popover-item--active {
-  background: rgba(249, 115, 22, 0.14);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
 .var-popover-braces {

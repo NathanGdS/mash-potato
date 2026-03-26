@@ -70,7 +70,7 @@
 
 .svd-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
 .svd-input::placeholder {
@@ -113,7 +113,7 @@
 
 .svd-save-btn:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.28);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .svd-save-btn:disabled {
@@ -180,7 +180,7 @@
 
 .svd-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
 .svd-select option {

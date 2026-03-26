@@ -152,7 +152,7 @@
 
 .url-bar-wrapper:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
 /* Mirror sits behind the input, clipping overflow */
@@ -200,7 +200,7 @@
 
 .url-bar:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
 .url-bar::placeholder {
@@ -250,7 +250,7 @@
 }
 
 .re-tab--active .re-tab-count {
-  background: rgba(249, 115, 22, 0.18);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
   color: var(--accent);
 }
 
@@ -307,7 +307,7 @@
 
 .kv-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 /* ── KV value cell with highlight overlay ───────────────── */
@@ -322,7 +322,7 @@
 
 .kv-value-wrapper:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .kv-value-mirror {
@@ -430,7 +430,7 @@
 .body-beautify-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(249, 115, 22, 0.06);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .body-validation-error {
@@ -551,7 +551,7 @@
 .app-env-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(249, 115, 22, 0.06);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 /* ── Environment selector ───────────────────────────────── */
@@ -575,8 +575,8 @@
 
 .env-selector--active {
   color: var(--accent);
-  border-color: rgba(249, 115, 22, 0.45);
-  background: rgba(249, 115, 22, 0.06);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .env-selector--active:hover,
@@ -812,7 +812,7 @@
 .rv-copy-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(249, 115, 22, 0.06);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .rv-copy-btn--success {
@@ -998,7 +998,7 @@
 
 .send-btn:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.28);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .send-btn:active:not(:disabled) {
@@ -1048,7 +1048,7 @@
 /* ── Body editor focus glow ─────────────────────────────── */
 .body-textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 /* ── Save-as-variable floating action button ────────────── */
@@ -1073,7 +1073,7 @@
 
 .rb-save-var-btn:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.45);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 
 .rb-save-var-btn:disabled {
@@ -1141,7 +1141,7 @@
 
 .body-textarea-wrapper:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .body-textarea-mirror {
@@ -1348,7 +1348,7 @@
 
 .tests-editor-textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 /* ── Scripts Tab ─────────────────────────────────────────── */
@@ -1411,7 +1411,7 @@
 
 .script-editor-textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 /* ── Scripts tab help button ─────────────────────────────── */
