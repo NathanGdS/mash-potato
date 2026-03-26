@@ -64,6 +64,23 @@ export function DuplicateRequest(requestId: string): Promise<import('../../../ty
   return _app()?.DuplicateRequest(requestId);
 }
 
+export interface SearchResult {
+  request_id: string;
+  request_name: string;
+  method: string;
+  url: string;
+  collection_id: string;
+  collection_name: string;
+}
+
+export function SearchRequests(query: string): Promise<SearchResult[]> {
+  return _app()?.SearchRequests(query);
+}
+
+export function SearchRequestsWithBody(query: string): Promise<SearchResult[]> {
+  return _app()?.SearchRequestsWithBody(query);
+}
+
 export interface ResponseResult {
   StatusCode: number;
   StatusText: string;

@@ -130,6 +130,14 @@ export function RunCollection(arg1, arg2, arg3) {
   return window['go']['main']['App']['RunCollection'](arg1, arg2, arg3);
 }
 
+export function SearchRequests(arg1) {
+  return window['go']['main']['App']['SearchRequests'](arg1);
+}
+
+export function SearchRequestsWithBody(arg1) {
+  return window['go']['main']['App']['SearchRequestsWithBody'](arg1);
+}
+
 export function SendRequest(arg1) {
   return window['go']['main']['App']['SendRequest'](arg1);
 }

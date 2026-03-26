@@ -68,6 +68,10 @@ export function RenameFolder(arg1:string,arg2:string):Promise<void>;
 
 export function RunCollection(arg1:string,arg2:Array<string>,arg3:number):Promise<Array<main.RunResult>>;
 
+export function SearchRequests(arg1:string):Promise<Array<db.SearchResult>>;
+
+export function SearchRequestsWithBody(arg1:string):Promise<Array<db.SearchResult>>;
+
 export function SendRequest(arg1:string):Promise<httpclient.ResponseResult>;
 
 export function SetActiveEnvironment(arg1:string):Promise<void>;

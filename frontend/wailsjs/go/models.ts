@@ -228,6 +228,28 @@ export namespace db {
 		    return a;
 		}
 	}
+	export class SearchResult {
+	    request_id: string;
+	    request_name: string;
+	    method: string;
+	    url: string;
+	    collection_id: string;
+	    collection_name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.request_id = source["request_id"];
+	        this.request_name = source["request_name"];
+	        this.method = source["method"];
+	        this.url = source["url"];
+	        this.collection_id = source["collection_id"];
+	        this.collection_name = source["collection_name"];
+	    }
+	}
 
 }
 
