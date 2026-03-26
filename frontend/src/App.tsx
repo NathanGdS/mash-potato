@@ -6,8 +6,12 @@ import ResponseViewer from './components/ResponseViewer';
 import EnvironmentPanel from './components/EnvironmentPanel';
 import EnvironmentSelector from './components/EnvironmentSelector';
 import CollectionRunner from './components/CollectionRunner';
+import SettingsPanel from './components/SettingsPanel';
 import { useRequestsStore } from './store/requestsStore';
 import { useTabsStore } from './store/tabsStore';
+import './styles/themes/dark.css';
+import './styles/themes/light.css';
+import './styles/accents.css';
 import './App.css';
 
 const MIN_PANE_HEIGHT = 120;
@@ -31,6 +35,7 @@ const App: React.FC = () => {
   const updateTab = useTabsStore((s) => s.updateTab);
   const restoreTabs = useTabsStore((s) => s.restoreTabs);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Restore open tabs on app load.
   useEffect(() => {
@@ -93,7 +98,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar onSettingsClick={() => setShowSettings(true)} />
       <main className="app-main">
         <div className="app-topbar">
           <span className="app-brand">
@@ -141,6 +146,7 @@ const App: React.FC = () => {
       </main>
       {showEnvPanel && <EnvironmentPanel onClose={() => setShowEnvPanel(false)} />}
       <CollectionRunner />
+      <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 };
