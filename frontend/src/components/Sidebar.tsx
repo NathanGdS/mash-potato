@@ -8,7 +8,11 @@ import './Sidebar.css';
 
 type SidebarTab = 'collections' | 'history';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onSettingsClick: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick }) => {
   const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
   const [showModal, setShowModal] = useState(false);
   const [showImportCurl, setShowImportCurl] = useState(false);
@@ -148,6 +152,32 @@ const Sidebar: React.FC = () => {
           <HistoryList />
         </div>
       )}
+
+      {/* Footer with settings gear */}
+      <div className="sidebar-footer">
+        <button
+          className="sidebar-gear-btn"
+          onClick={onSettingsClick}
+          aria-label="Open settings"
+          title="Settings"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="8" cy="8" r="2.5" />
+            <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M13.07 2.93l-1.06 1.06M3.99 12.01l-1.06 1.06" />
+          </svg>
+        </button>
+      </div>
     </aside>
   );
 };
