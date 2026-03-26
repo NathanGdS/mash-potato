@@ -93,6 +93,13 @@
   --json-null:       #94a3b8;
   --json-structural: #cbd5e1;
 
+  /* ── Code syntax highlighting ─────────────────────────── */
+  --code-keyword:     #c084fc;
+  --code-string:      #86efac;
+  --code-number:      #fcd34d;
+  --code-comment:     #6b7280;
+  --code-punctuation: #cbd5e1;
+
   --color-red:    #e05c5c;
   --color-green:  #4caf78;
   --color-yellow: #d4a830;

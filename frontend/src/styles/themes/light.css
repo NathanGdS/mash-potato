@@ -64,6 +64,13 @@ body[data-theme='light'] {
   --json-null:       #64748b;
   --json-structural: #334155;
 
+  /* ── Code syntax highlighting ─────────────────────────── */
+  --code-keyword:     #7c3aed;
+  --code-string:      #15803d;
+  --code-number:      #b45309;
+  --code-comment:     #9ca3af;
+  --code-punctuation: #334155;
+
   /* ── Semantic color aliases ───────────────────────────── */
   --color-red:    #dc2626;
   --color-green:  #16a34a;
