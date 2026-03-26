@@ -181,6 +181,96 @@ func DuplicateRequest(id, newID string) (Request, error) {
 	}, nil
 }
 
+// SearchResult holds the fields returned by SearchRequests.
+type SearchResult struct {
+	RequestID      string `json:"request_id"`
+	RequestName    string `json:"request_name"`
+	Method         string `json:"method"`
+	URL            string `json:"url"`
+	CollectionID   string `json:"collection_id"`
+	CollectionName string `json:"collection_name"`
+}
+
+// SearchRequests returns up to 50 requests whose name, URL, or collection name
+// contains the given query string (case-insensitive via SQLite LIKE).
+// An empty query returns an empty slice without hitting the database.
+func SearchRequests(query string) ([]SearchResult, error) {
+	if query == "" {
+		return []SearchResult{}, nil
+	}
+	pattern := "%" + query + "%"
+	rows, err := DB.Query(
+		`SELECT r.id, r.name, r.method, r.url, c.id, c.name
+		   FROM requests r
+		   JOIN collections c ON r.collection_id = c.id
+		  WHERE r.name LIKE ? OR r.url LIKE ? OR c.name LIKE ?
+		  LIMIT 50`,
+		pattern, pattern, pattern,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("SearchRequests: %w", err)
+	}
+	defer rows.Close()
+
+	var results []SearchResult
+	for rows.Next() {
+		var sr SearchResult
+		if err := rows.Scan(&sr.RequestID, &sr.RequestName, &sr.Method, &sr.URL, &sr.CollectionID, &sr.CollectionName); err != nil {
+			return nil, fmt.Errorf("SearchRequests scan: %w", err)
+		}
+		results = append(results, sr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("SearchRequests rows: %w", err)
+	}
+	if results == nil {
+		return []SearchResult{}, nil
+	}
+	return results, nil
+}
+
+// SearchRequestsWithBody returns up to 50 requests whose name, URL, collection name,
+// or body contains the given query string (case-insensitive via SQLite LIKE).
+// Bodies larger than 50 KB are skipped silently via a length guard in the WHERE clause.
+// An empty query returns an empty slice without hitting the database.
+func SearchRequestsWithBody(query string) ([]SearchResult, error) {
+	if query == "" {
+		return []SearchResult{}, nil
+	}
+	pattern := "%" + query + "%"
+	rows, err := DB.Query(
+		`SELECT r.id, r.name, r.method, r.url, c.id, c.name
+		   FROM requests r
+		   JOIN collections c ON r.collection_id = c.id
+		  WHERE r.name LIKE ?
+		     OR r.url LIKE ?
+		     OR c.name LIKE ?
+		     OR (length(r.body) < 51200 AND r.body LIKE ?)
+		  LIMIT 50`,
+		pattern, pattern, pattern, pattern,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("SearchRequestsWithBody: %w", err)
+	}
+	defer rows.Close()
+
+	var results []SearchResult
+	for rows.Next() {
+		var sr SearchResult
+		if err := rows.Scan(&sr.RequestID, &sr.RequestName, &sr.Method, &sr.URL, &sr.CollectionID, &sr.CollectionName); err != nil {
+			return nil, fmt.Errorf("SearchRequestsWithBody scan: %w", err)
+		}
+		results = append(results, sr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("SearchRequestsWithBody rows: %w", err)
+	}
+	if results == nil {
+		return []SearchResult{}, nil
+	}
+	return results, nil
+}
+
 // ListRequests returns all requests for a given collection, ordered by creation time.
 func ListRequests(collectionID string) ([]Request, error) {
 	rows, err := DB.Query(
