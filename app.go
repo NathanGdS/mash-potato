@@ -552,6 +552,27 @@ func (a *App) MoveRequest(requestID string, folderID string) error {
 	return nil
 }
 
+// SearchRequests returns up to 50 requests whose name, URL, or collection name
+// contains the query string (case-insensitive). An empty query returns an empty slice.
+func (a *App) SearchRequests(query string) ([]db.SearchResult, error) {
+	results, err := db.SearchRequests(query)
+	if err != nil {
+		return nil, fmt.Errorf("SearchRequests: %w", err)
+	}
+	return results, nil
+}
+
+// SearchRequestsWithBody returns up to 50 requests whose name, URL, collection name,
+// or body contains the query string (case-insensitive). Bodies larger than 50 KB are
+// skipped silently. An empty query returns an empty slice.
+func (a *App) SearchRequestsWithBody(query string) ([]db.SearchResult, error) {
+	results, err := db.SearchRequestsWithBody(query)
+	if err != nil {
+		return nil, fmt.Errorf("SearchRequestsWithBody: %w", err)
+	}
+	return results, nil
+}
+
 // DuplicateRequest creates a copy of the request with " (copy)" appended to the name.
 // The duplicate is placed in the same collection as the original and returned.
 func (a *App) DuplicateRequest(requestID string) (db.Request, error) {
