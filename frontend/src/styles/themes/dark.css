@@ -1,0 +1,71 @@
+/* ── Dark Theme ───────────────────────────────────────────
+   Applied when <body data-theme="dark"> (set by the inline
+   theme script before React hydrates).
+   Values match the original tokens.css dark defaults exactly.
+   ─────────────────────────────────────────────────────── */
+body[data-theme='dark'] {
+  /* ── Backgrounds ──────────────────────────────────────── */
+  --bg-primary:   #1a202c;
+  --bg-secondary: #141922;
+  --bg-surface:   #1e2532;
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --color-text-primary:   #e2e8f0;
+  --color-text-secondary: #a0aec0;
+  --color-text-muted:     #4a5568;
+  --color-text-subtle:    #718096;
+
+  /* Bridge aliases used by existing component CSS */
+  --text-primary:   var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted:     var(--color-text-muted);
+  --text-subtle:    var(--color-text-subtle);
+
+  /* ── Border ───────────────────────────────────────────── */
+  --color-border: #2d3748;
+  --border: var(--color-border);
+
+  /* ── HTTP method badge colors ─────────────────────────── */
+  --method-get-bg:     #166534;
+  --method-get-fg:     #bbf7d0;
+  --method-post-bg:    #1e3a8a;
+  --method-post-fg:    #bfdbfe;
+  --method-put-bg:     #78350f;
+  --method-put-fg:     #fde68a;
+  --method-patch-bg:   #581c87;
+  --method-patch-fg:   #e9d5ff;
+  --method-delete-bg:  #7f1d1d;
+  --method-delete-fg:  #fecaca;
+  --method-other-bg:   #374151;
+  --method-other-fg:   #d1d5db;
+
+  /* ── HTTP status badge colors ─────────────────────────── */
+  --status-2xx-bg:     #1a3a2a;
+  --status-2xx-fg:     #68d391;
+  --status-2xx-border: #2f6b47;
+
+  --status-3xx-bg:     #1a2a3a;
+  --status-3xx-fg:     #63b3ed;
+  --status-3xx-border: #2b5c8a;
+
+  --status-4xx-bg:     #3a2a1a;
+  --status-4xx-fg:     #f6ad55;
+  --status-4xx-border: #8a5a1a;
+
+  --status-5xx-bg:     #3a1a1a;
+  --status-5xx-fg:     #fc8181;
+  --status-5xx-border: #8a2020;
+
+  /* ── JSON syntax highlighting ─────────────────────────── */
+  --json-key:        #93c5fd;
+  --json-string:     #86efac;
+  --json-number:     #fcd34d;
+  --json-boolean:    #f472b6;
+  --json-null:       #94a3b8;
+  --json-structural: #cbd5e1;
+
+  /* ── Semantic color aliases (CollectionRunner, etc.) ──── */
+  --color-red:    #e05c5c;
+  --color-green:  #4caf78;
+  --color-yellow: #d4a830;
+}

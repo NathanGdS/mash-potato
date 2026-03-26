@@ -1,0 +1,62 @@
+/* ── Accent Color Presets ─────────────────────────────────
+   Applied via <body data-accent="<name>">.
+   Defines --color-accent / --color-accent-hover plus
+   --accent / --accent-hover bridge aliases used by existing
+   component CSS.
+   ─────────────────────────────────────────────────────── */
+
+body[data-accent='blue'] {
+  --color-accent:       #3b82f6;
+  --color-accent-hover: #2563eb;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='purple'] {
+  --color-accent:       #a855f7;
+  --color-accent-hover: #9333ea;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='green'] {
+  --color-accent:       #22c55e;
+  --color-accent-hover: #16a34a;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='orange'] {
+  --color-accent:       #f97316;
+  --color-accent-hover: #ea6c0a;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='red'] {
+  --color-accent:       #ef4444;
+  --color-accent-hover: #dc2626;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='teal'] {
+  --color-accent:       #14b8a6;
+  --color-accent-hover: #0d9488;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='pink'] {
+  --color-accent:       #ec4899;
+  --color-accent-hover: #db2777;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}
+
+body[data-accent='yellow'] {
+  --color-accent:       #eab308;
+  --color-accent-hover: #ca8a04;
+  --accent:             var(--color-accent);
+  --accent-hover:       var(--color-accent-hover);
+}

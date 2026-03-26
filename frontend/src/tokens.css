@@ -1,35 +1,28 @@
-/* ── Design Tokens ───────────────────────────────────────── */
+/* ── Design Tokens ────────────────────────────────────────
+   Non-color structural tokens (spacing, radius, typography).
+   Color tokens are provided by:
+     - styles/themes/dark.css   (body[data-theme='dark'])
+     - styles/themes/light.css  (body[data-theme='light'])
+     - styles/accents.css       (body[data-accent='<name>'])
+   Fallback color values below ensure the UI is visible even
+   before the theme attribute is applied to <body>.
+   ─────────────────────────────────────────────────────── */
 :root {
-  /* Background */
-  --bg-primary:   #1a202c;
-  --bg-secondary: #141922;
-  --bg-surface:   #1e2532;
-
-  /* Accent */
-  --accent:       #f97316;
-  --accent-hover: #ea6c0a;
-
-  /* Text */
-  --text-primary:   #e2e8f0;
-  --text-secondary: #a0aec0;
-  --text-muted:     #4a5568;
-  --text-subtle:    #718096;
-
-  /* Border */
-  --border:       #2d3748;
-
-  /* Border radius */
+  /* ── Border radius ────────────────────────────────────── */
   --radius-sm: 4px;
   --radius-md: 6px;
 
-  /* Spacing (4px base grid) */
+  /* ── Spacing (4px base grid) ──────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-6: 24px;
 
-  /* HTTP method colors (text / foreground) */
+  /* ── Typography ───────────────────────────────────────── */
+  --font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+  /* ── HTTP method text colors (legacy / standalone use) ── */
   --method-get:    #61affe;
   --method-post:   #49cc90;
   --method-put:    #fca130;
@@ -38,7 +31,32 @@
   --method-head:   #9e6aff;
   --method-other:  #a0aec0;
 
-  /* HTTP method badge background colors */
+  /* ── Fallback color tokens ────────────────────────────── */
+  /* These are overridden by body[data-theme] rules.        */
+  /* They prevent a flash of un-styled content when the     */
+  /* theme attribute has not yet been applied.              */
+  --bg-primary:   #1a202c;
+  --bg-secondary: #141922;
+  --bg-surface:   #1e2532;
+
+  --color-text-primary:   #e2e8f0;
+  --color-text-secondary: #a0aec0;
+  --color-text-muted:     #4a5568;
+  --color-text-subtle:    #718096;
+
+  --text-primary:   #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted:     #4a5568;
+  --text-subtle:    #718096;
+
+  --color-border: #2d3748;
+  --border:       #2d3748;
+
+  --color-accent:       #f97316;
+  --color-accent-hover: #ea6c0a;
+  --accent:             #f97316;
+  --accent-hover:       #ea6c0a;
+
   --method-get-bg:     #166534;
   --method-get-fg:     #bbf7d0;
   --method-post-bg:    #1e3a8a;
@@ -52,7 +70,6 @@
   --method-other-bg:   #374151;
   --method-other-fg:   #d1d5db;
 
-  /* HTTP status colors */
   --status-2xx-bg:     #1a3a2a;
   --status-2xx-fg:     #68d391;
   --status-2xx-border: #2f6b47;
@@ -69,11 +86,14 @@
   --status-5xx-fg:     #fc8181;
   --status-5xx-border: #8a2020;
 
-  /* JSON highlighting */
-  --json-key:     #93c5fd; /* blue-300 */
-  --json-string:  #86efac; /* green-300 */
-  --json-number:  #fcd34d; /* amber-300 */
-  --json-boolean: #f472b6; /* pink-400 */
-  --json-null:    #94a3b8; /* slate-400 */
-  --json-structural: #cbd5e1; /* slate-300 */
+  --json-key:        #93c5fd;
+  --json-string:     #86efac;
+  --json-number:     #fcd34d;
+  --json-boolean:    #f472b6;
+  --json-null:       #94a3b8;
+  --json-structural: #cbd5e1;
+
+  --color-red:    #e05c5c;
+  --color-green:  #4caf78;
+  --color-yellow: #d4a830;
 }
