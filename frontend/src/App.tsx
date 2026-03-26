@@ -7,6 +7,7 @@ import EnvironmentPanel from './components/EnvironmentPanel';
 import EnvironmentSelector from './components/EnvironmentSelector';
 import CollectionRunner from './components/CollectionRunner';
 import SettingsPanel from './components/SettingsPanel';
+import SearchPalette from './components/SearchPalette';
 import { useRequestsStore } from './store/requestsStore';
 import { useTabsStore } from './store/tabsStore';
 import './styles/themes/dark.css';
@@ -36,6 +37,8 @@ const App: React.FC = () => {
   const restoreTabs = useTabsStore((s) => s.restoreTabs);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Restore open tabs on app load.
   useEffect(() => {
@@ -50,6 +53,21 @@ const App: React.FC = () => {
       method: activeRequest.method,
     });
   }, [activeRequest?.id, activeRequest?.name, activeRequest?.method, updateTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Open search palette on Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleSearchKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch((prev) => {
+          if (!prev) setSearchQuery('');
+          return !prev;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleSearchKey);
+    return () => window.removeEventListener('keydown', handleSearchKey);
+  }, []);
+
   const [splitRatio, setSplitRatio] = useState<number>(loadSplitRatio);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -147,6 +165,13 @@ const App: React.FC = () => {
       {showEnvPanel && <EnvironmentPanel onClose={() => setShowEnvPanel(false)} />}
       <CollectionRunner />
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      {showSearch && (
+        <SearchPalette
+          query={searchQuery}
+          setQuery={setSearchQuery}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
     </div>
   );
 };
