@@ -10,9 +10,10 @@ type SidebarTab = 'collections' | 'history';
 
 interface SidebarProps {
   onSettingsClick: () => void;
+  onCompare: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
   const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
   const [showModal, setShowModal] = useState(false);
   const [showImportCurl, setShowImportCurl] = useState(false);
@@ -149,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick }) => {
 
       {activeTab === 'history' && (
         <div className="sidebar-body sidebar-body--fill">
-          <HistoryList />
+          <HistoryList onCompare={onCompare} />
         </div>
       )}
 

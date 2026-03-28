@@ -8,8 +8,10 @@ import EnvironmentSelector from './components/EnvironmentSelector';
 import CollectionRunner from './components/CollectionRunner';
 import SettingsPanel from './components/SettingsPanel';
 import SearchPalette from './components/SearchPalette';
+import DiffViewer from './components/DiffViewer';
 import { useRequestsStore } from './store/requestsStore';
 import { useTabsStore } from './store/tabsStore';
+import { useHistoryStore } from './store/historyStore';
 import './styles/themes/dark.css';
 import './styles/themes/light.css';
 import './styles/accents.css';
@@ -35,10 +37,17 @@ const App: React.FC = () => {
   const activeRequest = useRequestsStore((s) => s.activeRequest);
   const updateTab = useTabsStore((s) => s.updateTab);
   const restoreTabs = useTabsStore((s) => s.restoreTabs);
+  const diffSelection = useHistoryStore((s) => s.diffSelection);
+  const clearDiffSelection = useHistoryStore((s) => s.clearDiffSelection);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+
+  const handleCompare = useCallback(() => {
+    setShowDiffViewer(true);
+  }, []);
 
   // Restore open tabs on app load.
   useEffect(() => {
@@ -116,7 +125,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app-layout">
-      <Sidebar onSettingsClick={() => setShowSettings(true)} />
+      <Sidebar onSettingsClick={() => setShowSettings(true)} onCompare={handleCompare} />
       <main className="app-main">
         <div className="app-topbar">
           <span className="app-brand">
@@ -172,6 +181,21 @@ const App: React.FC = () => {
           onClose={() => setShowSearch(false)}
         />
       )}
+      {showDiffViewer && diffSelection.length === 2 && (() => {
+        const [older, newer] = [...diffSelection].sort(
+          (a, b) => new Date(a.executed_at).getTime() - new Date(b.executed_at).getTime()
+        );
+        return (
+          <DiffViewer
+            older={older}
+            newer={newer}
+            onClose={() => {
+              setShowDiffViewer(false);
+              clearDiffSelection();
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };
