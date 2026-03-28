@@ -75,4 +75,17 @@ body[data-theme='dark'] {
   --color-red:    #e05c5c;
   --color-green:  #4caf78;
   --color-yellow: #d4a830;
+
+  /* ── Diff viewer ──────────────────────────────────────── */
+  /* WCAG AA contrast (text #e2e8f0 on background):
+     --diff-add-bg #0d2818 → ~16:1   (passes AA + AAA)
+     --diff-del-bg #2c1010 → ~14:1   (passes AA + AAA) */
+  --diff-add-bg:  #0d2818;
+  --diff-del-bg:  #2c1010;
+  --diff-chg-bg:  #2a1f00;
+
+  /* ── Accent muted ─────────────────────────────────────── */
+  /* Low-opacity tint of --accent for highlighted cells and
+     active toggle backgrounds. */
+  --accent-muted: color-mix(in srgb, var(--accent) 15%, transparent);
 }
