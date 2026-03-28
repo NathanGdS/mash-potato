@@ -22,6 +22,28 @@
   color: var(--text-muted);
 }
 
+.history-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-compare-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.history-compare-btn:hover {
+  color: var(--status-2xx-fg, #4ade80);
+  border-color: var(--status-2xx-fg, #4ade80);
+}
+
 .history-clear-btn {
   background: none;
   border: 1px solid var(--border);
@@ -106,4 +128,12 @@
   color: var(--text-muted);
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.history-entry-checkbox {
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--status-2xx-fg, #4ade80);
+  width: 13px;
+  height: 13px;
 }

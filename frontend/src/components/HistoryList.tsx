@@ -5,6 +5,10 @@ import { useTabsStore } from '../store/tabsStore';
 import { useResponseStore } from '../store/responseStore';
 import './HistoryList.css';
 
+interface HistoryListProps {
+  onCompare: () => void;
+}
+
 function methodClass(method: string): string {
   const m = method.toLowerCase();
   if (['get', 'post', 'put', 'patch', 'delete'].includes(m)) return `request-method--${m}`;
@@ -33,8 +37,8 @@ function truncateUrl(url: string, maxLen = 40): string {
   return url.slice(0, maxLen) + '…';
 }
 
-const HistoryList: React.FC = () => {
-  const { entries, loading, error, fetchHistory, clearHistory } = useHistoryStore();
+const HistoryList: React.FC<HistoryListProps> = ({ onCompare }) => {
+  const { entries, loading, error, fetchHistory, clearHistory, diffSelection, toggleDiffSelection } = useHistoryStore();
   const { setActiveRequest } = useRequestsStore();
   const { setActiveTab } = useTabsStore();
   const { setResponse, setActiveRequestId } = useResponseStore();
@@ -95,15 +99,26 @@ const HistoryList: React.FC = () => {
     <div className="history-list-container">
       <div className="history-list-header">
         <span className="history-list-title">History</span>
-        {entries.length > 0 && (
-          <button
-            className="history-clear-btn"
-            onClick={handleClear}
-            title="Clear history"
-          >
-            Clear
-          </button>
-        )}
+        <div className="history-header-actions">
+          {diffSelection.length === 2 && (
+            <button
+              className="history-compare-btn"
+              onClick={onCompare}
+              title="Compare selected entries"
+            >
+              Compare selected
+            </button>
+          )}
+          {entries.length > 0 && (
+            <button
+              className="history-clear-btn"
+              onClick={handleClear}
+              title="Clear history"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && <p className="history-status">Loading…</p>}
@@ -113,23 +128,39 @@ const HistoryList: React.FC = () => {
       )}
 
       <ul className="history-entries">
-        {entries.map((entry) => (
-          <li
-            key={entry.id}
-            className="history-entry"
-            onClick={() => loadEntry(entry)}
-            title={entry.url}
-          >
-            <span className={`request-method ${methodClass(entry.method)}`}>
-              {entry.method}
-            </span>
-            <span className="history-entry-url">{truncateUrl(entry.url)}</span>
-            <span className={`history-entry-status ${statusClass(entry.response_status)}`}>
-              {entry.response_status > 0 ? entry.response_status : '—'}
-            </span>
-            <span className="history-entry-time">{formatTime(entry.executed_at)}</span>
-          </li>
-        ))}
+        {entries.map((entry) => {
+          const isChecked = diffSelection.some((e) => e.id === entry.id);
+          const showCheckbox = true;
+          return (
+            <li
+              key={entry.id}
+              className="history-entry"
+              onClick={() => loadEntry(entry)}
+              title={entry.url}
+            >
+              {showCheckbox && (
+                <input
+                  type="checkbox"
+                  className="history-entry-checkbox"
+                  checked={isChecked}
+                  onChange={() => {/* controlled via onClick */}}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDiffSelection(entry);
+                  }}
+                />
+              )}
+              <span className={`request-method ${methodClass(entry.method)}`}>
+                {entry.method}
+              </span>
+              <span className="history-entry-url">{truncateUrl(entry.url)}</span>
+              <span className={`history-entry-status ${statusClass(entry.response_status)}`}>
+                {entry.response_status > 0 ? entry.response_status : '—'}
+              </span>
+              <span className="history-entry-time">{formatTime(entry.executed_at)}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
