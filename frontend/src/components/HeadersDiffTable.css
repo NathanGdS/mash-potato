@@ -1,0 +1,76 @@
+.headers-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-family: var(--font-mono, monospace);
+  table-layout: fixed;
+}
+
+.headers-diff-table th,
+.headers-diff-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  overflow-wrap: break-word;
+  word-break: break-all;
+  vertical-align: top;
+}
+
+.headers-diff-table th {
+  font-family: var(--font-sans, sans-serif);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  background: var(--bg-secondary);
+  text-align: left;
+}
+
+.headers-diff-table col.col-key     { width: 30%; }
+.headers-diff-table col.col-old     { width: 35%; }
+.headers-diff-table col.col-new     { width: 35%; }
+
+/* Row status backgrounds */
+.headers-diff-row--added     { background-color: var(--diff-add-bg); }
+.headers-diff-row--removed   { background-color: var(--diff-del-bg); }
+.headers-diff-row--changed   { background-color: var(--diff-chg-bg); }
+.headers-diff-row--unchanged { background-color: transparent; }
+
+/* Key cell */
+.headers-diff-table td.cell-key {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* Value cells */
+.headers-diff-table td.cell-value {
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
+
+/* Empty value placeholder */
+.headers-diff-table td.cell-value--empty {
+  color: var(--color-text-muted);
+}
+
+/* Toggle button */
+.headers-diff-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-sans, sans-serif);
+  color: var(--color-text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.headers-diff-toggle:hover {
+  background: var(--bg-surface);
+  color: var(--color-text-primary);
+}
