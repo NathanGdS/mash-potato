@@ -1,0 +1,98 @@
+/* ── DiffPane ──────────────────────────────────────────────
+   Scrollable panel that renders colored diff lines with a
+   line-number gutter. Supports both split and unified modes.
+   ─────────────────────────────────────────────────────── */
+
+.diff-pane {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: var(--bg-surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  /* ensure independent scroll from sibling panels */
+  min-height: 0;
+}
+
+/* ── Inner <pre> preserves whitespace ─────────────────── */
+.diff-pane__pre {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono, 'Menlo', 'Consolas', 'monospace');
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--text-primary);
+}
+
+/* ── Single diff line row ─────────────────────────────── */
+.diff-line {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.diff-line--added {
+  background: var(--diff-add-bg);
+}
+
+.diff-line--removed {
+  background: var(--diff-del-bg);
+}
+
+.diff-line--unchanged {
+  background: transparent;
+}
+
+/* ── Gutter (line number column) ─────────────────────── */
+.diff-gutter {
+  display: flex;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  user-select: none;
+  color: var(--text-muted);
+  background: inherit;
+}
+
+/* Single line-number cell (split view or one column of unified) */
+.diff-gutter__num {
+  min-width: 3.5ch;
+  padding: 0 6px;
+  text-align: right;
+  font-family: var(--font-mono, 'Menlo', 'Consolas', 'monospace');
+  font-size: 11px;
+  line-height: inherit;
+  white-space: pre;
+  color: var(--text-subtle);
+  user-select: none;
+}
+
+/* Separator between old/new number in unified gutter */
+.diff-gutter__sep {
+  padding: 0 2px;
+  color: var(--border);
+  user-select: none;
+}
+
+/* ── Prefix character (+/-/ ) ────────────────────────── */
+.diff-line__prefix {
+  flex-shrink: 0;
+  width: 1.4ch;
+  padding-left: 4px;
+  font-family: var(--font-mono, 'Menlo', 'Consolas', 'monospace');
+  font-size: 12px;
+  line-height: inherit;
+  user-select: none;
+  color: var(--text-subtle);
+}
+
+.diff-line--added   .diff-line__prefix { color: var(--color-green, #4caf78); }
+.diff-line--removed .diff-line__prefix { color: var(--color-red,   #e05c5c); }
+
+/* ── Line content ─────────────────────────────────────── */
+.diff-line__content {
+  flex: 1;
+  padding: 0 8px;
+  overflow: visible;
+  white-space: pre;
+}
