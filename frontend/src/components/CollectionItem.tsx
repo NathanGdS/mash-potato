@@ -354,14 +354,18 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
         onContextMenu={!editing ? handleCollectionContextMenu : undefined}
       >
         <button
-          className="collection-expand-btn"
+          className={`collection-expand-btn${expanded ? ' collection-expand-btn--open' : ''}`}
           aria-label={expanded ? 'Collapse collection' : 'Expand collection'}
           onClick={toggleExpand}
         >
-          {expanded ? '▾' : '▸'}
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 2l4 3-4 3"/>
+          </svg>
         </button>
 
-        <span className="collection-icon">📁</span>
+        <svg className="collection-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M1.5 4.5A1.5 1.5 0 013 3h3.379a1.5 1.5 0 011.06.44L8.56 4.56A1.5 1.5 0 009.62 5H13a1.5 1.5 0 011.5 1.5v6A1.5 1.5 0 0113 14H3a1.5 1.5 0 01-1.5-1.5v-8z"/>
+        </svg>
 
         {editing ? (
           <span className="collection-rename-wrapper">
