@@ -9,82 +9,91 @@
    ─────────────────────────────────────────────────────── */
 :root {
   /* ── Border radius ────────────────────────────────────── */
-  --radius-sm: 4px;
-  --radius-md: 6px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
   /* ── Spacing (4px base grid) ──────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
+  --space-8: 32px;
 
   /* ── Typography ───────────────────────────────────────── */
-  --font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-ui:   'Plus Jakarta Sans', 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+  /* ── Shadows ──────────────────────────────────────────── */
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:  0 4px 14px rgba(0, 0, 0, 0.55), 0 2px 5px rgba(0, 0, 0, 0.35);
+  --shadow-lg:  0 8px 28px rgba(0, 0, 0, 0.65), 0 4px 10px rgba(0, 0, 0, 0.4);
 
   /* ── HTTP method text colors (legacy / standalone use) ── */
-  --method-get:    #61affe;
-  --method-post:   #49cc90;
-  --method-put:    #fca130;
-  --method-patch:  #50e3c2;
-  --method-delete: #f93e3e;
-  --method-head:   #9e6aff;
-  --method-other:  #a0aec0;
+  --method-get:    #4ade80;
+  --method-post:   #60a5fa;
+  --method-put:    #fbbf24;
+  --method-patch:  #c084fc;
+  --method-delete: #f87171;
+  --method-head:   #a78bfa;
+  --method-other:  #94a3b8;
 
   /* ── Fallback color tokens ────────────────────────────── */
   /* These are overridden by body[data-theme] rules.        */
-  /* They prevent a flash of un-styled content when the     */
-  /* theme attribute has not yet been applied.              */
-  --bg-primary:   #1a202c;
-  --bg-secondary: #141922;
-  --bg-surface:   #1e2532;
+  --bg-primary:   #0f1419;
+  --bg-secondary: #0b0e14;
+  --bg-surface:   #161c26;
+  --bg-elevated:  #1c2334;
 
-  --color-text-primary:   #e2e8f0;
-  --color-text-secondary: #a0aec0;
-  --color-text-muted:     #4a5568;
-  --color-text-subtle:    #718096;
+  --color-text-primary:   #e6ecf4;
+  --color-text-secondary: #8892a4;
+  --color-text-muted:     #414957;
+  --color-text-subtle:    #5c6476;
 
-  --text-primary:   #e2e8f0;
-  --text-secondary: #a0aec0;
-  --text-muted:     #4a5568;
-  --text-subtle:    #718096;
+  --text-primary:   #e6ecf4;
+  --text-secondary: #8892a4;
+  --text-muted:     #414957;
+  --text-subtle:    #5c6476;
 
-  --color-border: #2d3748;
-  --border:       #2d3748;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --border:       rgba(255, 255, 255, 0.08);
 
-  --color-accent:       #f97316;
-  --color-accent-hover: #ea6c0a;
-  --accent:             #f97316;
-  --accent-hover:       #ea6c0a;
+  --color-accent:       #3b82f6;
+  --color-accent-hover: #2563eb;
+  --accent:             #3b82f6;
+  --accent-hover:       #2563eb;
 
-  --method-get-bg:     #166534;
-  --method-get-fg:     #bbf7d0;
-  --method-post-bg:    #1e3a8a;
-  --method-post-fg:    #bfdbfe;
-  --method-put-bg:     #78350f;
-  --method-put-fg:     #fde68a;
-  --method-patch-bg:   #581c87;
-  --method-patch-fg:   #e9d5ff;
-  --method-delete-bg:  #7f1d1d;
-  --method-delete-fg:  #fecaca;
-  --method-other-bg:   #374151;
-  --method-other-fg:   #d1d5db;
+  --method-get-bg:     #0a2e1b;
+  --method-get-fg:     #4ade80;
+  --method-post-bg:    #0c2754;
+  --method-post-fg:    #60a5fa;
+  --method-put-bg:     #2e1f00;
+  --method-put-fg:     #fbbf24;
+  --method-patch-bg:   #22104a;
+  --method-patch-fg:   #c084fc;
+  --method-delete-bg:  #2e0f0f;
+  --method-delete-fg:  #f87171;
+  --method-other-bg:   #1a2030;
+  --method-other-fg:   #8b9db8;
 
-  --status-2xx-bg:     #1a3a2a;
-  --status-2xx-fg:     #68d391;
-  --status-2xx-border: #2f6b47;
+  --status-2xx-bg:     #071f12;
+  --status-2xx-fg:     #4ade80;
+  --status-2xx-border: rgba(74, 222, 128, 0.2);
 
-  --status-3xx-bg:     #1a2a3a;
-  --status-3xx-fg:     #63b3ed;
-  --status-3xx-border: #2b5c8a;
+  --status-3xx-bg:     #071528;
+  --status-3xx-fg:     #60a5fa;
+  --status-3xx-border: rgba(96, 165, 250, 0.2);
 
-  --status-4xx-bg:     #3a2a1a;
-  --status-4xx-fg:     #f6ad55;
-  --status-4xx-border: #8a5a1a;
+  --status-4xx-bg:     #281500;
+  --status-4xx-fg:     #fbbf24;
+  --status-4xx-border: rgba(251, 191, 36, 0.2);
 
-  --status-5xx-bg:     #3a1a1a;
-  --status-5xx-fg:     #fc8181;
-  --status-5xx-border: #8a2020;
+  --status-5xx-bg:     #280a0a;
+  --status-5xx-fg:     #f87171;
+  --status-5xx-border: rgba(248, 113, 113, 0.2);
 
   --json-key:        #93c5fd;
   --json-string:     #86efac;
@@ -97,10 +106,10 @@
   --code-keyword:     #c084fc;
   --code-string:      #86efac;
   --code-number:      #fcd34d;
-  --code-comment:     #6b7280;
-  --code-punctuation: #cbd5e1;
+  --code-comment:     #5c6476;
+  --code-punctuation: #8892a4;
 
-  --color-red:    #e05c5c;
-  --color-green:  #4caf78;
-  --color-yellow: #d4a830;
+  --color-red:    #f87171;
+  --color-green:  #4ade80;
+  --color-yellow: #fbbf24;
 }
