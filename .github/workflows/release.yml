@@ -104,7 +104,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          wails build -platform ${{ matrix.platform }} -clean
+          wails build -platform ${{ matrix.platform }} -clean -tags webkit2_41
 
           # Portable tarball
           tar -czf "build/bin/mash-potato-${VERSION}-linux-amd64.tar.gz" \
