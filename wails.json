@@ -8,5 +8,12 @@
   "frontend:dev:serverUrl": "auto",
   "author": {
     "name": "mash-potato"
+  },
+  "info": {
+    "productName": "Mash Potato",
+    "productVersion": "0.1.0",
+    "companyName": "mash-potato",
+    "copyright": "Copyright © 2026 mash-potato",
+    "comments": "A Lightweight native desktop API client"
   }
 }
