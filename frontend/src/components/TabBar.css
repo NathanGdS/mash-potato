@@ -15,7 +15,7 @@
 }
 
 .tab-bar::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 2px;
 }
 
@@ -27,13 +27,15 @@
   border: none;
   border-bottom: 2px solid transparent;
   border-right: 1px solid var(--border);
-  color: var(--text-subtle);
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-ui, inherit);
   max-width: 180px;
-  min-width: 90px;
+  min-width: 100px;
   padding: 0 var(--space-3);
-  height: 34px;
+  height: 36px;
   white-space: nowrap;
   transition: color 0.12s, background 0.12s, border-bottom-color 0.12s;
   flex-shrink: 0;
@@ -41,14 +43,15 @@
 }
 
 .tab-bar-item:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
 }
 
 .tab-bar-item--active {
   background: var(--bg-primary);
   color: var(--text-primary);
   border-bottom-color: var(--accent);
+  font-weight: 600;
 }
 
 .tab-bar-name {
@@ -65,7 +68,9 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
+  opacity: 0.85;
   display: inline-block;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 .tab-bar-close {
@@ -74,7 +79,7 @@
   font-size: 14px;
   line-height: 1;
   padding: 0 2px;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: color 0.1s, background 0.1s;
   cursor: pointer;
   display: inline-flex;
@@ -86,17 +91,17 @@
 
 .tab-bar-close:hover {
   color: var(--text-primary);
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Method badge inside tab ─────────────────────────────── */
 .tab-method {
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 1px 5px;
+  letter-spacing: 0.05em;
+  padding: 2px 5px;
   text-transform: uppercase;
 }
 
