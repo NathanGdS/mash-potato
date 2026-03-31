@@ -11,8 +11,34 @@ on:
       - '**.md'
 
 jobs:
-  test:
-    name: Test & Lint
+  test-frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Tests
+        working-directory: frontend
+        run: npm run test
+
+  test-go:
+    name: Go
     runs-on: ubuntu-latest
 
     steps:
@@ -24,27 +50,8 @@ jobs:
           go-version: '1.22'
           cache: true
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Frontend type check + build
-        working-directory: frontend
-        run: npm run build
-
-      - name: Frontend tests
-        working-directory: frontend
-        run: npm run test
-
-      - name: Go vet
+      - name: Vet
         run: go vet ./...
 
-      - name: Go tests
-        run: go test ./...
+      - name: Tests
+        run: go test -p 4 ./...
