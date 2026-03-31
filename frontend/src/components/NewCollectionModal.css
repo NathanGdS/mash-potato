@@ -103,10 +103,12 @@
 }
 
 .btn--secondary {
-  background: var(--border);
-  color: var(--text-primary);
+  background: var(--bg-elevated, var(--bg-surface));
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
 }
 
 .btn--secondary:hover:not(:disabled) {
-  background: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
 }

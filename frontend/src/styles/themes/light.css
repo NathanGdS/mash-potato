@@ -8,6 +8,7 @@ body[data-theme='light'] {
   --bg-primary:   #f8fafc;
   --bg-secondary: #f1f5f9;
   --bg-surface:   #ffffff;
+  --bg-elevated:  #ffffff;
 
   /* ── Text ─────────────────────────────────────────────── */
   --color-text-primary:   #0f172a;
@@ -24,6 +25,10 @@ body[data-theme='light'] {
   /* ── Border ───────────────────────────────────────────── */
   --color-border: #cbd5e1;
   --border: var(--color-border);
+
+  /* ── Interaction overlays ─────────────────────────────── */
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+  --hover-overlay-md: rgba(0, 0, 0, 0.07);
 
   /* ── HTTP method badge colors ─────────────────────────── */
   --method-get-bg:     #dcfce7;

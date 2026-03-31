@@ -282,13 +282,17 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         onContextMenu={!editing ? (e) => { e.preventDefault(); e.stopPropagation(); setFolderMenu({ x: e.clientX, y: e.clientY }); } : undefined}
       >
         <button
-          className="collection-expand-btn"
+          className={`collection-expand-btn${expanded ? ' collection-expand-btn--open' : ''}`}
           aria-label={expanded ? 'Collapse folder' : 'Expand folder'}
           onClick={() => setExpanded((p) => !p)}
         >
-          {expanded ? '▾' : '▸'}
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 2l4 3-4 3"/>
+          </svg>
         </button>
-        <span className="folder-icon">📂</span>
+        <svg className="folder-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M1.5 4.5A1.5 1.5 0 013 3h3.379a1.5 1.5 0 011.06.44L8.56 4.56A1.5 1.5 0 009.62 5H13a1.5 1.5 0 011.5 1.5v6A1.5 1.5 0 0113 14H3a1.5 1.5 0 01-1.5-1.5v-8z"/>
+        </svg>
 
         {editing ? (
           <span className="collection-rename-wrapper">
