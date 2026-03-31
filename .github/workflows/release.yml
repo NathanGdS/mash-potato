@@ -57,12 +57,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
             dpkg-dev
 
       - name: Install NSIS (Windows)
         if: matrix.os == 'windows-latest'
-        run: choco install nsis --no-progress -y
+        shell: pwsh
+        run: |
+          choco install nsis --no-progress -y
+          $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
+          echo "$env:PATH" >> $env:GITHUB_PATH
 
       # ── Build ──────────────────────────────────────────────────────────────
 
