@@ -11,6 +11,7 @@ vi.mock('../wailsjs/go/main/App', () => ({
   DeleteVariable: vi.fn(),
   GetActiveEnvironment: vi.fn(),
   SetActiveEnvironment: vi.fn(),
+  GetGlobalEnvironmentID: vi.fn(),
 }));
 
 import * as App from '../wailsjs/go/main/App';
@@ -28,6 +29,7 @@ beforeEach(() => {
 describe('fetchEnvironments', () => {
   it('populates environments on success', async () => {
     vi.mocked(App.ListEnvironments).mockResolvedValue([mockEnv]);
+    vi.mocked(App.GetGlobalEnvironmentID).mockResolvedValue('__global__');
     await useEnvironmentsStore.getState().fetchEnvironments();
     expect(useEnvironmentsStore.getState().environments).toEqual([mockEnv]);
     expect(useEnvironmentsStore.getState().loading).toBe(false);

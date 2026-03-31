@@ -19,4 +19,5 @@ func clearTables() {
 	DB.Exec("DELETE FROM requests")
 	DB.Exec("DELETE FROM collections")
 	DB.Exec("DELETE FROM environments")
+	DB.Exec("DELETE FROM settings")
 }

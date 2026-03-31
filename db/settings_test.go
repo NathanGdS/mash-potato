@@ -1,27 +1,13 @@
-package db_test
+package db
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
-
-	"mash-potato/db"
 )
 
-func setupSettingsDB(t *testing.T) {
-	t.Helper()
-	dir := t.TempDir()
-	dsn := filepath.Join(dir, "test.db")
-	if err := db.Init(dsn); err != nil {
-		t.Fatalf("db.Init: %v", err)
-	}
-	t.Cleanup(func() { os.RemoveAll(dir) })
-}
-
 func TestGetSetting_Default(t *testing.T) {
-	setupSettingsDB(t)
+	clearTables()
 
-	val, err := db.GetSetting("active_environment_id")
+	val, err := GetSetting("active_environment_id")
 	if err != nil {
 		t.Fatalf("GetSetting returned error: %v", err)
 	}
@@ -31,16 +17,16 @@ func TestGetSetting_Default(t *testing.T) {
 }
 
 func TestSetAndGetActiveEnvironment(t *testing.T) {
-	setupSettingsDB(t)
+	clearTables()
 
 	const key = "active_environment_id"
 	const wantID = "env-abc-123"
 
-	if err := db.SetSetting(key, wantID); err != nil {
+	if err := SetSetting(key, wantID); err != nil {
 		t.Fatalf("SetSetting: %v", err)
 	}
 
-	got, err := db.GetSetting(key)
+	got, err := GetSetting(key)
 	if err != nil {
 		t.Fatalf("GetSetting: %v", err)
 	}
@@ -50,10 +36,10 @@ func TestSetAndGetActiveEnvironment(t *testing.T) {
 
 	// Upsert: overwrite with new value
 	const updatedID = "env-xyz-456"
-	if err := db.SetSetting(key, updatedID); err != nil {
+	if err := SetSetting(key, updatedID); err != nil {
 		t.Fatalf("SetSetting (update): %v", err)
 	}
-	got, err = db.GetSetting(key)
+	got, err = GetSetting(key)
 	if err != nil {
 		t.Fatalf("GetSetting (after update): %v", err)
 	}
@@ -62,10 +48,10 @@ func TestSetAndGetActiveEnvironment(t *testing.T) {
 	}
 
 	// Clear: set to empty string
-	if err := db.SetSetting(key, ""); err != nil {
+	if err := SetSetting(key, ""); err != nil {
 		t.Fatalf("SetSetting (clear): %v", err)
 	}
-	got, err = db.GetSetting(key)
+	got, err = GetSetting(key)
 	if err != nil {
 		t.Fatalf("GetSetting (after clear): %v", err)
 	}
