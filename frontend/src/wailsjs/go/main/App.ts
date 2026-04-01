@@ -129,10 +129,13 @@ export interface EnvironmentVariable {
   environment_id: string;
   key: string;
   value: string;
+  is_secret: boolean;
+  /** Set by the Go backend when it could not decrypt the stored ciphertext. */
+  broken?: boolean;
 }
 
-export function SetVariable(environmentId: string, key: string, value: string): Promise<EnvironmentVariable> {
-  return _app()?.SetVariable(environmentId, key, value);
+export function SetVariable(environmentId: string, key: string, value: string, isSecret: boolean): Promise<EnvironmentVariable> {
+  return _app()?.SetVariable(environmentId, key, value, isSecret);
 }
 
 export function GetVariables(environmentId: string): Promise<EnvironmentVariable[]> {
@@ -230,4 +233,31 @@ export function RunCollection(collectionId: string, requestIds: string[], delayM
 
 export function CancelRun(): Promise<void> {
   return _app()?.CancelRun();
+}
+
+// SetSecretVariable encrypts value and upserts it as a secret variable.
+// After calling this the frontend store should re-fetch the variable list.
+export function SetSecretVariable(envId: string, key: string, value: string): Promise<void> {
+  return _app()?.SetSecretVariable(envId, key, value);
+}
+
+// GetDecryptedVariable fetches and decrypts the variable identified by key
+// inside envId. Returns the plaintext value.
+export function GetDecryptedVariable(envId: string, key: string): Promise<string> {
+  return _app()?.GetDecryptedVariable(envId, key);
+}
+
+// ToggleVariableSecret changes the secret flag for the variable identified by
+// varId. Pass isSecret=true to encrypt the stored value; false to store it as
+// plaintext. After calling this the frontend store should re-fetch the variable
+// list.
+export function ToggleVariableSecret(varId: number, isSecret: boolean): Promise<void> {
+  return _app()?.ToggleVariableSecret(varId, isSecret);
+}
+
+// RotateVarEncryptionKey generates a new AES key, re-encrypts all secret
+// variables in a single DB transaction, and updates the OS keychain.
+// Not wired to any frontend UI — callable via IPC (known limitation).
+export function RotateVarEncryptionKey(): Promise<void> {
+  return _app()?.RotateVarEncryptionKey();
 }

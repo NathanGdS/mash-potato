@@ -191,7 +191,7 @@ describe('ResponseBody — SaveVarDialog integration', () => {
 
   it('passes existing env variables to the dialog', async () => {
     const user = userEvent.setup();
-    const vars = [{ id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'x' }];
+    const vars = [{ id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'x', is_secret: false }];
     resetStore({ activeEnvironmentId: 'env-1', variables: { 'env-1': vars } });
     render(<ResponseBody body="new-value" />);
     const pre = document.querySelector('pre')!;
@@ -223,7 +223,7 @@ describe('ResponseBody — save flow and toast', () => {
 
   it('shows success toast after saving a variable', async () => {
     const user = userEvent.setup();
-    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc' });
+    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc', is_secret: false });
     vi.mocked(App.GetVariables).mockResolvedValue([]);
     resetStore({ activeEnvironmentId: 'env-1', variables: { 'env-1': [] } });
     await triggerSave(user);
@@ -234,7 +234,7 @@ describe('ResponseBody — save flow and toast', () => {
 
   it('dismisses the dialog after a successful save', async () => {
     const user = userEvent.setup();
-    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc' });
+    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc', is_secret: false });
     vi.mocked(App.GetVariables).mockResolvedValue([]);
     resetStore({ activeEnvironmentId: 'env-1', variables: { 'env-1': [] } });
     await triggerSave(user);
@@ -244,7 +244,7 @@ describe('ResponseBody — save flow and toast', () => {
 
   it('toast auto-dismisses after 2 seconds', async () => {
     vi.useFakeTimers();
-    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc' });
+    vi.mocked(App.SetVariable).mockResolvedValue({ id: 1, environment_id: 'env-1', key: 'TOKEN', value: 'abc', is_secret: false });
     vi.mocked(App.GetVariables).mockResolvedValue([]);
     resetStore({ activeEnvironmentId: 'env-1', variables: { 'env-1': [] } });
     render(<ResponseBody body="abc" />);
