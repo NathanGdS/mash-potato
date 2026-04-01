@@ -267,6 +267,7 @@
 
 .env-vars-col-key { width: 38%; }
 .env-vars-col-val { width: auto; }
+.env-vars-col-lock { width: 30px; }
 .env-vars-col-del { width: 36px; }
 
 .env-vars-td {
@@ -275,6 +276,11 @@
 }
 
 .env-vars-td-del {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.env-vars-td-lock {
   text-align: center;
   vertical-align: middle;
 }
@@ -345,6 +351,81 @@
   background: var(--status-5xx-bg);
 }
 
+/* ── Secret variable display ─────────────────────────────── */
+.secret-value-masked {
+  font-family: monospace;
+  letter-spacing: 0.2em;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.env-var-secret-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.env-var-cell--value {
+  cursor: default;
+}
+
+.env-var-eye-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 3px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: color 0.15s, background 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.env-vars-row:hover .env-var-eye-btn {
+  opacity: 1;
+}
+
+.env-var-eye-btn:hover {
+  color: var(--accent);
+  background: var(--border);
+}
+
+/* ── Lock toggle button ──────────────────────────────────── */
+.env-var-lock-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  line-height: 1;
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.env-vars-row:hover .env-var-lock-btn {
+  opacity: 1;
+}
+
+.env-var-lock-btn:hover {
+  color: var(--text-primary);
+  background: var(--border);
+}
+
+.env-var-lock-btn--locked {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.env-var-lock-btn--locked:hover {
+  color: var(--text-primary);
+}
+
 .env-var-add-row .env-vars-td {
   border-bottom: none;
   border-top: 1px solid var(--border);
@@ -392,6 +473,85 @@
 
 .env-vars-hint--global {
   font-style: italic;
+}
+
+/* ── Broken variable warning ─────────────────────────────── */
+
+/*
+ * Non-dismissable banner shown when one or more variables could not
+ * be decrypted (broken: true from the Go backend).
+ */
+.env-broken-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 8px var(--space-4);
+  background: color-mix(in srgb, var(--status-5xx-bg, #3b1111) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--status-5xx-fg, #f87171) 30%, transparent);
+  color: var(--status-5xx-fg, #f87171);
+  font-size: 12px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.env-broken-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Row-level broken state */
+.env-vars-row--broken {
+  background: color-mix(in srgb, var(--status-5xx-bg, #3b1111) 30%, transparent);
+}
+
+.env-vars-row--broken:hover {
+  background: color-mix(in srgb, var(--status-5xx-bg, #3b1111) 45%, transparent);
+}
+
+/* Key cell in broken row: shows warning icon inline */
+.env-var-cell--broken-key {
+  color: var(--status-5xx-fg, #f87171) !important;
+  cursor: default !important;
+  vertical-align: middle;
+}
+
+.env-var-broken-key-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+}
+
+/* Value cell in broken row */
+.env-var-cell--broken-value {
+  padding: 2px var(--space-1);
+  vertical-align: middle;
+}
+
+/* Input in broken row — red border to signal action required */
+.env-var-input--broken {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--status-5xx-fg, #f87171) 70%, transparent);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  padding: 5px 10px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.env-var-input--broken::placeholder {
+  color: color-mix(in srgb, var(--status-5xx-fg, #f87171) 60%, transparent);
+  font-style: italic;
+}
+
+.env-var-input--broken:focus {
+  border-color: var(--status-5xx-fg, #f87171);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-5xx-fg, #f87171) 20%, transparent);
 }
 
 /* ── Footer ──────────────────────────────────────────────── */
