@@ -130,6 +130,8 @@ func migrate(db *sql.DB) error {
 		// Phase 0009: add pre/post scripting to requests
 		`ALTER TABLE requests ADD COLUMN pre_script  TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE requests ADD COLUMN post_script TEXT NOT NULL DEFAULT ''`,
+		// US-2: add is_secret flag to environment_variables
+		`ALTER TABLE environment_variables ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0`,
 		// Phase 0007: store full response in history
 		`ALTER TABLE request_history ADD COLUMN response_body        TEXT    NOT NULL DEFAULT ''`,
 		`ALTER TABLE request_history ADD COLUMN response_headers     TEXT    NOT NULL DEFAULT '{}'`,
