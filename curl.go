@@ -27,25 +27,25 @@ func (a *App) ExportRequestAsCurl(id string) (string, error) {
 	// Build vars map: globals first, then active env on top (same as SendRequest).
 	vars := map[string]string{}
 	if globalID, err := db.GetGlobalEnvironmentID(); err == nil && globalID != "" {
-		if gVars, err := db.GetVariables(globalID); err == nil {
+		if gVars, err := db.GetVariables(globalID, nil); err == nil {
 			for _, v := range gVars {
 				vars[v.Key] = v.Value
 			}
 		}
 	}
 	if envID, err := db.GetSetting("active_environment_id"); err == nil && envID != "" {
-		if eVars, err := db.GetVariables(envID); err == nil {
+		if eVars, err := db.GetVariables(envID, nil); err == nil {
 			for _, v := range eVars {
 				vars[v.Key] = v.Value
 			}
 		}
 	}
 	if len(vars) > 0 {
-		req.URL = Interpolate(req.URL, vars)
-		req.Headers = Interpolate(req.Headers, vars)
-		req.Params = Interpolate(req.Params, vars)
-		req.Body = Interpolate(req.Body, vars)
-		req.AuthConfig = Interpolate(req.AuthConfig, vars)
+		req.URL = Interpolate(req.URL, vars, map[string]bool{}).Value
+		req.Headers = Interpolate(req.Headers, vars, map[string]bool{}).Value
+		req.Params = Interpolate(req.Params, vars, map[string]bool{}).Value
+		req.Body = Interpolate(req.Body, vars, map[string]bool{}).Value
+		req.AuthConfig = Interpolate(req.AuthConfig, vars, map[string]bool{}).Value
 	}
 
 	return buildCurlCommand(req)
