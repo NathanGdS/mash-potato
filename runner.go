@@ -128,21 +128,32 @@ func (a *App) executeForRunner(requestID string) RunResult {
 
 	// Load variables (globals + active env), same as SendRequest.
 	vars := map[string]string{}
+	secretsMap := make(map[string]bool)
+
+	a.encKeyMu.RLock()
+	encKey := a.encKey
+	a.encKeyMu.RUnlock()
 
 	globalID, err := db.GetGlobalEnvironmentID()
 	if err == nil && globalID != "" {
-		if globalVars, err := db.GetVariables(globalID); err == nil {
+		if globalVars, err := db.GetVariables(globalID, encKey); err == nil {
 			for _, v := range globalVars {
 				vars[v.Key] = v.Value
+				if v.IsSecret {
+					secretsMap[v.Key] = true
+				}
 			}
 		}
 	}
 
 	envID, _ := db.GetSetting("active_environment_id")
 	if envID != "" && envID != globalID {
-		if dbVars, err := db.GetVariables(envID); err == nil {
+		if dbVars, err := db.GetVariables(envID, encKey); err == nil {
 			for _, v := range dbVars {
 				vars[v.Key] = v.Value
+				if v.IsSecret {
+					secretsMap[v.Key] = true
+				}
 			}
 		}
 	}
@@ -151,7 +162,8 @@ func (a *App) executeForRunner(requestID string) RunResult {
 		for k, v := range mutations {
 			vars[k] = v
 			if envID != "" {
-				_, _ = db.SetVariable(envID, k, v)
+				// Best-effort — never fail the request on a persistence error.
+				_, _ = db.SetVariable(envID, k, v, false)
 			}
 		}
 	}
@@ -196,12 +208,13 @@ func (a *App) executeForRunner(requestID string) RunResult {
 	}
 
 	// Interpolate (ephemeral — not persisted).
+	// UsedSecretValues not needed here — runner does not write to history.
 	if len(vars) > 0 {
-		req.URL = Interpolate(req.URL, vars)
-		req.Headers = Interpolate(req.Headers, vars)
-		req.Params = Interpolate(req.Params, vars)
-		req.Body = Interpolate(req.Body, vars)
-		req.AuthConfig = Interpolate(req.AuthConfig, vars)
+		req.URL = Interpolate(req.URL, vars, secretsMap).Value
+		req.Headers = Interpolate(req.Headers, vars, secretsMap).Value
+		req.Params = Interpolate(req.Params, vars, secretsMap).Value
+		req.Body = Interpolate(req.Body, vars, secretsMap).Value
+		req.AuthConfig = Interpolate(req.AuthConfig, vars, secretsMap).Value
 	}
 
 	resp, err := httpclient.ExecuteRequest(req)

@@ -113,6 +113,29 @@ func applyAuth(httpReq *http.Request, authType string, authConfigJSON string) {
 	}
 }
 
+// RedactSecretValues replaces each secret value with "[REDACTED]" in body.
+// When isJSON is true the replacement targets the JSON-string form of the
+// secret (i.e. `"<value>"` → `"[REDACTED]"`), so surrounding quote characters
+// and JSON escaping are preserved.  For non-JSON bodies a plain
+// strings.ReplaceAll is used instead.
+// If secretValues is empty the function returns body unchanged (no-op).
+func RedactSecretValues(body string, secretValues []string, isJSON bool) string {
+	if len(secretValues) == 0 {
+		return body
+	}
+	for _, sv := range secretValues {
+		if sv == "" {
+			continue
+		}
+		if isJSON {
+			body = strings.ReplaceAll(body, `"`+sv+`"`, `"[REDACTED]"`)
+		} else {
+			body = strings.ReplaceAll(body, sv, "[REDACTED]")
+		}
+	}
+	return body
+}
+
 // ExecuteRequest executes the HTTP request described by req and returns a ResponseResult.
 func ExecuteRequest(req db.Request) (ResponseResult, error) {
 	params := parseKV(req.Params)

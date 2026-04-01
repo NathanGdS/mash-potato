@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"mash-potato/db"
+	"mash-potato/encryption"
 	"mash-potato/httpclient"
 	"mash-potato/scripter"
 )
@@ -18,6 +20,12 @@ import (
 // App holds application state and exposes Wails-bound methods.
 type App struct {
 	ctx context.Context
+
+	// encKey is the 32-byte AES-256 key used for variable encryption/decryption.
+	// Initialized once in startup via encryption.GetOrCreateKey().
+	// All reads must hold encKeyMu.RLock(); writes must hold encKeyMu.Lock().
+	encKey   []byte
+	encKeyMu sync.RWMutex
 
 	// runner fields — protected by runnerMu.
 	runnerMu     sync.Mutex
@@ -32,6 +40,16 @@ func newApp() *App {
 // startup is called by Wails when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	key, err := encryption.GetOrCreateKey()
+	if err != nil {
+		// Non-fatal: log the downgrade warning but continue. The key returned
+		// may be a deterministic fallback rather than the secure keychain key.
+		log.Printf("WARN: encryption key degraded: %v", err)
+	}
+	a.encKeyMu.Lock()
+	a.encKey = key
+	a.encKeyMu.Unlock()
 }
 
 // CreateCollection validates the name, generates a UUID, persists to SQLite,
@@ -159,15 +177,24 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	// Build the interpolation vars map: globals first, then active env on top.
 	vars := map[string]string{}
 
+	a.encKeyMu.RLock()
+	encKey := a.encKey
+	a.encKeyMu.RUnlock()
+
+	secretsMap := make(map[string]bool)
+
 	// 1. Load global variables (always active).
 	globalID, err := db.GetGlobalEnvironmentID()
 	if err == nil && globalID != "" {
-		globalVars, err := db.GetVariables(globalID)
+		globalVars, err := db.GetVariables(globalID, encKey)
 		if err != nil {
 			return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: get global variables: %w", err)
 		}
 		for _, v := range globalVars {
 			vars[v.Key] = v.Value
+			if v.IsSecret {
+				secretsMap[v.Key] = true
+			}
 		}
 	}
 
@@ -177,12 +204,15 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 		return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: get active environment: %w", err)
 	}
 	if envID != "" && envID != globalID {
-		dbVars, err := db.GetVariables(envID)
+		dbVars, err := db.GetVariables(envID, encKey)
 		if err != nil {
 			return httpclient.ResponseResult{}, fmt.Errorf("SendRequest: get variables: %w", err)
 		}
 		for _, v := range dbVars {
 			vars[v.Key] = v.Value
+			if v.IsSecret {
+				secretsMap[v.Key] = true
+			}
 		}
 	}
 
@@ -196,8 +226,8 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 		for k, v := range mutations {
 			vars[k] = v
 			if envID != "" {
-				// Best-effort — never fail the request on a persistence error.
-				_, _ = db.SetVariable(envID, k, v)
+				// Best-effort â never fail the request on a persistence error.
+				_, _ = db.SetVariable(envID, k, v, false)
 			}
 		}
 	}
@@ -234,18 +264,42 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 			Request:  reqSnapshot,
 			Response: nil,
 		})
+		// NOTE: secretsMap is not updated after applyMutations. If a pre-script
+		// writes a new key that corresponds to a secret variable in the DB, that
+		// value will not be tracked in UsedSecretValues and may appear unredacted
+		// in history. Fixing this requires a DB lookup per mutated key — deferred.
 		applyMutations(preResult.EnvMutations)
 		consoleLogs = append(consoleLogs, preResult.Logs...)
 		scriptErrors = append(scriptErrors, preResult.Errors...)
 	}
 
 	// Apply interpolation to all text fields (ephemeral — not saved to DB).
+	// secretsMap carries the set of variable names whose values must be
+	// tracked for history redaction. UsedSecretValues from all fields are
+	// aggregated into allSecretValues.
+	//
+	// Safe to skip interpolation when vars is empty: an empty variable map
+	// cannot produce any resolved secret values, so allSecretValues stays nil
+	// and the redaction loop below is a no-op.
+	var allSecretValues []string
 	if len(vars) > 0 {
-		req.URL = Interpolate(req.URL, vars)
-		req.Headers = Interpolate(req.Headers, vars)
-		req.Params = Interpolate(req.Params, vars)
-		req.Body = Interpolate(req.Body, vars)
-		req.AuthConfig = Interpolate(req.AuthConfig, vars)
+		urlR := Interpolate(req.URL, vars, secretsMap)
+		headersR := Interpolate(req.Headers, vars, secretsMap)
+		paramsR := Interpolate(req.Params, vars, secretsMap)
+		bodyR := Interpolate(req.Body, vars, secretsMap)
+		authR := Interpolate(req.AuthConfig, vars, secretsMap)
+
+		req.URL = urlR.Value
+		req.Headers = headersR.Value
+		req.Params = paramsR.Value
+		req.Body = bodyR.Value
+		req.AuthConfig = authR.Value
+
+		allSecretValues = append(allSecretValues, urlR.UsedSecretValues...)
+		allSecretValues = append(allSecretValues, headersR.UsedSecretValues...)
+		allSecretValues = append(allSecretValues, paramsR.UsedSecretValues...)
+		allSecretValues = append(allSecretValues, bodyR.UsedSecretValues...)
+		allSecretValues = append(allSecretValues, authR.UsedSecretValues...)
 	}
 
 	result, err := httpclient.ExecuteRequest(req)
@@ -289,8 +343,34 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	result.ScriptErrors = scriptErrors
 
 	// Log to history — best-effort, never fail the response on write error.
-	responseHeadersJSON, _ := json.Marshal(result.Headers)
-	if _, herr := db.InsertHistory(req.Method, req.URL, req.Headers, req.Params, req.BodyType, req.Body, result.StatusCode, result.Body, string(responseHeadersJSON), result.DurationMs, result.SizeBytes); herr != nil {
+	// Secret values are redacted in the history copy; the result returned to
+	// the frontend is never redacted.
+	//
+	// Response headers are redacted before JSON serialisation so that secrets
+	// that appear in response header values are not stored in cleartext.
+	histURL := httpclient.RedactSecretValues(req.URL, allSecretValues, false)
+	histHeaders := httpclient.RedactSecretValues(req.Headers, allSecretValues, false)
+	histParams := httpclient.RedactSecretValues(req.Params, allSecretValues, false)
+	histBody := httpclient.RedactSecretValues(req.Body, allSecretValues, req.BodyType == "json")
+	responseContentType := ""
+	if ctVals := result.Headers["Content-Type"]; len(ctVals) > 0 {
+		responseContentType = ctVals[0]
+	}
+	isResponseJSON := strings.Contains(responseContentType, "application/json")
+	histResponseBody := httpclient.RedactSecretValues(result.Body, allSecretValues, isResponseJSON)
+
+	// Build a redacted copy of response headers before marshalling to JSON.
+	histResponseHeaders := make(map[string][]string, len(result.Headers))
+	for k, vals := range result.Headers {
+		redacted := make([]string, len(vals))
+		for i, v := range vals {
+			redacted[i] = httpclient.RedactSecretValues(v, allSecretValues, false)
+		}
+		histResponseHeaders[k] = redacted
+	}
+	responseHeadersJSON, _ := json.Marshal(histResponseHeaders)
+
+	if _, herr := db.InsertHistory(req.Method, histURL, histHeaders, histParams, req.BodyType, histBody, result.StatusCode, histResponseBody, string(responseHeadersJSON), result.DurationMs, result.SizeBytes); herr != nil {
 		// Silently ignore history write failures.
 		_ = herr
 	}
@@ -399,14 +479,14 @@ func (a *App) SetActiveEnvironment(id string) error {
 }
 
 // SetVariable upserts a key-value variable for the given environment and returns it.
-func (a *App) SetVariable(environmentID string, key string, value string) (db.EnvironmentVariable, error) {
+func (a *App) SetVariable(environmentID string, key string, value string, isSecret bool) (db.EnvironmentVariable, error) {
 	if strings.TrimSpace(environmentID) == "" {
 		return db.EnvironmentVariable{}, fmt.Errorf("environment id cannot be empty")
 	}
 	if strings.TrimSpace(key) == "" {
 		return db.EnvironmentVariable{}, fmt.Errorf("variable key cannot be empty")
 	}
-	v, err := db.SetVariable(environmentID, key, value)
+	v, err := db.SetVariable(environmentID, key, value, isSecret)
 	if err != nil {
 		return db.EnvironmentVariable{}, fmt.Errorf("SetVariable: %w", err)
 	}
@@ -415,7 +495,10 @@ func (a *App) SetVariable(environmentID string, key string, value string) (db.En
 
 // GetVariables returns all variables for the given environment.
 func (a *App) GetVariables(environmentID string) ([]db.EnvironmentVariable, error) {
-	vars, err := db.GetVariables(environmentID)
+	a.encKeyMu.RLock()
+	encKey := a.encKey
+	a.encKeyMu.RUnlock()
+	vars, err := db.GetVariables(environmentID, encKey)
 	if err != nil {
 		return nil, fmt.Errorf("GetVariables: %w", err)
 	}
@@ -757,4 +840,182 @@ func (a *App) ExportCollection(collectionID string) error {
 		return fmt.Errorf("ExportCollection: write file: %w", err)
 	}
 	return nil
+}
+
+// SetSecretVariable encrypts value with the application key and upserts it as a
+// secret variable for the given environment. The raw plaintext is never written
+// to any log output.
+// Note: envId is a string UUID — the spec originally referenced int64 but the
+// entire codebase uses string IDs for environments.
+func (a *App) SetSecretVariable(envId string, key, value string) error {
+	if strings.TrimSpace(envId) == "" {
+		return fmt.Errorf("SetSecretVariable: environment id cannot be empty")
+	}
+	if strings.TrimSpace(key) == "" {
+		return fmt.Errorf("SetSecretVariable: variable key cannot be empty")
+	}
+	a.encKeyMu.RLock()
+	encKey := a.encKey
+	a.encKeyMu.RUnlock()
+	encrypted, err := encryption.EncryptValue(value, encKey)
+	if err != nil {
+		return fmt.Errorf("SetSecretVariable: encrypt: %w", err)
+	}
+	if _, err := db.SetVariable(envId, key, encrypted, true); err != nil {
+		return fmt.Errorf("SetSecretVariable: %w", err)
+	}
+	return nil
+}
+
+// GetDecryptedVariable fetches the single variable row identified by (envId, key),
+// decrypts it inline if it carries an "enc:" prefix, and returns the plaintext.
+// The plaintext is never written to any log output.
+// Note: envId is a string UUID — the spec originally referenced int64 but the
+// entire codebase uses string IDs for environments.
+func (a *App) GetDecryptedVariable(envId string, key string) (string, error) {
+	if strings.TrimSpace(envId) == "" {
+		return "", fmt.Errorf("GetDecryptedVariable: environment id cannot be empty")
+	}
+	if strings.TrimSpace(key) == "" {
+		return "", fmt.Errorf("GetDecryptedVariable: variable key cannot be empty")
+	}
+
+	v, err := db.GetVariableByKey(envId, key)
+	if err != nil {
+		return "", fmt.Errorf("GetDecryptedVariable: %w", err)
+	}
+
+	// Inline decryption: transparently decrypt enc:-prefixed values.
+	if strings.HasPrefix(v.Value, "enc:") {
+		a.encKeyMu.RLock()
+		encKey := a.encKey
+		a.encKeyMu.RUnlock()
+		plain, decErr := encryption.DecryptValue(v.Value, encKey)
+		if decErr != nil {
+			return "", fmt.Errorf("GetDecryptedVariable: decryption failed for variable %q — the stored ciphertext could not be decrypted with the current key", key)
+		}
+		return plain, nil
+	}
+
+	return v.Value, nil
+}
+
+// ToggleVariableSecret changes the secret flag and storage format for the
+// variable identified by varId.
+//
+//   - isSecret=true:  decrypts the current value (if already enc:-prefixed) and
+//     re-encrypts it, setting is_secret=1.
+//   - isSecret=false: decrypts the current value and stores it in plaintext,
+//     setting is_secret=0.
+//
+// The enc: prefix is always treated as the authoritative indicator that the
+// stored value is ciphertext, regardless of the current is_secret flag.
+// The plaintext is never written to any log output.
+func (a *App) ToggleVariableSecret(varId int64, isSecret bool) error {
+	raw, err := db.GetVariableRaw(varId)
+	if err != nil {
+		return fmt.Errorf("ToggleVariableSecret: fetch: %w", err)
+	}
+
+	a.encKeyMu.RLock()
+	encKey := a.encKey
+	a.encKeyMu.RUnlock()
+
+	// Determine the current plaintext value.
+	plaintext := raw.Value
+	if strings.HasPrefix(raw.Value, "enc:") {
+		decrypted, decErr := encryption.DecryptValue(raw.Value, encKey)
+		if decErr != nil {
+			return fmt.Errorf("ToggleVariableSecret: decrypt existing value: decryption failed — cannot toggle a variable whose ciphertext cannot be decrypted")
+		}
+		plaintext = decrypted
+	}
+
+	// Encode the value in the target format.
+	newValue := plaintext
+	if isSecret {
+		var encErr error
+		newValue, encErr = encryption.EncryptValue(plaintext, encKey)
+		if encErr != nil {
+			return fmt.Errorf("ToggleVariableSecret: encrypt: %w", encErr)
+		}
+	}
+
+	if err := db.UpdateVariableRaw(varId, newValue, isSecret); err != nil {
+		return fmt.Errorf("ToggleVariableSecret: update: %w", err)
+	}
+	return nil
+}
+
+// RotateVarEncryptionKey generates a new encryption key, re-encrypts all
+// secret variables with it in a single DB transaction, then stores the new
+// key in the OS keychain.
+// NOTE: Wails auto-generates a JS binding for this method. It is not
+// wired to any frontend UI but is reachable via IPC — known limitation.
+func (a *App) RotateVarEncryptionKey() error {
+	a.encKeyMu.RLock()
+	oldKey := make([]byte, len(a.encKey))
+	copy(oldKey, a.encKey)
+	a.encKeyMu.RUnlock()
+
+	newKey, err := rotateVarEncryptionKey(oldKey)
+	if err != nil {
+		return err
+	}
+
+	a.encKeyMu.Lock()
+	a.encKey = newKey
+	a.encKeyMu.Unlock()
+	return nil
+}
+
+// rotateVarEncryptionKey generates a fresh 32-byte AES key, re-encrypts every
+// enc:-prefixed variable in a single DB transaction, and then stores the new
+// key in the OS keychain. Returns the new key so the caller can update the
+// in-memory key under its own mutex. If any step fails the DB is left unchanged.
+//
+// The new and old plaintext values are never written to any log output.
+func rotateVarEncryptionKey(oldKey []byte) ([]byte, error) {
+	// 1. Generate the new key.
+	newKey, err := encryption.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("rotateVarEncryptionKey: generate key: %w", err)
+	}
+
+	// 2. Load every variable row without decryption.
+	allVars, err := db.ListAllVariablesRaw()
+	if err != nil {
+		return nil, fmt.Errorf("rotateVarEncryptionKey: list variables: %w", err)
+	}
+
+	// 3. Build re-encrypted values entirely in memory before touching the DB.
+	var updates []db.EncryptedVariableUpdate
+	for _, v := range allVars {
+		if !strings.HasPrefix(v.Value, "enc:") {
+			continue
+		}
+		plain, decErr := encryption.DecryptValue(v.Value, oldKey)
+		if decErr != nil {
+			return nil, fmt.Errorf("rotateVarEncryptionKey: decrypt variable id=%d: decryption failed — aborting rotation", v.ID)
+		}
+		newBlob, encErr := encryption.EncryptValue(plain, newKey)
+		if encErr != nil {
+			return nil, fmt.Errorf("rotateVarEncryptionKey: re-encrypt variable id=%d: %w", v.ID, encErr)
+		}
+		updates = append(updates, db.EncryptedVariableUpdate{ID: v.ID, Value: newBlob})
+	}
+
+	// 4. Write all re-encrypted rows inside a single transaction.
+	if len(updates) > 0 {
+		if err := db.RotateEncryptedVariables(updates); err != nil {
+			return nil, fmt.Errorf("rotateVarEncryptionKey: persist: %w", err)
+		}
+	}
+
+	// 5. Persist the new key to the OS keychain only after the DB write succeeds.
+	if err := encryption.StoreKey(newKey); err != nil {
+		return nil, fmt.Errorf("rotateVarEncryptionKey: store new key: %w", err)
+	}
+
+	return newKey, nil
 }

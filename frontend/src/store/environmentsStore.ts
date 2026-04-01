@@ -11,7 +11,9 @@ import {
   ListEnvironments,
   RenameEnvironment,
   SetActiveEnvironment,
+  SetSecretVariable,
   SetVariable,
+  ToggleVariableSecret,
 } from '../wailsjs/go/main/App';
 
 interface EnvironmentsState {
@@ -47,10 +49,24 @@ interface EnvironmentsState {
   fetchVariables: (environmentId: string) => Promise<void>;
 
   /** Upsert a variable for the given environment. Updates local state on success. */
-  setVariable: (environmentId: string, key: string, value: string) => Promise<EnvironmentVariable>;
+  setVariable: (environmentId: string, key: string, value: string, isSecret?: boolean) => Promise<EnvironmentVariable>;
 
   /** Delete a variable by its numeric id. Updates local state on success. */
   deleteVariable: (environmentId: string, variableId: number) => Promise<void>;
+
+  /**
+   * Toggle the secret flag for the given variable.
+   * Calls ToggleVariableSecret then re-fetches the variable list for the
+   * current environment so that masked/unmasked values are in sync.
+   */
+  toggleVariableSecret: (environmentId: string, varId: number, isSecret: boolean) => Promise<void>;
+
+  /**
+   * Re-encrypt a broken secret variable with a new plaintext value.
+   * Calls SetSecretVariable then re-fetches the variable list so the broken
+   * flag is cleared for the recovered variable.
+   */
+  setSecretVariable: (environmentId: string, key: string, value: string) => Promise<void>;
 }
 
 export const useEnvironmentsStore = create<EnvironmentsState>((set) => ({
@@ -129,8 +145,8 @@ export const useEnvironmentsStore = create<EnvironmentsState>((set) => ({
     }));
   },
 
-  setVariable: async (environmentId: string, key: string, value: string) => {
-    const v = await SetVariable(environmentId, key, value);
+  setVariable: async (environmentId: string, key: string, value: string, isSecret = false) => {
+    const v = await SetVariable(environmentId, key, value, isSecret);
     // Re-fetch all variables to ensure local state is fully in sync
     const vars = await GetVariables(environmentId);
     set((state) => ({
@@ -148,6 +164,22 @@ export const useEnvironmentsStore = create<EnvironmentsState>((set) => ({
           (v) => v.id !== variableId
         ),
       },
+    }));
+  },
+
+  toggleVariableSecret: async (environmentId: string, varId: number, isSecret: boolean) => {
+    await ToggleVariableSecret(varId, isSecret);
+    const vars = await GetVariables(environmentId);
+    set((state) => ({
+      variables: { ...state.variables, [environmentId]: vars ?? [] },
+    }));
+  },
+
+  setSecretVariable: async (environmentId: string, key: string, value: string) => {
+    await SetSecretVariable(environmentId, key, value);
+    const vars = await GetVariables(environmentId);
+    set((state) => ({
+      variables: { ...state.variables, [environmentId]: vars ?? [] },
     }));
   },
 }));

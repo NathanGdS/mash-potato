@@ -66,6 +66,10 @@ export function GetActiveEnvironment() {
   return window['go']['main']['App']['GetActiveEnvironment']();
 }
 
+export function GetDecryptedVariable(arg1, arg2) {
+  return window['go']['main']['App']['GetDecryptedVariable'](arg1, arg2);
+}
+
 export function GetGlobalEnvironmentID() {
   return window['go']['main']['App']['GetGlobalEnvironmentID']();
 }
@@ -126,6 +130,10 @@ export function RenameFolder(arg1, arg2) {
   return window['go']['main']['App']['RenameFolder'](arg1, arg2);
 }
 
+export function RotateVarEncryptionKey() {
+  return window['go']['main']['App']['RotateVarEncryptionKey']();
+}
+
 export function RunCollection(arg1, arg2, arg3) {
   return window['go']['main']['App']['RunCollection'](arg1, arg2, arg3);
 }
@@ -146,12 +154,20 @@ export function SetActiveEnvironment(arg1) {
   return window['go']['main']['App']['SetActiveEnvironment'](arg1);
 }
 
+export function SetSecretVariable(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetSecretVariable'](arg1, arg2, arg3);
+}
+
 export function SetSetting(arg1, arg2) {
   return window['go']['main']['App']['SetSetting'](arg1, arg2);
 }
 
-export function SetVariable(arg1, arg2, arg3) {
-  return window['go']['main']['App']['SetVariable'](arg1, arg2, arg3);
+export function SetVariable(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetVariable'](arg1, arg2, arg3, arg4);
+}
+
+export function ToggleVariableSecret(arg1, arg2) {
+  return window['go']['main']['App']['ToggleVariableSecret'](arg1, arg2);
 }
 
 export function UpdateRequest(arg1) {

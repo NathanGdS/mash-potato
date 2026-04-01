@@ -36,6 +36,8 @@ export function ExportRequestAsCurl(arg1:string):Promise<string>;
 
 export function GetActiveEnvironment():Promise<string>;
 
+export function GetDecryptedVariable(arg1:string,arg2:string):Promise<string>;
+
 export function GetGlobalEnvironmentID():Promise<string>;
 
 export function GetHistory():Promise<Array<db.HistoryEntry>>;
@@ -66,6 +68,8 @@ export function RenameEnvironment(arg1:string,arg2:string):Promise<void>;
 
 export function RenameFolder(arg1:string,arg2:string):Promise<void>;
 
+export function RotateVarEncryptionKey():Promise<void>;
+
 export function RunCollection(arg1:string,arg2:Array<string>,arg3:number):Promise<Array<main.RunResult>>;
 
 export function SearchRequests(arg1:string):Promise<Array<db.SearchResult>>;
@@ -76,8 +80,12 @@ export function SendRequest(arg1:string):Promise<httpclient.ResponseResult>;
 
 export function SetActiveEnvironment(arg1:string):Promise<void>;
 
+export function SetSecretVariable(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function SetSetting(arg1:string,arg2:string):Promise<void>;
 
-export function SetVariable(arg1:string,arg2:string,arg3:string):Promise<db.EnvironmentVariable>;
+export function SetVariable(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<db.EnvironmentVariable>;
+
+export function ToggleVariableSecret(arg1:number,arg2:boolean):Promise<void>;
 
 export function UpdateRequest(arg1:main.RequestPayload):Promise<void>;

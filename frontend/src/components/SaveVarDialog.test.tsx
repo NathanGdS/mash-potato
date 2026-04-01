@@ -6,8 +6,8 @@ import SaveVarDialog from './SaveVarDialog';
 
 const noVars: EnvironmentVariable[] = [];
 const someVars: EnvironmentVariable[] = [
-  { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'old-secret' },
-  { id: 2, environment_id: 'env-1', key: 'BASE_URL', value: 'https://example.com' },
+  { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'old-secret', is_secret: false },
+  { id: 2, environment_id: 'env-1', key: 'BASE_URL', value: 'https://example.com', is_secret: false },
 ];
 
 const defaults = {

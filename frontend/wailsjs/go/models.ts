@@ -77,6 +77,8 @@ export namespace db {
 	    environment_id: string;
 	    key: string;
 	    value: string;
+	    is_secret: boolean;
+	    broken?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new EnvironmentVariable(source);
@@ -88,6 +90,8 @@ export namespace db {
 	        this.environment_id = source["environment_id"];
 	        this.key = source["key"];
 	        this.value = source["value"];
+	        this.is_secret = source["is_secret"];
+	        this.broken = source["broken"];
 	    }
 	}
 	export class Folder {
