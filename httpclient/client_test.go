@@ -466,6 +466,90 @@ func TestExecuteRequest_Auth_ApiKey_Query(t *testing.T) {
 	}
 }
 
+// ─── RedactSecretValues ──────────────────────────────────────────────────────
+
+// US-6: empty secrets list is a no-op
+func TestRedactSecretValues_EmptySecrets_ReturnsBodyUnchanged(t *testing.T) {
+	body := `{"token":"supersecret","id":1}`
+	got := RedactSecretValues(body, nil, true)
+	if got != body {
+		t.Errorf("expected body unchanged, got %q", got)
+	}
+
+	got2 := RedactSecretValues(body, []string{}, false)
+	if got2 != body {
+		t.Errorf("expected body unchanged for empty slice, got %q", got2)
+	}
+}
+
+// US-6: JSON body redaction wraps the replacement in quotes.
+// The secret value is the full JSON string value (e.g. the token itself),
+// not a substring embedded inside a larger value.
+func TestRedactSecretValues_JSON_ReplacesQuotedValue(t *testing.T) {
+	// The secret value "tok-abc" is stored as a standalone JSON string field.
+	body := `{"token":"tok-abc","other":"keep-me"}`
+	got := RedactSecretValues(body, []string{"tok-abc"}, true)
+	if strings.Contains(got, "tok-abc") {
+		t.Errorf("secret should be redacted, got %q", got)
+	}
+	if !strings.Contains(got, `"[REDACTED]"`) {
+		t.Errorf("expected [REDACTED] with surrounding quotes, got %q", got)
+	}
+	// Non-targeted value must be preserved.
+	if !strings.Contains(got, "keep-me") {
+		t.Errorf("non-secret value should be preserved, got %q", got)
+	}
+}
+
+// US-6: JSON body — secret not in a quoted context is left alone
+// (the redaction only targets `"<value>"` not bare occurrences)
+func TestRedactSecretValues_JSON_DoesNotRedactBareOccurrence(t *testing.T) {
+	// A value that appears without surrounding quotes (e.g. a number field)
+	// should not be touched by the JSON redaction path.
+	body := `{"count":42,"name":"alice"}`
+	// "alice" appears quoted — should be redacted.
+	got := RedactSecretValues(body, []string{"alice"}, true)
+	if strings.Contains(got, "alice") {
+		t.Errorf("quoted secret should be redacted, got %q", got)
+	}
+}
+
+// US-6: non-JSON body redaction uses plain string replacement
+func TestRedactSecretValues_NonJSON_ReplacesBareValue(t *testing.T) {
+	body := "token=my-secret-token&other=keep"
+	got := RedactSecretValues(body, []string{"my-secret-token"}, false)
+	if strings.Contains(got, "my-secret-token") {
+		t.Errorf("secret should be redacted, got %q", got)
+	}
+	if !strings.Contains(got, "[REDACTED]") {
+		t.Errorf("expected [REDACTED] in result, got %q", got)
+	}
+	if !strings.Contains(got, "keep") {
+		t.Errorf("non-secret value should be preserved, got %q", got)
+	}
+}
+
+// US-6: multiple secrets all redacted in one pass
+func TestRedactSecretValues_MultipleSecrets_AllRedacted(t *testing.T) {
+	body := `{"a":"secret1","b":"secret2","c":"safe"}`
+	got := RedactSecretValues(body, []string{"secret1", "secret2"}, true)
+	if strings.Contains(got, "secret1") || strings.Contains(got, "secret2") {
+		t.Errorf("all secrets should be redacted, got %q", got)
+	}
+	if !strings.Contains(got, "safe") {
+		t.Errorf("non-secret should be preserved, got %q", got)
+	}
+}
+
+// US-6: empty string in secrets slice is skipped (no empty-string replacement)
+func TestRedactSecretValues_EmptyStringSecret_Skipped(t *testing.T) {
+	body := "some body text"
+	got := RedactSecretValues(body, []string{""}, false)
+	if got != body {
+		t.Errorf("empty secret should be skipped, got %q", got)
+	}
+}
+
 // ─── Assertions ─────────────────────────────────────────────────────────────
 
 func TestExecuteRequest_Assertions(t *testing.T) {

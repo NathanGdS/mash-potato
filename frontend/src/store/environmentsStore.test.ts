@@ -12,13 +12,14 @@ vi.mock('../wailsjs/go/main/App', () => ({
   GetActiveEnvironment: vi.fn(),
   SetActiveEnvironment: vi.fn(),
   GetGlobalEnvironmentID: vi.fn(),
+  ToggleVariableSecret: vi.fn(),
 }));
 
 import * as App from '../wailsjs/go/main/App';
 import { useEnvironmentsStore } from './environmentsStore';
 
 const mockEnv = { id: 'env-1', name: 'Development', created_at: '2024-01-01T00:00:00Z', is_global: false };
-const mockVar = { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'secret' };
+const mockVar = { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'secret', is_secret: false };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -124,7 +125,7 @@ describe('setVariable', () => {
   it('calls SetVariable with correct arguments', async () => {
     vi.mocked(App.SetVariable).mockResolvedValue(mockVar);
     await useEnvironmentsStore.getState().setVariable('env-1', 'API_KEY', 'secret');
-    expect(App.SetVariable).toHaveBeenCalledWith('env-1', 'API_KEY', 'secret');
+    expect(App.SetVariable).toHaveBeenCalledWith('env-1', 'API_KEY', 'secret', false);
   });
 });
 
@@ -141,5 +142,51 @@ describe('deleteVariable', () => {
     vi.mocked(App.DeleteVariable).mockResolvedValue(undefined);
     await useEnvironmentsStore.getState().deleteVariable('env-1', mockVar.id);
     expect(App.DeleteVariable).toHaveBeenCalledWith(mockVar.id);
+  });
+});
+
+describe('toggleVariableSecret', () => {
+  const secretVar = { id: 1, environment_id: 'env-1', key: 'API_KEY', value: '***', is_secret: true };
+
+  it('calls ToggleVariableSecret with the correct varId and isSecret flag', async () => {
+    vi.mocked(App.ToggleVariableSecret).mockResolvedValue(undefined);
+    vi.mocked(App.GetVariables).mockResolvedValue([secretVar]);
+    await useEnvironmentsStore.getState().toggleVariableSecret('env-1', mockVar.id, true);
+    expect(App.ToggleVariableSecret).toHaveBeenCalledWith(mockVar.id, true);
+  });
+
+  it('re-fetches variables after toggling and updates store', async () => {
+    useEnvironmentsStore.setState({ variables: { 'env-1': [mockVar] } });
+    vi.mocked(App.ToggleVariableSecret).mockResolvedValue(undefined);
+    vi.mocked(App.GetVariables).mockResolvedValue([secretVar]);
+    await useEnvironmentsStore.getState().toggleVariableSecret('env-1', mockVar.id, true);
+    expect(App.GetVariables).toHaveBeenCalledWith('env-1');
+    expect(useEnvironmentsStore.getState().variables['env-1']).toEqual([secretVar]);
+  });
+
+  it('can toggle a variable back to non-secret', async () => {
+    const plainVar = { id: 1, environment_id: 'env-1', key: 'API_KEY', value: 'plaintext', is_secret: false };
+    useEnvironmentsStore.setState({ variables: { 'env-1': [secretVar] } });
+    vi.mocked(App.ToggleVariableSecret).mockResolvedValue(undefined);
+    vi.mocked(App.GetVariables).mockResolvedValue([plainVar]);
+    await useEnvironmentsStore.getState().toggleVariableSecret('env-1', secretVar.id, false);
+    expect(App.ToggleVariableSecret).toHaveBeenCalledWith(secretVar.id, false);
+    expect(useEnvironmentsStore.getState().variables['env-1']).toEqual([plainVar]);
+  });
+
+  it('propagates errors thrown by ToggleVariableSecret', async () => {
+    vi.mocked(App.ToggleVariableSecret).mockRejectedValue(new Error('backend error'));
+    await expect(
+      useEnvironmentsStore.getState().toggleVariableSecret('env-1', mockVar.id, true)
+    ).rejects.toThrow('backend error');
+  });
+
+  it('does not mutate other environments when re-fetching', async () => {
+    const otherVar = { id: 2, environment_id: 'env-2', key: 'OTHER', value: 'val', is_secret: false };
+    useEnvironmentsStore.setState({ variables: { 'env-1': [mockVar], 'env-2': [otherVar] } });
+    vi.mocked(App.ToggleVariableSecret).mockResolvedValue(undefined);
+    vi.mocked(App.GetVariables).mockResolvedValue([secretVar]);
+    await useEnvironmentsStore.getState().toggleVariableSecret('env-1', mockVar.id, true);
+    expect(useEnvironmentsStore.getState().variables['env-2']).toEqual([otherVar]);
   });
 });

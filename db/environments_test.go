@@ -2,6 +2,8 @@ package db
 
 import (
 	"testing"
+
+	"mash-potato/encryption"
 )
 
 // TestCreateEnvironment covers the basic happy path for InsertEnvironment.
@@ -108,7 +110,7 @@ func TestSetVariable(t *testing.T) {
 	clearTables()
 	InsertEnvironment("env-var-1", "Vars Env")
 
-	v, err := SetVariable("env-var-1", "API_KEY", "secret")
+	v, err := SetVariable("env-var-1", "API_KEY", "secret", false)
 	if err != nil {
 		t.Fatalf("SetVariable insert: %v", err)
 	}
@@ -121,9 +123,12 @@ func TestSetVariable(t *testing.T) {
 	if v.ID == 0 {
 		t.Error("expected non-zero id after insert")
 	}
+	if v.IsSecret {
+		t.Error("expected IsSecret=false on insert")
+	}
 
 	// Update by setting same key with new value.
-	v2, err := SetVariable("env-var-1", "API_KEY", "new-secret")
+	v2, err := SetVariable("env-var-1", "API_KEY", "new-secret", false)
 	if err != nil {
 		t.Fatalf("SetVariable update: %v", err)
 	}
@@ -139,10 +144,10 @@ func TestSetVariable(t *testing.T) {
 func TestGetVariables(t *testing.T) {
 	clearTables()
 	InsertEnvironment("env-gv", "GetVars Env")
-	SetVariable("env-gv", "HOST", "localhost")
-	SetVariable("env-gv", "PORT", "8080")
+	SetVariable("env-gv", "HOST", "localhost", false)
+	SetVariable("env-gv", "PORT", "8080", false)
 
-	vars, err := GetVariables("env-gv")
+	vars, err := GetVariables("env-gv", nil)
 	if err != nil {
 		t.Fatalf("GetVariables: %v", err)
 	}
@@ -158,7 +163,7 @@ func TestGetVariables(t *testing.T) {
 func TestGetVariables_Empty(t *testing.T) {
 	clearTables()
 	InsertEnvironment("env-empty-vars", "Empty")
-	vars, err := GetVariables("env-empty-vars")
+	vars, err := GetVariables("env-empty-vars", nil)
 	if err != nil {
 		t.Fatalf("GetVariables: %v", err)
 	}
@@ -171,12 +176,12 @@ func TestGetVariables_Empty(t *testing.T) {
 func TestDeleteVariable(t *testing.T) {
 	clearTables()
 	InsertEnvironment("env-del-var", "DelVar Env")
-	v, _ := SetVariable("env-del-var", "TOKEN", "abc")
+	v, _ := SetVariable("env-del-var", "TOKEN", "abc", false)
 
 	if err := DeleteVariable(v.ID); err != nil {
 		t.Fatalf("DeleteVariable: %v", err)
 	}
-	vars, _ := GetVariables("env-del-var")
+	vars, _ := GetVariables("env-del-var", nil)
 	if len(vars) != 0 {
 		t.Errorf("expected 0 variables after delete, got %d", len(vars))
 	}
@@ -191,22 +196,209 @@ func TestDeleteVariable_NotFound(t *testing.T) {
 	}
 }
 
+// TestSetVariable_IsSecret verifies that is_secret is persisted and retrieved correctly.
+func TestSetVariable_IsSecret(t *testing.T) {
+	clearTables()
+	InsertEnvironment("env-secret", "Secret Env")
+
+	// Insert a secret variable.
+	v, err := SetVariable("env-secret", "TOKEN", "hunter2", true)
+	if err != nil {
+		t.Fatalf("SetVariable secret: %v", err)
+	}
+	if !v.IsSecret {
+		t.Error("expected IsSecret=true after insert with isSecret=true")
+	}
+
+	// Read it back via GetVariables and check the flag survives the round-trip.
+	vars, err := GetVariables("env-secret", nil)
+	if err != nil {
+		t.Fatalf("GetVariables: %v", err)
+	}
+	if len(vars) != 1 {
+		t.Fatalf("expected 1 variable, got %d", len(vars))
+	}
+	if !vars[0].IsSecret {
+		t.Error("expected IsSecret=true after round-trip through GetVariables")
+	}
+
+	// Insert a non-secret variable and confirm the default is false.
+	v2, err := SetVariable("env-secret", "PUBLIC", "value", false)
+	if err != nil {
+		t.Fatalf("SetVariable non-secret: %v", err)
+	}
+	if v2.IsSecret {
+		t.Error("expected IsSecret=false for non-secret variable")
+	}
+}
+
+// TestSetVariable_IsSecret_Default verifies that rows inserted without an
+// explicit is_secret value have the column defaulting to 0 (false) at the
+// database level, confirming the migration DEFAULT clause is effective.
+func TestSetVariable_IsSecret_Default(t *testing.T) {
+	clearTables()
+	InsertEnvironment("env-default", "Default Env")
+
+	// Insert directly via raw SQL without specifying is_secret — exercises the DEFAULT.
+	_, err := DB.Exec(
+		`INSERT INTO environment_variables (environment_id, key, value) VALUES (?, ?, ?)`,
+		"env-default", "RAW_KEY", "raw_value",
+	)
+	if err != nil {
+		t.Fatalf("raw insert: %v", err)
+	}
+
+	vars, err := GetVariables("env-default", nil)
+	if err != nil {
+		t.Fatalf("GetVariables: %v", err)
+	}
+	if len(vars) != 1 {
+		t.Fatalf("expected 1 variable, got %d", len(vars))
+	}
+	if vars[0].IsSecret {
+		t.Error("expected IsSecret=false (DEFAULT 0) for row inserted without is_secret column")
+	}
+}
+
+// TestMigration_IsSecretIdempotent verifies that running the migration step
+// a second time (simulated by calling migrate again on the same open DB)
+// does not return an error — the ALTER TABLE is silently ignored.
+func TestMigration_IsSecretIdempotent(t *testing.T) {
+	// migrate() is package-internal and already ran during TestMain. Calling it
+	// again on the live DB must not panic or return a hard error.
+	if err := migrate(DB); err != nil {
+		t.Fatalf("second migrate() call returned an error: %v", err)
+	}
+}
+
 // TestCascadeDeleteOnEnvironmentDelete verifies that deleting an environment
 // also removes all its variables via ON DELETE CASCADE.
 func TestCascadeDeleteOnEnvironmentDelete(t *testing.T) {
 	clearTables()
 	InsertEnvironment("env-cascade", "Cascade Env")
-	SetVariable("env-cascade", "KEY1", "val1")
-	SetVariable("env-cascade", "KEY2", "val2")
+	SetVariable("env-cascade", "KEY1", "val1", false)
+	SetVariable("env-cascade", "KEY2", "val2", false)
 
 	if err := DeleteEnvironment("env-cascade"); err != nil {
 		t.Fatalf("DeleteEnvironment: %v", err)
 	}
-	vars, err := GetVariables("env-cascade")
+	vars, err := GetVariables("env-cascade", nil)
 	if err != nil {
 		t.Fatalf("GetVariables after cascade: %v", err)
 	}
 	if len(vars) != 0 {
 		t.Errorf("expected 0 variables after cascaded delete, got %d", len(vars))
+	}
+}
+
+// TestGetVariables_DecryptSecret verifies the round-trip: a value stored as an
+// enc:-prefixed ciphertext is transparently decrypted when GetVariables is
+// called with the matching key.
+func TestGetVariables_DecryptSecret(t *testing.T) {
+	clearTables()
+	InsertEnvironment("env-decrypt", "Decrypt Env")
+
+	// Generate a deterministic 32-byte test key.
+	key := make([]byte, 32)
+	for i := range key {
+		key[i] = byte(i + 1)
+	}
+
+	plaintext := "super-secret-value"
+	encrypted, err := encryption.EncryptValue(plaintext, key)
+	if err != nil {
+		t.Fatalf("EncryptValue: %v", err)
+	}
+
+	// Store the pre-encrypted value — the DB layer never encrypts itself.
+	if _, err := SetVariable("env-decrypt", "SECRET_KEY", encrypted, true); err != nil {
+		t.Fatalf("SetVariable: %v", err)
+	}
+
+	// GetVariables with the correct key must return the plaintext.
+	vars, err := GetVariables("env-decrypt", key)
+	if err != nil {
+		t.Fatalf("GetVariables: %v", err)
+	}
+	if len(vars) != 1 {
+		t.Fatalf("expected 1 variable, got %d", len(vars))
+	}
+	if vars[0].Value != plaintext {
+		t.Errorf("expected decrypted value %q, got %q", plaintext, vars[0].Value)
+	}
+	if vars[0].Broken {
+		t.Error("expected Broken=false for successful decryption")
+	}
+	if !vars[0].IsSecret {
+		t.Error("expected IsSecret=true after round-trip")
+	}
+}
+
+// TestGetVariables_DecryptBroken verifies that a value encrypted with one key
+// but read with a different key causes Broken=true and Value="" (ErrDecryptionFailed
+// sentinel path), rather than a hard error.
+func TestGetVariables_DecryptBroken(t *testing.T) {
+	clearTables()
+	InsertEnvironment("env-broken", "Broken Env")
+
+	// Encrypt with key-A.
+	keyA := make([]byte, 32)
+	for i := range keyA {
+		keyA[i] = byte(i + 1)
+	}
+	encrypted, err := encryption.EncryptValue("original-secret", keyA)
+	if err != nil {
+		t.Fatalf("EncryptValue: %v", err)
+	}
+
+	// Store the ciphertext.
+	if _, err := SetVariable("env-broken", "BAD", encrypted, true); err != nil {
+		t.Fatalf("SetVariable: %v", err)
+	}
+
+	// Attempt to decrypt with key-B (different key) — must trigger ErrDecryptionFailed.
+	keyB := make([]byte, 32)
+	for i := range keyB {
+		keyB[i] = byte(i + 100)
+	}
+	vars, err := GetVariables("env-broken", keyB)
+	if err != nil {
+		t.Fatalf("GetVariables must not hard-error on wrong-key decryption: %v", err)
+	}
+	if len(vars) != 1 {
+		t.Fatalf("expected 1 variable, got %d", len(vars))
+	}
+	if !vars[0].Broken {
+		t.Error("expected Broken=true when decrypting with wrong key")
+	}
+	if vars[0].Value != "" {
+		t.Errorf("expected Value=\"\" for broken variable, got %q", vars[0].Value)
+	}
+}
+
+// TestGetVariables_NilKeySkipsDecryption verifies that passing nil as the key
+// returns the raw enc: ciphertext without attempting decryption.
+func TestGetVariables_NilKeySkipsDecryption(t *testing.T) {
+	clearTables()
+	InsertEnvironment("env-nil-key", "Nil Key Env")
+
+	key := make([]byte, 32)
+	for i := range key {
+		key[i] = byte(i + 1)
+	}
+	plaintext := "my-secret"
+	encrypted, _ := encryption.EncryptValue(plaintext, key)
+	SetVariable("env-nil-key", "TOKEN", encrypted, true)
+
+	// nil key — raw ciphertext should come back unchanged.
+	vars, err := GetVariables("env-nil-key", nil)
+	if err != nil {
+		t.Fatalf("GetVariables: %v", err)
+	}
+	if vars[0].Value != encrypted {
+		t.Errorf("expected raw ciphertext %q, got %q", encrypted, vars[0].Value)
+	}
+	if vars[0].Broken {
+		t.Error("expected Broken=false when key is nil")
 	}
 }
