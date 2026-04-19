@@ -2,11 +2,14 @@ package httpclient
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
 	"time"
@@ -25,6 +28,7 @@ type ResponseResult struct {
 	TestResults  []AssertionResult   `json:"TestResults"`
 	ConsoleLogs  []string            `json:"consoleLogs"`
 	ScriptErrors []string            `json:"scriptErrors"`
+	Timing       db.TimingPhases     `json:"Timing"`
 }
 
 // kvRow mirrors the JSON structure stored for headers/params/form-data.
@@ -136,6 +140,17 @@ func RedactSecretValues(body string, secretValues []string, isJSON bool) string 
 	return body
 }
 
+// ms returns the elapsed milliseconds between start and end, clamped to 0 for
+// negative durations (which can occur when a trace hook was never fired and the
+// variable retains its zero value).
+func ms(start, end time.Time) int64 {
+	v := end.Sub(start).Milliseconds()
+	if v < 0 {
+		return 0
+	}
+	return v
+}
+
 // ExecuteRequest executes the HTTP request described by req and returns a ResponseResult.
 func ExecuteRequest(req db.Request) (ResponseResult, error) {
 	params := parseKV(req.Params)
@@ -191,7 +206,50 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		bodyReader = http.NoBody
 	}
 
-	httpReq, err := http.NewRequest(req.Method, finalURL, bodyReader)
+	// Timing variables captured by httptrace hook closures.
+	// Zero-value time.Time is safe: unfired hooks leave the field at zero,
+	// and ms() clamps the resulting negative duration to 0.
+	var (
+		dnsStart    time.Time
+		dnsDone     time.Time
+		connectStart time.Time
+		connectDone  time.Time
+		tlsStart    time.Time
+		tlsDone     time.Time
+		wroteRequest time.Time
+		firstByte   time.Time
+	)
+
+	trace := &httptrace.ClientTrace{
+		DNSStart: func(_ httptrace.DNSStartInfo) {
+			dnsStart = time.Now()
+		},
+		DNSDone: func(_ httptrace.DNSDoneInfo) {
+			dnsDone = time.Now()
+		},
+		ConnectStart: func(_, _ string) {
+			connectStart = time.Now()
+		},
+		ConnectDone: func(_, _ string, _ error) {
+			connectDone = time.Now()
+		},
+		TLSHandshakeStart: func() {
+			tlsStart = time.Now()
+		},
+		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
+			tlsDone = time.Now()
+		},
+		WroteRequest: func(_ httptrace.WroteRequestInfo) {
+			wroteRequest = time.Now()
+		},
+		GotFirstResponseByte: func() {
+			firstByte = time.Now()
+		},
+	}
+
+	ctx := httptrace.WithClientTrace(context.Background(), trace)
+
+	httpReq, err := http.NewRequestWithContext(ctx, req.Method, finalURL, bodyReader)
 	if err != nil {
 		return ResponseResult{}, fmt.Errorf("create request: %w", err)
 	}
@@ -224,6 +282,7 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
+	responseBodyReadDone := time.Now()
 	if err != nil {
 		return ResponseResult{}, fmt.Errorf("read response body: %w", err)
 	}
@@ -235,6 +294,13 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		Headers:    map[string][]string(resp.Header),
 		DurationMs: elapsed.Milliseconds(),
 		SizeBytes:  int64(len(bodyBytes)),
+		Timing: db.TimingPhases{
+			DNSLookup:    ms(dnsStart, dnsDone),
+			TCPHandshake: ms(connectStart, connectDone),
+			TLSHandshake: ms(tlsStart, tlsDone),
+			TTFB:         ms(wroteRequest, firstByte),
+			Download:     ms(firstByte, responseBodyReadDone),
+		},
 	}
 
 	// Phase 010: Evaluate assertions.
