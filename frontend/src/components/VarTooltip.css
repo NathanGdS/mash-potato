@@ -1,0 +1,96 @@
+/* ── Variable hover tooltip card ─────────────────────────── */
+.var-tooltip {
+  position: fixed; /* Issue 1: fixed keeps coords viewport-relative, matching getBoundingClientRect() */
+  z-index: 9999;
+  width: 260px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  pointer-events: all;
+}
+
+.var-tooltip__header {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 12px 6px;
+}
+
+.var-tooltip__braces {
+  color: var(--text-muted);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.var-tooltip__name {
+  color: var(--accent);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-weight: 600;
+  font-size: 12px;
+  margin: 0 1px;
+}
+
+.var-tooltip__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 12px;
+}
+
+.var-tooltip__body {
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Issue 6: footer section for Env row, visually separated from body */
+.var-tooltip__footer {
+  border-top: 1px solid var(--border);
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.var-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.var-tooltip__label {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 38px;
+  flex-shrink: 0;
+}
+
+.var-tooltip__value {
+  color: var(--text-primary);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.var-tooltip__env-select {
+  flex: 1;
+  background: var(--bg-input, var(--bg-surface));
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: auto;
+}
+
+.var-tooltip__env-select:focus {
+  border-color: var(--color-accent);
+}

@@ -132,6 +132,7 @@
 .var-token {
   color: var(--accent);
   font-style: normal;
+  pointer-events: auto;
 }
 
 /* ── JSON highlighting ────────────────────────────────── */
@@ -358,6 +359,15 @@
   white-space: pre;
 }
 
+.kv-value-wrapper--mono .kv-value-mirror {
+  font-family: var(--font-mono);
+  padding: 6px 12px;
+}
+
+.kv-value-wrapper--mono .kv-input--highlight {
+  padding: 6px 12px !important;
+}
+
 .kv-input--highlight {
   position: relative;
   z-index: 1;
@@ -367,6 +377,7 @@
   border: none !important;
   box-shadow: none !important;
   margin: 0;
+  padding: var(--space-1) 6px !important;
 }
 
 .kv-row-disabled .kv-input {

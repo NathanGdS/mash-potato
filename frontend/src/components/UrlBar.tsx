@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import { useVarHoverTooltip } from '../hooks/useVarHoverTooltip';
 import { parseVarSegments } from '../utils/varSegments';
 import VarPopover from './VarPopover';
+import VarTooltip from './VarTooltip';
 
 interface UrlBarProps {
   value: string;
@@ -26,6 +28,8 @@ const UrlBar: React.FC<UrlBarProps> = ({ value, onChange }) => {
       mirrorInnerRef.current.style.transform = `translateX(-${inputRef.current.scrollLeft}px)`;
     }
   };
+
+  const { wrapperProps, tooltipState, cancelDismiss } = useVarHoverTooltip({ inputRef });
 
   const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown: varKeyDown, close } =
     useVarAutocomplete({
@@ -57,13 +61,13 @@ const UrlBar: React.FC<UrlBarProps> = ({ value, onChange }) => {
   const segments = parseVarSegments(local);
 
   return (
-    <div className="url-bar-wrapper">
+    <div className="url-bar-wrapper" {...wrapperProps}>
       {/* Highlight overlay — sits behind the transparent input */}
       <div className="url-bar-mirror" aria-hidden="true">
         <span ref={mirrorInnerRef} className="url-bar-mirror-inner">
           {segments.map((seg, i) =>
             seg.isVar ? (
-              <span key={i} className="var-token">{seg.text}</span>
+              <span key={i} className="var-token" data-var-name={seg.text.slice(2, -2)}>{seg.text}</span>
             ) : (
               <span key={i}>{seg.text}</span>
             )
@@ -92,6 +96,15 @@ const UrlBar: React.FC<UrlBarProps> = ({ value, onChange }) => {
         onSelect={select}
         onClose={close}
       />
+      {tooltipState !== null && (
+        <VarTooltip
+          varName={tooltipState.varName}
+          anchorRect={tooltipState.anchorRect}
+          isPassword={tooltipState.isPassword}
+          onMouseEnter={cancelDismiss}
+          onMouseLeave={() => wrapperProps.onMouseLeave({} as React.MouseEvent)}
+        />
+      )}
     </div>
   );
 };

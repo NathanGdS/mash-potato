@@ -1,7 +1,9 @@
 import React, { useRef } from 'react';
 import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import { useVarHoverTooltip } from '../hooks/useVarHoverTooltip';
 import { parseVarSegments } from '../utils/varSegments';
 import VarPopover from './VarPopover';
+import VarTooltip from './VarTooltip';
 
 export interface KVRow {
   key: string;
@@ -41,15 +43,17 @@ function VarValueInput({
       onInsert: (v) => { onChange(v); syncScroll(); },
     });
 
+  const { wrapperProps, tooltipState, cancelDismiss } = useVarHoverTooltip({ inputRef });
+
   const segments = parseVarSegments(value);
 
   return (
-    <div className="kv-value-wrapper">
+    <div className="kv-value-wrapper" {...wrapperProps}>
       <div className="kv-value-mirror" aria-hidden="true">
         <span ref={mirrorInnerRef} className="kv-value-mirror-inner">
           {segments.map((seg, i) =>
             seg.isVar ? (
-              <span key={i} className="var-token">{seg.text}</span>
+              <span key={i} className="var-token" data-var-name={seg.text.slice(2, -2)}>{seg.text}</span>
             ) : (
               <span key={i}>{seg.text}</span>
             )
@@ -75,6 +79,15 @@ function VarValueInput({
         onSelect={select}
         onClose={close}
       />
+      {tooltipState !== null && (
+        <VarTooltip
+          varName={tooltipState.varName}
+          anchorRect={tooltipState.anchorRect}
+          isPassword={tooltipState.isPassword}
+          onMouseEnter={cancelDismiss}
+          onMouseLeave={wrapperProps.onMouseLeave}
+        />
+      )}
     </div>
   );
 }

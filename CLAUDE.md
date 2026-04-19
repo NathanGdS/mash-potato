@@ -193,3 +193,19 @@ This project uses a `.shadow/` directory for spec tracking:
 - `.shadow/wip/<id>-<name>/spec_state.json` — user stories with acceptance criteria and status
 
 Use the `/shadow-plan`, `/shadow-run`, and `/shadow-finish` skills to manage the development lifecycle.
+
+## Known Patterns & Lessons
+
+### `{{variable}}` highlight overlay (mirror pattern)
+
+Every input that renders `{{variable}}` highlighting uses a mirror-behind-input pattern:
+- A `position: absolute; inset: 0` div (the mirror) renders colored spans behind a transparent `<input>`
+- The real input sits at `z-index: 1` with `color: transparent; caret-color: var(--text-primary)`
+
+**Critical invariant:** mirror and input MUST share the same `font-family` AND `padding`. Any mismatch shifts character positions between the two layers, making the cursor click land at the wrong character.
+
+- `url-bar-mirror` / `.url-bar`: both use `font-family: var(--font-mono)`, `padding: 6px 10px`
+- `kv-value-mirror` / `.kv-input--highlight`: base uses `font-family: inherit`, `padding: 4px 6px`
+- Auth inputs (`.auth-field-input`) use `font-family: var(--font-mono)` and `padding: 6px 12px` — so auth wrappers must add class `kv-value-wrapper--mono` to override mirror font and padding to match
+
+When adding highlight overlay to any new input, verify font-family and padding match the mirror **before** shipping.
