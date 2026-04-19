@@ -30,7 +30,7 @@ jobs:
           cache: true
 
       - name: Generate Wails bindings
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
+        run: mkdir -p frontend/dist && touch frontend/dist/index.html && go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
 
       - name: Install dependencies
         working-directory: frontend
@@ -58,7 +58,7 @@ jobs:
           cache: true
 
       - name: Generate Wails bindings
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
+        run: mkdir -p frontend/dist && touch frontend/dist/index.html && go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
 
       - name: Set up Node
         uses: actions/setup-node@v4
