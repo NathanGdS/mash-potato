@@ -148,10 +148,28 @@ func ListFolders(collectionID string) ([]Folder, error) {
 
 // MoveRequest updates the folder_id of a request.
 // Pass folderID = "" to move to root (no folder).
+// Also recalculates sort_order to place the request at the end of the destination folder.
 func MoveRequest(requestID, folderID string) error {
+	var maxOrder int
+	if folderID == "" {
+		err := DB.QueryRow(
+			`SELECT COALESCE(MAX(sort_order), 0) FROM requests WHERE folder_id IS NULL`,
+		).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("MoveRequest: %w", err)
+		}
+	} else {
+		err := DB.QueryRow(
+			`SELECT COALESCE(MAX(sort_order), 0) FROM requests WHERE folder_id = ?`,
+			folderID,
+		).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("MoveRequest: %w", err)
+		}
+	}
 	res, err := DB.Exec(
-		`UPDATE requests SET folder_id = ? WHERE id = ?`,
-		nullableString(folderID), requestID,
+		`UPDATE requests SET folder_id = ?, sort_order = ? WHERE id = ?`,
+		nullableString(folderID), maxOrder+1, requestID,
 	)
 	if err != nil {
 		return fmt.Errorf("MoveRequest: %w", err)
@@ -159,6 +177,41 @@ func MoveRequest(requestID, folderID string) error {
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return fmt.Errorf("MoveRequest: no request with id %s", requestID)
+	}
+	return nil
+}
+
+// MoveRequestToCollection moves a request to a different collection and optionally a folder.
+// Pass folderID = "" to place at root level of the target collection.
+func MoveRequestToCollection(requestID, targetCollectionID, targetFolderID string) error {
+	var maxOrder int
+	if targetFolderID == "" {
+		err := DB.QueryRow(
+			`SELECT COALESCE(MAX(sort_order), 0) FROM requests WHERE collection_id = ? AND folder_id IS NULL`,
+			targetCollectionID,
+		).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("MoveRequestToCollection: %w", err)
+		}
+	} else {
+		err := DB.QueryRow(
+			`SELECT COALESCE(MAX(sort_order), 0) FROM requests WHERE collection_id = ? AND folder_id = ?`,
+			targetCollectionID, targetFolderID,
+		).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("MoveRequestToCollection: %w", err)
+		}
+	}
+	res, err := DB.Exec(
+		`UPDATE requests SET collection_id = ?, folder_id = ?, sort_order = ? WHERE id = ?`,
+		targetCollectionID, nullableString(targetFolderID), maxOrder+1, requestID,
+	)
+	if err != nil {
+		return fmt.Errorf("MoveRequestToCollection: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("MoveRequestToCollection: no request with id %s", requestID)
 	}
 	return nil
 }

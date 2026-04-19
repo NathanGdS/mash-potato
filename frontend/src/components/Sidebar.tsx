@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCollectionsStore } from '../store/collectionsStore';
+import { useFoldersStore } from '../store/foldersStore';
+import { useRequestsStore } from '../store/requestsStore';
 import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
 import ImportCurlDialog from './ImportCurlDialog';
@@ -15,11 +19,21 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
   const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
+  const { moveRequest, moveRequestToCollection } = useFoldersStore();
+  const reorderRequests = useRequestsStore((s) => s.reorderRequests);
+  const requestsByCollection = useRequestsStore((s) => s.requestsByCollection);
+  const foldersByCollection = useFoldersStore((s) => s.foldersByCollection);
   const [showModal, setShowModal] = useState(false);
   const [showImportCurl, setShowImportCurl] = useState(false);
   const [importCurlCollectionId, setImportCurlCollectionId] = useState('');
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections');
   const [importError, setImportError] = useState<string | null>(null);
+  const [dragOverlayRequest, setDragOverlayRequest] = useState<{ id: string; name: string; method: string } | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const handleOpenImportCurl = (collectionId = '') => {
     setImportCurlCollectionId(collectionId);
@@ -32,6 +46,100 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
       await importCollection();
     } catch (err) {
       setImportError(String(err));
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    for (const col of collections) {
+      const reqs = requestsByCollection[col.id] ?? [];
+      const req = reqs.find((r) => r.id === active.id);
+      if (req) {
+        setDragOverlayRequest({ id: req.id, name: req.name, method: req.method });
+        return;
+      }
+    }
+  };
+
+  const findRequest = (requestId: string) => {
+    for (const col of collections) {
+      const reqs = requestsByCollection[col.id] ?? [];
+      const req = reqs.find((r) => r.id === requestId);
+      if (req) return { request: req, collectionId: col.id };
+    }
+    return null;
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setDragOverlayRequest(null);
+    if (!over) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    const found = findRequest(activeId);
+    if (!found) return;
+
+    const { request: activeRequest, collectionId: sourceCollectionId } = found;
+    const sourceFolderId = activeRequest.folder_id || '';
+
+    const overData = over.data.current as { type?: string; folderId?: string; collectionId?: string } | undefined;
+
+    let targetCollectionId = '';
+    let targetFolderId = '';
+
+    if (overData?.type === 'folder' && overData.folderId) {
+      targetFolderId = overData.folderId;
+      targetCollectionId = collections.find((c) =>
+        (foldersByCollection[c.id] ?? []).some((f) => f.id === targetFolderId)
+      )?.id || '';
+    } else if (overData?.type === 'collection-root' && overData.collectionId) {
+      targetCollectionId = overData.collectionId;
+      targetFolderId = '';
+    } else {
+      const overFound = findRequest(overId);
+      if (overFound) {
+        targetCollectionId = overFound.collectionId;
+        targetFolderId = overFound.request.folder_id || '';
+      } else {
+        return;
+      }
+    }
+
+    const isSameList = sourceCollectionId === targetCollectionId && sourceFolderId === targetFolderId;
+
+    if (isSameList) {
+      const requests = requestsByCollection[sourceCollectionId] ?? [];
+      const listRequests = requests.filter((r) => (r.folder_id || '') === targetFolderId);
+      const oldIndex = listRequests.findIndex((r) => r.id === activeId);
+      const newIndex = listRequests.findIndex((r) => r.id === overId);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = [...listRequests];
+        const [moved] = newOrder.splice(oldIndex, 1);
+        newOrder.splice(newIndex, 0, moved);
+        const ids = newOrder.map((r) => r.id);
+        await reorderRequests(sourceCollectionId, targetFolderId, ids);
+      }
+    } else if (sourceCollectionId !== targetCollectionId) {
+      try {
+        await moveRequestToCollection(activeId, sourceCollectionId, targetCollectionId, targetFolderId);
+        await useRequestsStore.getState().fetchRequests(sourceCollectionId);
+        await useRequestsStore.getState().fetchRequests(targetCollectionId);
+        await useFoldersStore.getState().fetchFolders(sourceCollectionId);
+        await useFoldersStore.getState().fetchFolders(targetCollectionId);
+      } catch (err) {
+        console.error('Move request to collection failed:', err);
+      }
+    } else {
+      try {
+        await moveRequest(activeId, sourceCollectionId, targetFolderId);
+        await useRequestsStore.getState().fetchRequests(sourceCollectionId);
+        await useFoldersStore.getState().fetchFolders(sourceCollectionId);
+      } catch (err) {
+        console.error('Move request failed:', err);
+      }
     }
   };
 
@@ -124,15 +232,27 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
               </p>
             )}
 
-            <ul className="collection-list">
-              {collections.map((col) => (
-                <CollectionItem
-                  key={col.id}
-                  collection={col}
-                  onImportCurl={handleOpenImportCurl}
-                />
-              ))}
-            </ul>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              <ul className="collection-list">
+                {collections.map((col) => (
+                  <CollectionItem
+                    key={col.id}
+                    collection={col}
+                    onImportCurl={handleOpenImportCurl}
+                  />
+                ))}
+              </ul>
+              <DragOverlay>
+                {dragOverlayRequest ? (
+                  <div className="drag-overlay">
+                    <span className={`request-method request-method--${dragOverlayRequest.method.toLowerCase()}`} data-method={dragOverlayRequest.method}>
+                      {dragOverlayRequest.method}
+                    </span>
+                    <span className="request-name">{dragOverlayRequest.name}</span>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
 
           {showModal && (

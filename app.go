@@ -131,6 +131,14 @@ func (a *App) ListRequests(collectionID string) ([]db.Request, error) {
 	return reqs, nil
 }
 
+// ReorderRequests updates sort_order for requests in a folder (or root level).
+func (a *App) ReorderRequests(folderID string, requestIDs []string) error {
+	if err := db.ReorderRequests(folderID, requestIDs); err != nil {
+		return fmt.Errorf("ReorderRequests: %w", err)
+	}
+	return nil
+}
+
 // GetRequest returns a single request by ID.
 func (a *App) GetRequest(id string) (db.Request, error) {
 	if strings.TrimSpace(id) == "" {
@@ -635,6 +643,21 @@ func (a *App) MoveRequest(requestID string, folderID string) error {
 	return nil
 }
 
+// MoveRequestToCollection moves a request to a different collection.
+// Pass folderID = "" to place at root level of the target collection.
+func (a *App) MoveRequestToCollection(requestID, targetCollectionID, targetFolderID string) error {
+	if strings.TrimSpace(requestID) == "" {
+		return fmt.Errorf("request id cannot be empty")
+	}
+	if strings.TrimSpace(targetCollectionID) == "" {
+		return fmt.Errorf("target collection id cannot be empty")
+	}
+	if err := db.MoveRequestToCollection(requestID, targetCollectionID, targetFolderID); err != nil {
+		return fmt.Errorf("MoveRequestToCollection: %w", err)
+	}
+	return nil
+}
+
 // SearchRequests returns up to 50 requests whose name, URL, or collection name
 // contains the query string (case-insensitive). An empty query returns an empty slice.
 func (a *App) SearchRequests(query string) ([]db.SearchResult, error) {
@@ -668,6 +691,18 @@ func (a *App) DuplicateRequest(requestID string) (db.Request, error) {
 		return db.Request{}, fmt.Errorf("DuplicateRequest: %w", err)
 	}
 	return req, nil
+}
+
+// RenameRequest validates the new name and updates the request in SQLite.
+func (a *App) RenameRequest(id string, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("request name cannot be empty")
+	}
+	if err := db.RenameRequest(id, name); err != nil {
+		return fmt.Errorf("RenameRequest: %w", err)
+	}
+	return nil
 }
 
 // UpdateRequest persists all mutable fields of a request to SQLite.

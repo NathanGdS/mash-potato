@@ -49,6 +49,7 @@ const makeRequest = (overrides: Partial<Request> = {}): Request => ({
   tests: '',
   pre_script: '',
   post_script: '',
+  sort_order: 0,
   created_at: '2026-01-01T00:00:00Z',
   ...overrides,
 });

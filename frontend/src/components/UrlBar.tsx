@@ -68,8 +68,6 @@ const UrlBar: React.FC<UrlBarProps> = ({ value, onChange }) => {
               <span key={i}>{seg.text}</span>
             )
           )}
-          {/* trailing space so the mirror matches input width exactly */}
-          {'\u00A0'}
         </span>
       </div>
 

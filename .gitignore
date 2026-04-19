@@ -15,6 +15,7 @@ coverage.html
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/wailsjs/
 
 # Wails build output
 build/bin/

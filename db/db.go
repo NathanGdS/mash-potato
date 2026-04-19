@@ -50,14 +50,16 @@ func migrate(db *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS requests (
 			id            TEXT PRIMARY KEY,
 			collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
-			name          TEXT NOT NULL,
-			method        TEXT NOT NULL DEFAULT 'GET',
-			url           TEXT NOT NULL DEFAULT '',
-			headers       TEXT NOT NULL DEFAULT '[]',
-			params        TEXT NOT NULL DEFAULT '[]',
-			body_type     TEXT NOT NULL DEFAULT 'none',
-			body          TEXT NOT NULL DEFAULT '',
-			created_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+			folder_id    TEXT,
+			name        TEXT NOT NULL,
+			method      TEXT NOT NULL DEFAULT 'GET',
+			url         TEXT NOT NULL DEFAULT '',
+			headers     TEXT NOT NULL DEFAULT '[]',
+			params      TEXT NOT NULL DEFAULT '[]',
+			body_type   TEXT NOT NULL DEFAULT 'none',
+			body       TEXT NOT NULL DEFAULT '',
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 		);
 	`)
 	if err != nil {
@@ -132,6 +134,8 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE requests ADD COLUMN post_script TEXT NOT NULL DEFAULT ''`,
 		// US-2: add is_secret flag to environment_variables
 		`ALTER TABLE environment_variables ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0`,
+		// US-3: add sort_order to requests
+		`ALTER TABLE requests ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
 	}
 	for _, stmt := range addColumns {
 		if _, execErr := db.Exec(stmt); execErr != nil {

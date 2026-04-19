@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { Request } from '../types/request';
-import { CreateRequest, DeleteRequest, DuplicateRequest, GetRequest, ListRequests, UpdateRequest } from '../wailsjs/go/main/App';
+import { CreateRequest, DeleteRequest, DuplicateRequest, GetRequest, ListRequests, RenameRequest, ReorderRequests, UpdateRequest } from '../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
 import { useResponseStore } from './responseStore';
+import { useTabsStore } from './tabsStore';
 
 interface RequestsState {
   /** Map of collectionId -> requests array */
@@ -30,6 +31,12 @@ interface RequestsState {
 
   /** Delete a request from SQLite and remove it from the store. */
   deleteRequest: (requestId: string, collectionId: string) => Promise<void>;
+
+  /** Rename an existing request by id. Throws on empty name or backend error. */
+  renameRequest: (requestId: string, collectionId: string, name: string) => Promise<void>;
+
+  /** Reorder requests within a folder (pass empty string for root level). */
+  reorderRequests: (collectionId: string, folderId: string, requestIds: string[]) => Promise<void>;
 
   /** Directly set the active request without loading from the backend (e.g. from history). */
   setActiveRequest: (req: Request) => void;
@@ -111,6 +118,26 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
     });
   },
 
+  renameRequest: async (requestId: string, collectionId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Request name cannot be empty.');
+    }
+    await RenameRequest(requestId, trimmed);
+    set((state) => ({
+      requestsByCollection: {
+        ...state.requestsByCollection,
+        [collectionId]: (state.requestsByCollection[collectionId] ?? []).map((r) =>
+          r.id === requestId ? { ...r, name: trimmed } : r
+        ),
+      },
+      activeRequest: state.activeRequest?.id === requestId
+        ? { ...state.activeRequest, name: trimmed }
+        : state.activeRequest,
+    }));
+    useTabsStore.getState().updateTab(requestId, { requestName: trimmed });
+  },
+
   setActiveRequest: (req: Request) => {
     set({ activeRequest: req });
   },
@@ -152,6 +179,20 @@ export const useRequestsStore = create<RequestsState>((set, get) => ({
               ? { ...r, method: payload.method, url: payload.url, headers: payload.headers, params: payload.params, body_type: payload.body_type, body: payload.body, auth_type: payload.auth_type, auth_config: payload.auth_config, timeout_seconds: payload.timeout_seconds, tests: payload.tests, pre_script: payload.pre_script, post_script: payload.post_script }
               : r
           ),
+        },
+      };
+    });
+  },
+
+  reorderRequests: async (collectionId: string, folderId: string, requestIds: string[]) => {
+    await ReorderRequests(folderId, requestIds);
+    set((state) => {
+      const currentRequests = state.requestsByCollection[collectionId] ?? [];
+      const reordered = requestIds.map((id) => currentRequests.find((r) => r.id === id)!).filter(Boolean);
+      return {
+        requestsByCollection: {
+          ...state.requestsByCollection,
+          [collectionId]: reordered,
         },
       };
     });

@@ -15,5 +15,6 @@ export interface Request {
   tests: string;
   pre_script: string;
   post_script: string;
+  sort_order: number;
   created_at: string;
 }
