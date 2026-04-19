@@ -8,6 +8,7 @@ import {
   ListFolders,
   CreateRequestInFolder,
   MoveRequest,
+  MoveRequestToCollection,
 } from '../wailsjs/go/main/App';
 import { useRequestsStore } from './requestsStore';
 
@@ -38,6 +39,12 @@ interface FoldersState {
    * Refreshes the requests store for the collection.
    */
   moveRequest: (requestId: string, collectionId: string, folderId: string) => Promise<void>;
+
+  /**
+   * Move a request to a different collection (and optionally folder).
+   * Removes from source collection and adds to target collection.
+   */
+  moveRequestToCollection: (requestId: string, sourceCollectionId: string, targetCollectionId: string, targetFolderId: string) => Promise<void>;
 }
 
 export const useFoldersStore = create<FoldersState>((set) => ({
@@ -121,6 +128,25 @@ export const useFoldersStore = create<FoldersState>((set) => ({
           [collectionId]: list.map((r) =>
             r.id === requestId ? { ...r, folder_id: folderId || null } : r
           ),
+        },
+      };
+    });
+  },
+
+  moveRequestToCollection: async (requestId: string, sourceCollectionId: string, targetCollectionId: string, targetFolderId: string) => {
+    await MoveRequestToCollection(requestId, targetCollectionId, targetFolderId);
+    // Remove from source collection and add to target collection in the store.
+    useRequestsStore.setState((state) => {
+      const sourceList = state.requestsByCollection[sourceCollectionId] ?? [];
+      const targetList = state.requestsByCollection[targetCollectionId] ?? [];
+      const movedRequest = sourceList.find((r) => r.id === requestId);
+      return {
+        requestsByCollection: {
+          ...state.requestsByCollection,
+          [sourceCollectionId]: sourceList.filter((r) => r.id !== requestId),
+          [targetCollectionId]: movedRequest
+            ? [...targetList, { ...movedRequest, collection_id: targetCollectionId, folder_id: targetFolderId || null }]
+            : targetList,
         },
       };
     });

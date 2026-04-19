@@ -32,6 +32,11 @@ export function ListRequests(collectionId: string): Promise<import('../../../typ
   return _app()?.ListRequests(collectionId);
 }
 
+// RenameRequest validates the new name and updates the request in SQLite.
+export function RenameRequest(id: string, name: string): Promise<void> {
+  return _app()?.RenameRequest(id, name);
+}
+
 export function GetRequest(id: string): Promise<import('../../../types/request').Request> {
   return _app()?.GetRequest(id);
 }
@@ -203,6 +208,10 @@ export function MoveRequest(requestId: string, folderId: string): Promise<void> 
   return _app()?.MoveRequest(requestId, folderId);
 }
 
+export function MoveRequestToCollection(requestId: string, targetCollectionId: string, targetFolderId: string): Promise<void> {
+  return _app()?.MoveRequestToCollection(requestId, targetCollectionId, targetFolderId);
+}
+
 export function GetSetting(key: string): Promise<string> {
   return _app()?.GetSetting(key);
 }
@@ -261,4 +270,9 @@ export function ToggleVariableSecret(varId: number, isSecret: boolean): Promise<
 // Not wired to any frontend UI — callable via IPC (known limitation).
 export function RotateVarEncryptionKey(): Promise<void> {
   return _app()?.RotateVarEncryptionKey();
+}
+
+// ReorderRequests updates sort_order for requests in a folder (or root level if folderID = "").
+export function ReorderRequests(folderId: string, requestIds: string[]): Promise<void> {
+  return _app()?.ReorderRequests(folderId, requestIds);
 }
