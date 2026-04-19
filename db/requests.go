@@ -24,6 +24,7 @@ type Request struct {
 	Tests          string    `json:"tests"`
 	PreScript      string    `json:"pre_script"`
 	PostScript     string    `json:"post_script"`
+	SortOrder     int       `json:"sort_order"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
@@ -116,6 +117,22 @@ func UpdateRequest(id, method, url, headers, params, bodyType, body, authType, a
 	}
 	if n == 0 {
 		return fmt.Errorf("UpdateRequest: no row with id %s", id)
+	}
+	return nil
+}
+
+// RenameRequest updates the name of a request.
+func RenameRequest(id, name string) error {
+	res, err := DB.Exec(`UPDATE requests SET name = ? WHERE id = ?`, name, id)
+	if err != nil {
+		return fmt.Errorf("RenameRequest: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("RenameRequest rows affected: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("RenameRequest: no row with id %s", id)
 	}
 	return nil
 }
@@ -271,13 +288,13 @@ func SearchRequestsWithBody(query string) ([]SearchResult, error) {
 	return results, nil
 }
 
-// ListRequests returns all requests for a given collection, ordered by creation time.
+// ListRequests returns all requests for a given collection, ordered by sort_order then created_at.
 func ListRequests(collectionID string) ([]Request, error) {
 	rows, err := DB.Query(
-		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at
+		`SELECT id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, COALESCE(sort_order, 0), created_at
 		   FROM requests
 		  WHERE collection_id = ?
-		  ORDER BY created_at ASC`,
+		  ORDER BY COALESCE(sort_order, 0) ASC, created_at ASC`,
 		collectionID,
 	)
 	if err != nil {
@@ -292,7 +309,7 @@ func ListRequests(collectionID string) ([]Request, error) {
 		var folderID sql.NullString
 		if err := rows.Scan(
 			&r.ID, &r.CollectionID, &folderID, &r.Name, &r.Method, &r.URL,
-			&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &r.PreScript, &r.PostScript, &createdAtStr,
+			&r.Headers, &r.Params, &r.BodyType, &r.Body, &r.AuthType, &r.AuthConfig, &r.TimeoutSeconds, &r.Tests, &r.PreScript, &r.PostScript, &r.SortOrder, &createdAtStr,
 		); err != nil {
 			return nil, fmt.Errorf("ListRequests scan: %w", err)
 		}
@@ -309,4 +326,21 @@ func ListRequests(collectionID string) ([]Request, error) {
 		return nil, fmt.Errorf("ListRequests rows: %w", err)
 	}
 	return reqs, nil
+}
+
+// ReorderRequests updates the sort_order for requests in a folder (or root level if folderID = "").
+// requestIDs should contain the ordered list of request IDs.
+func ReorderRequests(folderID string, requestIDs []string) error {
+	for i, id := range requestIDs {
+		var err error
+		if folderID == "" {
+			_, err = DB.Exec(`UPDATE requests SET sort_order = ? WHERE id = ? AND folder_id IS NULL`, i, id)
+		} else {
+			_, err = DB.Exec(`UPDATE requests SET sort_order = ? WHERE id = ? AND folder_id = ?`, i, id, folderID)
+		}
+		if err != nil {
+			return fmt.Errorf("ReorderRequests update %s: %w", id, err)
+		}
+	}
+	return nil
 }
