@@ -87,6 +87,7 @@ const HistoryList: React.FC<HistoryListProps> = ({ onCompare }) => {
       tests: '',
       pre_script: '',
       post_script: '',
+      sort_order: 0,
       created_at: entry.executed_at,
     });
   }
