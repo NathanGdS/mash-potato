@@ -1,4 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  useDroppable,
+} from '@dnd-kit/core';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Folder } from '../types/folder';
 import { Request } from '../types/request';
 import { useRequestsStore } from '../store/requestsStore';
@@ -18,11 +23,46 @@ function methodBadgeClass(method: string): string {
   }
 }
 
+interface SortableRequestItemProps {
+  request: Request;
+  isActive?: boolean;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}
+
+function SortableRequestItem({ request, isActive, onClick, onContextMenu }: SortableRequestItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: request.id,
+    data: { type: 'request', request: { id: request.id, collection_id: request.collection_id, folder_id: request.folder_id } },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? undefined,
+    opacity: isDragging ? 0.5 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`request-item${isActive ? ' request-item--active' : ''}${isDragging ? ' request-item--dragging' : ''}`}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      {...attributes}
+      {...listeners}
+    >
+      <span className={methodBadgeClass(request.method)} data-method={request.method}>
+        {request.method}
+      </span>
+      <span className="request-name">{request.name}</span>
+    </li>
+  );
+}
+
 interface FolderItemProps {
   folder: Folder;
-  /** All requests for the collection (we filter by folder_id here). */
   allRequests: Request[];
-  /** All folders for the collection (needed for recursive render). */
   allFolders: Folder[];
   depth?: number;
 }
@@ -38,40 +78,37 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
   const { renameFolder, deleteFolder, createRequestInFolder, moveRequest } = useFoldersStore();
   const openRunner = useRunnerStore((s) => s.openRunner);
 
+  const { setNodeRef: setFolderDropRef, isOver: isFolderOver } = useDroppable({
+    id: `folder-${folder.id}`,
+    data: { type: 'folder', folderId: folder.id },
+  });
+
   const [expanded, setExpanded] = useState(false);
 
-  // Rename state
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(folder.name);
   const [renameError, setRenameError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Add request inline
   const [addingRequest, setAddingRequest] = useState(false);
   const [newRequestName, setNewRequestName] = useState('');
   const [newRequestError, setNewRequestError] = useState<string | null>(null);
   const newRequestInputRef = useRef<HTMLInputElement>(null);
 
-  // Context menus
   const [folderMenu, setFolderMenu] = useState<{ x: number; y: number } | null>(null);
   const folderMenuRef = useRef<HTMLDivElement>(null);
   const [requestMenu, setRequestMenu] = useState<{ x: number; y: number; request: Request } | null>(null);
   const requestMenuRef = useRef<HTMLDivElement>(null);
 
-  // Move-to submenu for requests
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
 
-  // Toast
   const [curlToast, setCurlToast] = useState(false);
 
-  // Requests directly inside this folder
   const folderRequests = allRequests.filter((r) => r.folder_id === folder.id);
-  // Direct child folders
   const childFolders = allFolders.filter((f) => f.parent_folder_id === folder.id);
 
   const indentPx = depth * 12;
 
-  // --- Folder rename ---
   const startEditing = () => {
     setDraftName(folder.name);
     setRenameError(null);
@@ -111,7 +148,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     else if (e.key === 'Escape') { e.preventDefault(); cancelEditing(); }
   };
 
-  // --- Folder delete ---
   const handleDeleteFolder = async () => {
     setFolderMenu(null);
     const confirmed = window.confirm(
@@ -136,7 +172,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     });
   };
 
-  // --- Add request ---
   const startAddingRequest = () => {
     setFolderMenu(null);
     setExpanded(true);
@@ -175,7 +210,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     else if (e.key === 'Escape') { e.preventDefault(); cancelAddRequest(); }
   };
 
-  // --- Request context menu ---
   const handleRequestContextMenu = (e: React.MouseEvent, req: Request) => {
     e.preventDefault();
     e.stopPropagation();
@@ -246,8 +280,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     }
   };
 
-  // Close menus on outside click
-  React.useEffect(() => {
+  useEffect(() => {
     if (!folderMenu) return;
     const handler = (e: MouseEvent) => {
       if (folderMenuRef.current && !folderMenuRef.current.contains(e.target as Node)) {
@@ -258,7 +291,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     return () => document.removeEventListener('mousedown', handler);
   }, [folderMenu]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!requestMenu) return;
     const handler = (e: MouseEvent) => {
       if (requestMenuRef.current && !requestMenuRef.current.contains(e.target as Node)) {
@@ -270,12 +303,10 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
     return () => document.removeEventListener('mousedown', handler);
   }, [requestMenu]);
 
-  // Other folders in the same collection (for Move To menu)
   const otherFolders = allFolders.filter((f) => f.id !== folder.id);
 
   return (
     <li className="folder-item" style={{ paddingLeft: indentPx }}>
-      {/* Folder header */}
       <div
         className="folder-item-header"
         onDoubleClick={!editing ? startEditing : undefined}
@@ -334,10 +365,59 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         )}
       </div>
 
-      {/* Expanded content */}
-      {expanded && (
+      {expanded && folderRequests.length > 0 && (
+        <SortableContext items={folderRequests.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+          <ul ref={setFolderDropRef} className={`request-list${isFolderOver ? ' drag-over' : ''}`} style={{ paddingLeft: 16 }}>
+            {childFolders.map((cf) => (
+              <FolderItem
+                key={cf.id}
+                folder={cf}
+                allRequests={allRequests}
+                allFolders={allFolders}
+                depth={depth + 1}
+              />
+            ))}
+
+            {folderRequests.map((req) => (
+              <SortableRequestItem
+                key={req.id}
+                request={req}
+                isActive={activeRequest?.id === req.id}
+                onClick={() => {
+                  openRequest(req.id);
+                  openTab({ requestId: req.id, requestName: req.name, method: req.method });
+                }}
+                onContextMenu={(e) => handleRequestContextMenu(e, req)}
+              />
+            ))}
+
+            {folderRequests.length === 0 && childFolders.length === 0 && !addingRequest && (
+              <li className="request-item request-item--empty">Empty folder.</li>
+            )}
+
+            {addingRequest && (
+              <li className="request-item request-item--new">
+                <input
+                  ref={newRequestInputRef}
+                  className="request-name-input"
+                  value={newRequestName}
+                  onChange={(e) => setNewRequestName(e.target.value)}
+                  onKeyDown={handleNewRequestKeyDown}
+                  onBlur={commitAddRequest}
+                  autoFocus
+                  aria-label="New request name"
+                />
+                {newRequestError && (
+                  <span className="collection-rename-error">{newRequestError}</span>
+                )}
+              </li>
+            )}
+          </ul>
+        </SortableContext>
+      )}
+
+      {expanded && folderRequests.length === 0 && (
         <ul className="request-list" style={{ paddingLeft: 16 }}>
-          {/* Child folders (recursive) */}
           {childFolders.map((cf) => (
             <FolderItem
               key={cf.id}
@@ -346,23 +426,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
               allFolders={allFolders}
               depth={depth + 1}
             />
-          ))}
-
-          {/* Requests in this folder */}
-          {folderRequests.map((req) => (
-            <li
-              key={req.id}
-              className={`request-item${activeRequest?.id === req.id ? ' request-item--active' : ''}`}
-              onClick={() => {
-                openRequest(req.id);
-                openTab({ requestId: req.id, requestName: req.name, method: req.method });
-              }}
-              onContextMenu={(e) => handleRequestContextMenu(e, req)}
-              style={{ cursor: 'pointer' }}
-            >
-              <span className={methodBadgeClass(req.method)} data-method={req.method}>{req.method}</span>
-              <span className="request-name">{req.name}</span>
-            </li>
           ))}
 
           {folderRequests.length === 0 && childFolders.length === 0 && !addingRequest && (
@@ -389,7 +452,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         </ul>
       )}
 
-      {/* Folder context menu */}
       {folderMenu && (
         <div
           ref={folderMenuRef}
@@ -414,7 +476,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         </div>
       )}
 
-      {/* Request context menu */}
       {requestMenu && (
         <div
           ref={requestMenuRef}
@@ -476,7 +537,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         </div>
       )}
 
-      {/* cURL copy toast */}
       {curlToast && (
         <div className="context-menu-toast">Copied to clipboard</div>
       )}

@@ -1,4 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useCollectionsStore } from '../store/collectionsStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
@@ -8,6 +17,85 @@ import { Collection } from '../types/collection';
 import { Request } from '../types/request';
 import { ExportCollection, ExportRequestAsCurl, ListRequests, ListFolders } from '../wailsjs/go/main/App';
 import FolderItem from './FolderItem';
+
+interface SortableRequestItemProps {
+  request: Request;
+  isActive?: boolean;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onDoubleClick: () => void;
+  editingId: string | null;
+  editingDraft: string;
+  editingError: string | null;
+  inputRef: React.RefObject<HTMLInputElement>;
+  onDraftChange: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onBlur: () => void;
+}
+
+function SortableRequestItem({
+  request,
+  isActive,
+  onClick,
+  onContextMenu,
+  onDoubleClick,
+  editingId,
+  editingDraft,
+  editingError,
+  inputRef,
+  onDraftChange,
+  onKeyDown,
+  onBlur,
+}: SortableRequestItemProps) {
+  const isEditing = editingId === request.id;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: request.id,
+    data: { type: 'request', request: { id: request.id, collection_id: request.collection_id, folder_id: request.folder_id } },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? undefined,
+    opacity: isDragging ? 0.5 : undefined,
+    cursor: isEditing ? 'text' : 'grab',
+  };
+
+  if (isEditing) {
+    return (
+      <li className="request-item request-item--editing">
+        <input
+          ref={inputRef}
+          type="text"
+          className="request-name-input"
+          value={editingDraft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={onBlur}
+          autoFocus
+        />
+        {editingError && <span className="request-rename-error">{editingError}</span>}
+      </li>
+    );
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`request-item${isActive ? ' request-item--active' : ''}${isDragging ? ' request-item--dragging' : ''}`}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu}
+      {...attributes}
+      {...listeners}
+    >
+      <span className={methodBadgeClass(request.method)} data-method={request.method}>
+        {request.method}
+      </span>
+      <span className="request-name">{request.name}</span>
+    </li>
+  );
+}
 
 function methodBadgeClass(method: string): string {
   switch (method.toUpperCase()) {
@@ -22,7 +110,6 @@ function methodBadgeClass(method: string): string {
 
 interface CollectionItemProps {
   collection: Collection;
-  /** Called when the user picks "Import from cURL…" from the collection context menu. */
   onImportCurl?: (collectionId: string) => void;
 }
 
@@ -36,6 +123,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
   const duplicateRequest = useRequestsStore((s) => s.duplicateRequest);
   const deleteRequest = useRequestsStore((s) => s.deleteRequest);
   const activeRequest = useRequestsStore((s) => s.activeRequest);
+  const renameRequest = useRequestsStore((s) => s.renameRequest);
   const openTab = useTabsStore((s) => s.openTab);
   const requests = useRequestsStore((s) => s.requestsByCollection[collection.id] ?? []);
   const requestsLoading = useRequestsStore((s) => s.loadingFor[collection.id] ?? false);
@@ -43,6 +131,11 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
 
   const { fetchFolders, createFolder, moveRequest } = useFoldersStore();
   const folders = useFoldersStore((s) => s.foldersByCollection[collection.id] ?? []);
+
+  const { setNodeRef: setCollectionDropRef, isOver: isCollectionOver } = useDroppable({
+    id: `collection-root-${collection.id}`,
+    data: { type: 'collection-root', collectionId: collection.id },
+  });
 
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(collection.name);
@@ -56,28 +149,28 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
   const [newRequestError, setNewRequestError] = useState<string | null>(null);
   const newRequestInputRef = useRef<HTMLInputElement>(null);
 
-  // Add folder inline
   const [addingFolder, setAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderError, setNewFolderError] = useState<string | null>(null);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
-  // Request context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; request: Request } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
 
-  // Toast
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+  const [editingRequestDraft, setEditingRequestDraft] = useState('');
+  const [editingRequestError, setEditingRequestError] = useState<string | null>(null);
+  const editingRequestInputRef = useRef<HTMLInputElement>(null);
+
   const [curlToast, setCurlToast] = useState(false);
 
-  // Collection context menu state
   const [collectionMenu, setCollectionMenu] = useState<{ x: number; y: number } | null>(null);
   const collectionMenuRef = useRef<HTMLDivElement>(null);
 
   const closeTab = useTabsStore((s) => s.closeTab);
   const openRunner = useRunnerStore((s) => s.openRunner);
 
-  // Close request context menu when clicking outside
   useEffect(() => {
     if (!contextMenu) return;
     const handler = (e: MouseEvent) => {
@@ -90,7 +183,6 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
     return () => document.removeEventListener('mousedown', handler);
   }, [contextMenu]);
 
-  // Close collection context menu when clicking outside
   useEffect(() => {
     if (!collectionMenu) return;
     const handler = (e: MouseEvent) => {
@@ -124,7 +216,6 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
 
   const handleRunCollection = async () => {
     setCollectionMenu(null);
-    // Fetch fresh from DB — the store only has data when the collection is expanded.
     const [allRequests, allFolders] = await Promise.all([
       ListRequests(collection.id),
       ListFolders(collection.id),
@@ -265,6 +356,52 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
     else if (e.key === 'Escape') { e.preventDefault(); cancelEditing(); }
   };
 
+  const startRequestRename = (req: Request) => {
+    setEditingRequestId(req.id);
+    setEditingRequestDraft(req.name);
+    setEditingRequestError(null);
+    setTimeout(() => editingRequestInputRef.current?.select(), 0);
+  };
+
+  const commitRequestRename = async () => {
+    const trimmed = editingRequestDraft.trim();
+    if (!trimmed) {
+      setEditingRequestError('Name cannot be empty.');
+      editingRequestInputRef.current?.focus();
+      return;
+    }
+    const currentRequest = requests.find(r => r.id === editingRequestId);
+    if (!currentRequest) return;
+    if (trimmed === currentRequest.name) {
+      setEditingRequestId(null);
+      return;
+    }
+    try {
+      await renameRequest(editingRequestId!, collection.id, trimmed);
+      setEditingRequestId(null);
+      setEditingRequestError(null);
+    } catch (err) {
+      setEditingRequestError(String(err));
+      editingRequestInputRef.current?.focus();
+    }
+  };
+
+  const cancelRequestRename = () => {
+    setEditingRequestId(null);
+    setEditingRequestDraft('');
+    setEditingRequestError(null);
+  };
+
+  const handleRequestRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitRequestRename(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelRequestRename(); }
+  };
+
+  const handleRequestRenameFromMenu = (req: Request) => {
+    startRequestRename(req);
+    setContextMenu(null);
+  };
+
   const startAddingRequest = () => {
     setNewRequestName('New Request');
     setNewRequestError(null);
@@ -302,7 +439,6 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
     else if (e.key === 'Escape') { e.preventDefault(); cancelAddRequest(); }
   };
 
-  // --- Add folder ---
   const startAddingFolder = () => {
     setCollectionMenu(null);
     setExpanded(true);
@@ -341,9 +477,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
     else if (e.key === 'Escape') { e.preventDefault(); cancelAddFolder(); }
   };
 
-  // Root-level requests: those with no folder_id
   const rootRequests = requests.filter((r) => r.folder_id == null);
-  // Root-level folders: those with no parent_folder_id
   const rootFolders = folders.filter((f) => f.parent_folder_id == null);
 
   return (
@@ -416,91 +550,100 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
       )}
 
       {expanded && (
-        <ul className="request-list">
-          {requestsLoading && (
-            <li className="request-item request-item--status">Loading…</li>
-          )}
-          {!requestsLoading && requestsError && (
-            <li className="request-item request-item--error">{requestsError}</li>
-          )}
+        <ul ref={setCollectionDropRef} className={`request-list${isCollectionOver ? ' drag-over' : ''}`}>
+            {requestsLoading && (
+              <li className="request-item request-item--status">Loading…</li>
+            )}
+            {!requestsLoading && requestsError && (
+              <li className="request-item request-item--error">{requestsError}</li>
+            )}
 
-          {/* Root-level folders */}
-          {!requestsLoading && !requestsError && rootFolders.map((folder) => (
-            <FolderItem
-              key={folder.id}
-              folder={folder}
-              allRequests={requests}
-              allFolders={folders}
-              depth={0}
-            />
-          ))}
-
-          {/* Root-level requests (no folder) */}
-          {!requestsLoading && !requestsError && rootRequests.map((req) => (
-            <li
-              key={req.id}
-              className={`request-item${activeRequest?.id === req.id ? ' request-item--active' : ''}`}
-              onClick={() => {
-                openRequest(req.id);
-                openTab({ requestId: req.id, requestName: req.name, method: req.method });
-              }}
-              onContextMenu={(e) => handleRequestContextMenu(e, req)}
-              style={{ cursor: 'pointer' }}
-            >
-              <span className={methodBadgeClass(req.method)} data-method={req.method}>{req.method}</span>
-              <span className="request-name">{req.name}</span>
-            </li>
-          ))}
-
-          {!requestsLoading && !requestsError && rootRequests.length === 0 && rootFolders.length === 0 && !addingRequest && !addingFolder && (
-            <li className="request-item request-item--empty">No requests yet.</li>
-          )}
-
-          {addingFolder && (
-            <li className="request-item request-item--new">
-              <input
-                ref={newFolderInputRef}
-                className="request-name-input"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={handleNewFolderKeyDown}
-                onBlur={commitAddFolder}
-                autoFocus
-                aria-label="New folder name"
+            {!requestsLoading && !requestsError && rootFolders.map((folder) => (
+              <FolderItem
+                key={folder.id}
+                folder={folder}
+                allRequests={requests}
+                allFolders={folders}
+                depth={0}
               />
-              {newFolderError && (
-                <span className="collection-rename-error">{newFolderError}</span>
-              )}
-            </li>
-          )}
+            ))}
 
-          {addingRequest && (
-            <li className="request-item request-item--new">
-              <input
-                ref={newRequestInputRef}
-                className="request-name-input"
-                value={newRequestName}
-                onChange={(e) => setNewRequestName(e.target.value)}
-                onKeyDown={handleNewRequestKeyDown}
-                onBlur={commitAddRequest}
-                autoFocus
-                aria-label="New request name"
-              />
-              {newRequestError && (
-                <span className="collection-rename-error">{newRequestError}</span>
-              )}
-            </li>
-          )}
-        </ul>
-      )}
+            {!requestsLoading && !requestsError && (
+              <SortableContext items={rootRequests.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                {rootRequests.map((req) => (
+                  <SortableRequestItem
+                    key={req.id}
+                    request={req}
+                    isActive={activeRequest?.id === req.id}
+                    onClick={() => {
+                      openRequest(req.id);
+                      openTab({ requestId: req.id, requestName: req.name, method: req.method });
+                    }}
+                    onContextMenu={(e) => handleRequestContextMenu(e, req)}
+                    onDoubleClick={() => startRequestRename(req)}
+                    editingId={editingRequestId}
+                    editingDraft={editingRequestDraft}
+                    editingError={editingRequestError}
+                    inputRef={editingRequestInputRef as React.RefObject<HTMLInputElement>}
+                    onDraftChange={setEditingRequestDraft}
+                    onKeyDown={handleRequestRenameKeyDown as unknown as (e: React.KeyboardEvent) => void}
+                    onBlur={commitRequestRename}
+                  />
+                ))}
+              </SortableContext>
+            )}
 
-      {/* Request context menu (root-level requests) */}
+            {!requestsLoading && !requestsError && rootRequests.length === 0 && rootFolders.length === 0 && !addingRequest && !addingFolder && (
+              <li className="request-item request-item--empty">No requests yet.</li>
+            )}
+
+            {addingFolder && (
+              <li className="request-item request-item--new">
+                <input
+                  ref={newFolderInputRef}
+                  className="request-name-input"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={handleNewFolderKeyDown}
+                  onBlur={commitAddFolder}
+                  autoFocus
+                  aria-label="New folder name"
+                />
+                {newFolderError && (
+                  <span className="collection-rename-error">{newFolderError}</span>
+                )}
+              </li>
+            )}
+
+            {addingRequest && (
+              <li className="request-item request-item--new">
+                <input
+                  ref={newRequestInputRef}
+                  className="request-name-input"
+                  value={newRequestName}
+                  onChange={(e) => setNewRequestName(e.target.value)}
+                  onKeyDown={handleNewRequestKeyDown}
+                  onBlur={commitAddRequest}
+                  autoFocus
+                  aria-label="New request name"
+                />
+                {newRequestError && (
+                  <span className="collection-rename-error">{newRequestError}</span>
+                )}
+              </li>
+            )}
+          </ul>
+        )}
+
       {contextMenu && (
         <div
           ref={contextMenuRef}
           className="request-context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
+          <button className="request-context-menu-item" onClick={() => handleRequestRenameFromMenu(contextMenu.request)}>
+            Rename
+          </button>
           <button className="request-context-menu-item" onClick={handleDuplicate}>
             Duplicate
           </button>
@@ -540,7 +683,6 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
         </div>
       )}
 
-      {/* Collection context menu */}
       {collectionMenu && (
         <div
           ref={collectionMenuRef}
@@ -566,7 +708,6 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
         </div>
       )}
 
-      {/* cURL copy toast */}
       {curlToast && (
         <div className="collection-curl-toast">Copied to clipboard</div>
       )}
