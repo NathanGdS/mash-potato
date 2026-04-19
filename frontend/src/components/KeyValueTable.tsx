@@ -54,7 +54,6 @@ function VarValueInput({
               <span key={i}>{seg.text}</span>
             )
           )}
-          {'\u00A0'}
         </span>
       </div>
       <input
