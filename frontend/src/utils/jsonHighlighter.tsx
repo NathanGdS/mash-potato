@@ -56,7 +56,12 @@ export function tokenizeJson(json: string): JsonToken[] {
   return tokens;
 }
 
-export const JsonHighlighted: React.FC<{ text: string }> = ({ text }) => {
+const VALID_VAR_RE = /^\{\{([^{}]+)\}\}$/;
+
+export const JsonHighlighted: React.FC<{ text: string; annotateVarTokens?: boolean }> = ({
+  text,
+  annotateVarTokens = false,
+}) => {
   const tokens = tokenizeJson(text);
   return (
     <>
@@ -65,6 +70,16 @@ export const JsonHighlighted: React.FC<{ text: string }> = ({ text }) => {
           return <span key={i}>{token.value}</span>;
         }
         const className = token.type === 'var' ? 'var-token' : `json-${token.type}`;
+        if (annotateVarTokens && token.type === 'var') {
+          const m = VALID_VAR_RE.exec(token.value);
+          if (m) {
+            return (
+              <span key={i} className={className} data-var-name={m[1]}>
+                {token.value}
+              </span>
+            );
+          }
+        }
         return <span key={i} className={className}>{token.value}</span>;
       })}
     </>
