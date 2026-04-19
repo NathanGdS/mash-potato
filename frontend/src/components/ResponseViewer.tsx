@@ -6,10 +6,11 @@ import ResponseBody from './ResponseBody';
 import ResponseHeaders from './ResponseHeaders';
 import TestResults from './TestResults';
 import ConsolePanel from './ConsolePanel';
+import TimingWaterfall from './TimingWaterfall';
 import { tryPrettyPrint } from '../utils/jsonHighlighter';
 import { httpclient } from '../../wailsjs/go/models';
 
-type ResponseTab = 'body' | 'headers' | 'tests' | 'console';
+type ResponseTab = 'body' | 'headers' | 'tests' | 'console' | 'timing';
 
 const ResponseViewer: React.FC = () => {
   const { responses, activeRequestId, error } = useResponseStore();
@@ -63,7 +64,7 @@ const ResponseViewer: React.FC = () => {
 
       {/* Tab navigation */}
       <div className="response-viewer-tabs">
-        {(['body', 'headers', 'tests', 'console'] as ResponseTab[]).map((tab) => {
+        {(['body', 'headers', 'tests', 'console', 'timing'] as ResponseTab[]).map((tab) => {
           const consoleLogs = (response as any).consoleLogs as string[] | undefined;
           const scriptErrors = (response as any).scriptErrors as string[] | undefined;
           const consoleCount = (consoleLogs?.length ?? 0) + (scriptErrors?.length ?? 0);
@@ -104,6 +105,11 @@ const ResponseViewer: React.FC = () => {
             logs={(response as any).consoleLogs ?? []}
             errors={(response as any).scriptErrors ?? []}
           />
+        )}
+        {activeTab === 'timing' && (
+          response?.Timing
+            ? <TimingWaterfall timing={response.Timing} />
+            : <p className="response-viewer-placeholder">Send a request to see timing data.</p>
         )}
       </div>
     </div>
