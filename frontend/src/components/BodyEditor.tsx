@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import KeyValueTable, { KVRow } from './KeyValueTable';
 import VarPopover from './VarPopover';
+import VarTooltip from './VarTooltip';
 import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import { useVarHoverTooltip } from '../hooks/useVarHoverTooltip';
 import { parseVarSegments } from '../utils/varSegments';
 import { JsonHighlighted } from '../utils/jsonHighlighter';
 
@@ -49,12 +51,16 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
     setValidationError(null);
   }, [body, bodyType]);
 
-  // Hook called unconditionally (Rules of Hooks)
+  // Hooks called unconditionally (Rules of Hooks)
   const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown, close } =
     useVarAutocomplete({
       inputRef: textareaRef,
       onInsert: (v) => { onBodyChange(v); syncScroll(); },
     });
+
+  const { wrapperProps, tooltipState, cancelDismiss } = useVarHoverTooltip({
+    inputRef: textareaRef,
+  });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Ctrl+Alt+L to beautify JSON
@@ -143,15 +149,15 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
       )}
 
       {(bodyType === 'json' || bodyType === 'raw') && (
-        <div className="body-textarea-wrapper">
+        <div className="body-textarea-wrapper" {...wrapperProps}>
           {/* Highlight overlay */}
           <div className="body-textarea-mirror" ref={mirrorRef} aria-hidden="true">
             {bodyType === 'json' ? (
-              <JsonHighlighted text={body} />
+              <JsonHighlighted text={body} annotateVarTokens />
             ) : (
               segments.map((seg, i) =>
                 seg.isVar ? (
-                  <span key={i} className="var-token">{seg.text}</span>
+                  <span key={i} className="var-token" data-var-name={seg.text.slice(2, -2)}>{seg.text}</span>
                 ) : (
                   <span key={i}>{seg.text}</span>
                 )
@@ -180,6 +186,15 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
             onSelect={select}
             onClose={close}
           />
+          {tooltipState && (
+            <VarTooltip
+              varName={tooltipState.varName}
+              anchorRect={tooltipState.anchorRect}
+              isPassword={tooltipState.isPassword}
+              onMouseEnter={cancelDismiss}
+              onMouseLeave={wrapperProps.onMouseLeave}
+            />
+          )}
         </div>
       )}
 

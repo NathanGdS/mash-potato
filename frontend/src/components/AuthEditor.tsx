@@ -1,6 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import VarPopover from './VarPopover';
+import VarTooltip from './VarTooltip';
 import { useVarAutocomplete } from '../hooks/useVarAutocomplete';
+import { useVarHoverTooltip } from '../hooks/useVarHoverTooltip';
+import { parseVarSegments } from '../utils/varSegments';
+
+const DEBOUNCE_MS = 300;
 
 export type AuthType = 'none' | 'bearer' | 'basic' | 'apikey';
 
@@ -29,7 +34,7 @@ const AUTH_TYPE_LABELS: Record<AuthType, string> = {
   apikey: 'API Key',
 };
 
-/** A single-line input with {{variable}} autocomplete support. */
+/** A single-line input with {{variable}} autocomplete and hover tooltip support. */
 const VarInput: React.FC<{
   value: string;
   placeholder?: string;
@@ -37,24 +42,75 @@ const VarInput: React.FC<{
   onChange: (v: string) => void;
   ariaLabel?: string;
 }> = ({ value, placeholder, type = 'text', onChange, ariaLabel }) => {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mirrorInnerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const syncScroll = () => {
+    if (inputRef.current && mirrorInnerRef.current) {
+      mirrorInnerRef.current.style.transform = `translateX(-${inputRef.current.scrollLeft}px)`;
+    }
+  };
+
   const { open, filteredVars, selectedIdx, checkTrigger, select, onKeyDown, close } =
     useVarAutocomplete({
       inputRef,
-      onInsert: onChange,
+      onInsert: (v) => { setLocal(v); onChange(v); syncScroll(); },
     });
 
+  const { wrapperProps, tooltipState, cancelDismiss } = useVarHoverTooltip({
+    inputRef,
+    isPassword: type === 'password',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setLocal(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onChange(v), DEBOUNCE_MS);
+    checkTrigger();
+    syncScroll();
+  };
+
+  const handleBlur = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    onChange(local);
+  };
+
+  const segments = parseVarSegments(local);
+
   return (
-    <div style={{ position: 'relative', flex: 1 }}>
+    <div className="kv-value-wrapper kv-value-wrapper--mono" style={{ flex: 1 }} {...wrapperProps}>
+      <div className="kv-value-mirror" aria-hidden="true">
+        <span ref={mirrorInnerRef} className="kv-value-mirror-inner">
+          {segments.map((seg, i) =>
+            seg.isVar ? (
+              <span key={i} className="var-token" data-var-name={seg.text.slice(2, -2)}>{seg.text}</span>
+            ) : (
+              <span key={i}>{seg.text}</span>
+            )
+          )}
+        </span>
+      </div>
       <input
         ref={inputRef}
         type={type}
-        className="auth-field-input"
-        value={value}
+        className="auth-field-input kv-input--highlight"
+        value={local}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        onChange={(e) => { onChange(e.target.value); checkTrigger(); }}
-        onKeyDown={onKeyDown}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onKeyDown={(e) => { onKeyDown(e); syncScroll(); }}
+        onClick={syncScroll}
         autoComplete="off"
         spellCheck={false}
       />
@@ -66,6 +122,15 @@ const VarInput: React.FC<{
         onSelect={select}
         onClose={close}
       />
+      {tooltipState !== null && (
+        <VarTooltip
+          varName={tooltipState.varName}
+          anchorRect={tooltipState.anchorRect}
+          isPassword={tooltipState.isPassword}
+          onMouseEnter={cancelDismiss}
+          onMouseLeave={wrapperProps.onMouseLeave}
+        />
+      )}
     </div>
   );
 };
