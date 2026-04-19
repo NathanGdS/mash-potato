@@ -23,6 +23,15 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Set up Go (for Wails bindings generation)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Generate Wails bindings
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
@@ -42,6 +51,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Generate Wails bindings
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest && wails generate module
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -52,12 +70,6 @@ jobs:
       - name: Build frontend (required for go:embed)
         working-directory: frontend
         run: npm ci && npm run build
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-          cache: true
 
       - name: Vet
         run: go vet ./...
