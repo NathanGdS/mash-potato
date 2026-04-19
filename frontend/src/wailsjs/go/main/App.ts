@@ -90,6 +90,7 @@ export interface ResponseResult {
   SizeBytes: number;
   consoleLogs: string[];
   scriptErrors: string[];
+  Timing?: import('../../../types/timing').TimingPhases;
 }
 
 export function SendRequest(id: string): Promise<ResponseResult> {

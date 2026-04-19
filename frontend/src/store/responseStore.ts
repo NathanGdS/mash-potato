@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SendRequest, ResponseResult } from '../wailsjs/go/main/App';
+import { db } from '../../wailsjs/go/models';
 
 interface ResponseState {
   /** Response results keyed by request ID. */
@@ -23,6 +24,9 @@ interface ResponseState {
   /** Set the active request ID so the panel shows the correct response slot. */
   setActiveRequestId: (id: string | null) => void;
 
+  /** Timing phases from the most recent response. Undefined when no request has completed. */
+  timing: db.TimingPhases | undefined;
+
   /** Directly store a response result for a given request ID (e.g. from history). */
   setResponse: (id: string, result: ResponseResult) => void;
 }
@@ -35,6 +39,7 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
   activeRequestId: null,
   isLoading: false,
   error: null,
+  timing: undefined,
 
   sendRequest: async (id: string) => {
     _cancelFlag = false;
@@ -43,6 +48,7 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
       error: null,
       activeRequestId: id,
       responses: { ...state.responses, [id]: null },
+      timing: undefined,
     }));
     try {
       const result = await SendRequest(id);
@@ -51,6 +57,7 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
       set((state) => ({
         responses: { ...state.responses, [id]: result },
         isLoading: false,
+        timing: result.Timing ?? undefined,
       }));
     } catch (err) {
       if (_cancelFlag) return;
@@ -69,6 +76,7 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
     set((state) => ({
       responses: { ...state.responses, [targetId]: null },
       error: null,
+      timing: undefined,
     }));
   },
 
@@ -79,6 +87,7 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
   setResponse: (id: string, result: ResponseResult) => {
     set((state) => ({
       responses: { ...state.responses, [id]: result },
+      timing: result.Timing ?? undefined,
     }));
   },
 }));

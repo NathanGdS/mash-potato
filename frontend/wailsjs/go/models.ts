@@ -133,6 +133,26 @@ export namespace db {
 		    return a;
 		}
 	}
+	export class TimingPhases {
+	    dns_lookup: number;
+	    tcp_handshake: number;
+	    tls_handshake: number;
+	    ttfb: number;
+	    download: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TimingPhases(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dns_lookup = source["dns_lookup"];
+	        this.tcp_handshake = source["tcp_handshake"];
+	        this.tls_handshake = source["tls_handshake"];
+	        this.ttfb = source["ttfb"];
+	        this.download = source["download"];
+	    }
+	}
 	export class HistoryEntry {
 	    id: number;
 	    method: string;
@@ -147,6 +167,7 @@ export namespace db {
 	    response_duration_ms: number;
 	    response_size_bytes: number;
 	    executed_at: string;
+	    timing: TimingPhases;
 	
 	    static createFrom(source: any = {}) {
 	        return new HistoryEntry(source);
@@ -167,7 +188,26 @@ export namespace db {
 	        this.response_duration_ms = source["response_duration_ms"];
 	        this.response_size_bytes = source["response_size_bytes"];
 	        this.executed_at = source["executed_at"];
+	        this.timing = this.convertValues(source["timing"], TimingPhases);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Request {
 	    id: string;
@@ -285,6 +325,7 @@ export namespace httpclient {
 	    TestResults: AssertionResult[];
 	    consoleLogs: string[];
 	    scriptErrors: string[];
+	    Timing: db.TimingPhases;
 	
 	    static createFrom(source: any = {}) {
 	        return new ResponseResult(source);
@@ -301,6 +342,7 @@ export namespace httpclient {
 	        this.TestResults = this.convertValues(source["TestResults"], AssertionResult);
 	        this.consoleLogs = source["consoleLogs"];
 	        this.scriptErrors = source["scriptErrors"];
+	        this.Timing = this.convertValues(source["Timing"], db.TimingPhases);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

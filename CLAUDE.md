@@ -62,41 +62,90 @@ The frontend calls Go methods via Wails' auto-generated JS bindings in `frontend
 | `main.go` | Entry point; initializes DB, creates Wails app |
 | `app.go` | `App` struct with all Wails-exposed methods |
 | `interpolator.go` | `{{variable}}` template interpolation via regex |
+| `curl.go` | cURL export (`ExportRequestAsCurl`) and import (`ImportFromCurl`) |
+| `runner.go` | Collection runner; executes requests in sequence, emits `RunResult` events |
 | `db/db.go` | SQLite init, WAL mode, foreign keys, schema migrations |
 | `db/collections.go` | Collection CRUD |
 | `db/requests.go` | Request CRUD with JSON-encoded headers/params |
+| `db/folders.go` | Folder CRUD (nested folders within collections) |
 | `db/environments.go` | Environment and variable CRUD |
+| `db/history.go` | Request history CRUD |
 | `db/settings.go` | App settings persistence (key-value) |
 | `httpclient/client.go` | Executes HTTP requests; handles headers, query params, body types, response timing |
+| `httpclient/assertions.go` | Test assertion evaluation against `ResponseResult` |
+| `scripter/scripter.go` | JS pre/post-request script execution via `goja` |
+| `encryption/vars.go` | AES-256 encryption/decryption for secret environment variables |
 
 The SQLite database is stored in the OS user config directory (resolved at runtime).
 
 **Database schema:**
 - `collections(id, name, created_at)`
-- `requests(id, collection_id, name, method, url, headers, params, body_type, body, created_at)` — `headers` and `params` are JSON arrays of `{key, value, enabled}` objects.
-- `environments(id, name, created_at)`
-- `environment_variables(id, environment_id, key, value)`
+- `folders(id, collection_id, parent_folder_id, name, created_at)`
+- `requests(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, created_at)` — `headers` and `params` are JSON arrays of `{key, value, enabled}` objects.
+- `environments(id, name, is_global, created_at)` — built-in "Global" environment seeded at startup (`id = '__global__'`)
+- `environment_variables(id, environment_id, key, value, is_secret)`
 - `settings(key, value)`
+- `request_history(id, method, url, headers, params, body_type, body, response_status, response_body, response_headers, response_duration_ms, response_size_bytes, executed_at)`
 
 ### Frontend layout
 
 | Path | Purpose |
 |---|---|
-| `frontend/src/App.tsx` | Root layout: Sidebar + RequestEditor + ResponseViewer |
+| `frontend/src/App.tsx` | Root layout: Sidebar + TabBar + RequestEditor + ResponseViewer |
 | `frontend/src/components/` | UI components (see below) |
-| `frontend/src/store/` | Zustand stores: `collectionsStore`, `requestsStore`, `environmentsStore`, `responseStore` |
+| `frontend/src/store/` | Zustand stores (see below) |
 | `frontend/src/types/` | TypeScript interfaces for `Collection`, `Request`, `Environment` |
-| `frontend/src/hooks/` | Custom hooks (`useVarAutocomplete`) |
-| `frontend/src/utils/` | Shared utilities (`jsonHighlighter`, `varSegments`) |
+| `frontend/src/hooks/` | Custom hooks |
+| `frontend/src/utils/` | Shared utilities |
 | `frontend/src/wailsjs/` | Auto-generated Wails bindings — do not edit manually |
+
+**Stores:**
+
+| Store | Purpose |
+|---|---|
+| `collectionsStore` | Collections list and CRUD actions |
+| `requestsStore` | Open/active request state |
+| `foldersStore` | Folder tree state |
+| `tabsStore` | Open request tabs |
+| `environmentsStore` | Environments and variables |
+| `responseStore` | Last HTTP response + assertion results |
+| `runnerStore` | Collection runner state and results |
+| `historyStore` | Request history list |
+| `settingsStore` | App settings (theme, timeout, etc.) |
+
+**Hooks:**
+
+| Hook | Purpose |
+|---|---|
+| `useVarAutocomplete` | `{{variable}}` autocomplete suggestions |
+| `useCodeGen` | Code generation (curl, Python, etc.) from a request |
+| `useDiff` | Diff computation between two responses |
+
+**Utils:**
+
+| Util | Purpose |
+|---|---|
+| `codeHighlighter` | Syntax highlighting for JSON and other response bodies |
+| `varSegments` | Splits URL/strings into literal and `{{variable}}` segments |
+| `searchHighlight` | Highlights search matches in text |
 
 **Key components:**
 
 | Component | Purpose |
 |---|---|
-| `Sidebar.tsx` | Collections list with requests |
-| `RequestEditor.tsx` | Tabbed editor: URL bar, Headers, Params, Body |
+| `Sidebar.tsx` | Collections tree with folders and requests |
+| `CollectionItem.tsx` | Single collection row in sidebar |
+| `FolderItem.tsx` | Folder row in sidebar (supports nesting) |
+| `TabBar.tsx` | Open request tabs bar |
+| `RequestEditor.tsx` | Tabbed editor: URL bar, Headers, Params, Body, Auth, Tests, Scripts |
 | `BodyEditor.tsx` | Body type selector + editor with JSON beautify |
+| `AuthEditor.tsx` | Auth tab (Bearer, Basic, API Key) |
+| `TestsEditor.tsx` | Test assertion editor |
+| `TestResults.tsx` | Test assertion results display |
+| `ScriptEditor.tsx` | Pre/post-request JS script editor |
+| `ScriptsTab.tsx` | Scripts tab wrapper |
+| `ScriptDocsModal.tsx` | Scripting API reference modal |
+| `ConsolePanel.tsx` | Script console log output panel |
 | `ResponseViewer.tsx` | Tabbed response: Body, Headers, status badge, metrics |
 | `ResponseBody.tsx` | Syntax-highlighted JSON / raw response |
 | `ResponseHeaders.tsx` | Response headers table |
@@ -109,6 +158,16 @@ The SQLite database is stored in the OS user config directory (resolved at runti
 | `EnvironmentSelector.tsx` | Active environment dropdown |
 | `VarPopover.tsx` | `{{variable}}` autocomplete popover |
 | `SaveVarDialog.tsx` | Save response value as a variable |
+| `ImportCurlDialog.tsx` | cURL import dialog |
+| `CollectionRunner.tsx` | Collection runner modal/panel |
+| `HistoryList.tsx` | Request history list |
+| `SearchPalette.tsx` | Global search palette |
+| `CodeGenPanel.tsx` | Code generation panel (curl, Python, etc.) |
+| `DiffPane.tsx` | Side-by-side response diff pane |
+| `DiffViewer.tsx` | Diff viewer component |
+| `HeadersDiffTable.tsx` | Headers diff table |
+| `SettingsPanel.tsx` | App settings panel |
+| `NewCollectionModal.tsx` | New collection creation modal |
 
 ### State management pattern
 Zustand stores own both state and async actions that call the Wails Go bindings. Components read state and dispatch actions from the store — no local component state for data that needs persistence.
@@ -118,22 +177,19 @@ Zustand stores own both state and async actions that call the Wails Go bindings.
 2. Go fetches the request from SQLite
 3. Active environment variables are loaded
 4. `{{variable}}` tokens are interpolated across all fields (URL, headers, params, body)
-5. HTTP request executes (30s timeout)
-6. `ResponseResult` returned: status, body, headers, duration, size
+5. Pre-request script runs via `scripter` (can mutate vars/headers)
+6. HTTP request executes (configurable timeout, default 30s)
+7. Post-request script runs with access to `ResponseSnapshot`
+8. Test assertions evaluated via `httpclient.EvaluateAssertions`
+9. `ResponseResult` returned: status, body, headers, duration, size, assertion results
+10. Execution logged to `request_history`
 
 ## Spec-Driven Development
 
 This project uses a `.shadow/` directory for spec tracking:
-- `.shadow/counter` — current phase number (currently `0005`)
+- `.shadow/counter` — current phase number (currently `0018`)
 - `.shadow/features/<id>-<name>.md` — archived specs for completed phases
 - `.shadow/wip/<id>-<name>/root.md` — spec document for active phase
 - `.shadow/wip/<id>-<name>/spec_state.json` — user stories with acceptance criteria and status
 
-Use the `/shadow-plan`, `/shadow-run`, and `/sdd-finish` skills to manage the development lifecycle.
-
-**Completed phases:**
-- `0001` — MVP (collections, requests, HTTP execution, SQLite persistence)
-- `0002` — Environments & variable interpolation
-- `0003` — Variable autocomplete and `{{var}}` highlighting
-- `0004` — UX polish & visual overhaul (CSS tokens, resizable panes, tab badges)
-- `0005` — JSON visualization (beautify, syntax highlighting, copy button)
+Use the `/shadow-plan`, `/shadow-run`, and `/shadow-finish` skills to manage the development lifecycle.

@@ -132,11 +132,6 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE requests ADD COLUMN post_script TEXT NOT NULL DEFAULT ''`,
 		// US-2: add is_secret flag to environment_variables
 		`ALTER TABLE environment_variables ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0`,
-		// Phase 0007: store full response in history
-		`ALTER TABLE request_history ADD COLUMN response_body        TEXT    NOT NULL DEFAULT ''`,
-		`ALTER TABLE request_history ADD COLUMN response_headers     TEXT    NOT NULL DEFAULT '{}'`,
-		`ALTER TABLE request_history ADD COLUMN response_duration_ms INTEGER NOT NULL DEFAULT 0`,
-		`ALTER TABLE request_history ADD COLUMN response_size_bytes  INTEGER NOT NULL DEFAULT 0`,
 	}
 	for _, stmt := range addColumns {
 		if _, execErr := db.Exec(stmt); execErr != nil {
@@ -162,11 +157,64 @@ func migrate(db *sql.DB) error {
 		return fmt.Errorf("migrate request_history: %w", err)
 	}
 
+	// Phase 0007: store full response in history — idempotent, safe to re-run.
+	historyAddColumns := []string{
+		`ALTER TABLE request_history ADD COLUMN response_body        TEXT    NOT NULL DEFAULT ''`,
+		`ALTER TABLE request_history ADD COLUMN response_headers     TEXT    NOT NULL DEFAULT '{}'`,
+		`ALTER TABLE request_history ADD COLUMN response_duration_ms INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE request_history ADD COLUMN response_size_bytes  INTEGER NOT NULL DEFAULT 0`,
+	}
+	for _, stmt := range historyAddColumns {
+		if _, execErr := db.Exec(stmt); execErr != nil {
+			_ = execErr
+		}
+	}
+
+	// Phase 0018: idempotent migration — add timing_json only if missing.
+	// Uses PRAGMA table_info to detect the column before attempting ALTER TABLE.
+	// Must run AFTER the CREATE TABLE above so the table exists on fresh DBs.
+	if err = addColumnIfMissing(db, "request_history", "timing_json", "ALTER TABLE request_history ADD COLUMN timing_json TEXT"); err != nil {
+		return fmt.Errorf("migrate timing_json: %w", err)
+	}
+
 	// Seed the built-in global environment if it does not yet exist.
 	if err := seedGlobalEnvironment(db); err != nil {
 		return fmt.Errorf("migrate seed global env: %w", err)
 	}
 
+	return nil
+}
+
+// addColumnIfMissing executes alterStmt only when the named column is absent
+// from the given table, detected via PRAGMA table_info. This is idempotent and
+// safe to call on every startup.
+func addColumnIfMissing(db *sql.DB, table, column, alterStmt string) error {
+	rows, err := db.Query(fmt.Sprintf(`PRAGMA table_info(%q)`, table))
+	if err != nil {
+		return fmt.Errorf("addColumnIfMissing PRAGMA: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull int
+		var dfltValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dfltValue, &pk); err != nil {
+			return fmt.Errorf("addColumnIfMissing scan: %w", err)
+		}
+		if name == column {
+			return nil // column already exists
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("addColumnIfMissing rows: %w", err)
+	}
+
+	if _, err := db.Exec(alterStmt); err != nil {
+		return fmt.Errorf("addColumnIfMissing ALTER: %w", err)
+	}
 	return nil
 }
 

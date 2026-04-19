@@ -370,7 +370,7 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	}
 	responseHeadersJSON, _ := json.Marshal(histResponseHeaders)
 
-	if _, herr := db.InsertHistory(req.Method, histURL, histHeaders, histParams, req.BodyType, histBody, result.StatusCode, histResponseBody, string(responseHeadersJSON), result.DurationMs, result.SizeBytes); herr != nil {
+	if _, herr := db.InsertHistory(req.Method, histURL, histHeaders, histParams, req.BodyType, histBody, result.StatusCode, histResponseBody, string(responseHeadersJSON), result.DurationMs, result.SizeBytes, result.Timing); herr != nil {
 		// Silently ignore history write failures.
 		_ = herr
 	}

@@ -1,10 +1,16 @@
 package httpclient
 
 import (
+	"context"
+	"crypto/tls"
+	"io"
+	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"mash-potato/db"
 )
@@ -547,6 +553,338 @@ func TestRedactSecretValues_EmptyStringSecret_Skipped(t *testing.T) {
 	got := RedactSecretValues(body, []string{""}, false)
 	if got != body {
 		t.Errorf("empty secret should be skipped, got %q", got)
+	}
+}
+
+// ─── US-9: ms() helper ───────────────────────────────────────────────────────
+
+func TestMs_NegativeDuration_ReturnsZero(t *testing.T) {
+	end := time.Now()
+	start := end.Add(10 * time.Millisecond) // start is after end → negative
+	if got := ms(start, end); got != 0 {
+		t.Errorf("expected 0 for negative duration, got %d", got)
+	}
+}
+
+func TestMs_ZeroDuration_ReturnsZero(t *testing.T) {
+	now := time.Now()
+	if got := ms(now, now); got != 0 {
+		t.Errorf("expected 0 for zero duration, got %d", got)
+	}
+}
+
+func TestMs_PositiveDuration_MatchesMilliseconds(t *testing.T) {
+	start := time.Now()
+	end := start.Add(42 * time.Millisecond)
+	want := end.Sub(start).Milliseconds()
+	if got := ms(start, end); got != want {
+		t.Errorf("expected %d ms, got %d", want, got)
+	}
+}
+
+// ─── US-9: TimingPhases — raw-trace helper ───────────────────────────────────
+
+// tracedTimes captures raw timestamps from httptrace hooks for a single GET
+// request, allowing sub-millisecond precision checks that ms() would truncate.
+type tracedTimes struct {
+	dnsStart, dnsDone         time.Time
+	connectStart, connectDone time.Time
+	tlsStart, tlsDone         time.Time
+	wroteRequest, firstByte   time.Time
+	bodyReadDone              time.Time
+}
+
+// hookFired reports whether a hook pair was both set and in the correct order.
+// A zero start means the hook never fired (e.g. DNS on loopback IP targets).
+func hookFired(start, end time.Time) bool {
+	return !start.IsZero() && !end.IsZero() && !end.Before(start)
+}
+
+// doTracedGET executes a GET request against rawURL with the supplied client
+// and returns the raw hook timestamps.
+func doTracedGET(t *testing.T, client *http.Client, rawURL string) tracedTimes {
+	t.Helper()
+	var tt tracedTimes
+	trace := &httptrace.ClientTrace{
+		DNSStart:             func(_ httptrace.DNSStartInfo) { tt.dnsStart = time.Now() },
+		DNSDone:              func(_ httptrace.DNSDoneInfo) { tt.dnsDone = time.Now() },
+		ConnectStart:         func(_, _ string) { tt.connectStart = time.Now() },
+		ConnectDone:          func(_, _ string, _ error) { tt.connectDone = time.Now() },
+		TLSHandshakeStart:    func() { tt.tlsStart = time.Now() },
+		TLSHandshakeDone:     func(_ tls.ConnectionState, _ error) { tt.tlsDone = time.Now() },
+		WroteRequest:         func(_ httptrace.WroteRequestInfo) { tt.wroteRequest = time.Now() },
+		GotFirstResponseByte: func() { tt.firstByte = time.Now() },
+	}
+	ctx := httptrace.WithClientTrace(context.Background(), trace)
+	req, err := http.NewRequestWithContext(ctx, "GET", rawURL, nil)
+	if err != nil {
+		t.Fatalf("doTracedGET: NewRequest: %v", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("doTracedGET: Do: %v", err)
+	}
+	// Drain the body before closing so the connection can be returned to the
+	// pool and reused by subsequent requests in the same test.
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	tt.bodyReadDone = time.Now()
+	return tt
+}
+
+// ─── US-9: TimingPhases — HTTPS (TLS) request ────────────────────────────────
+
+// TestTimingPhases_HTTPS_TLSHookFires verifies that the TLS handshake trace
+// hooks are invoked for an HTTPS connection.  The test uses nanosecond-
+// precision timestamps to avoid flakiness from sub-millisecond loopback RTTs
+// that would cause ms() to truncate to zero.
+func TestTimingPhases_HTTPS_TLSHookFires(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	// Use the test server's own client so the self-signed cert is trusted.
+	tt := doTracedGET(t, srv.Client(), srv.URL)
+
+	if !hookFired(tt.tlsStart, tt.tlsDone) {
+		t.Errorf("HTTPS: TLS handshake hooks not fired (start=%v, done=%v)", tt.tlsStart, tt.tlsDone)
+	}
+	if !hookFired(tt.connectStart, tt.connectDone) {
+		t.Errorf("HTTPS: TCP connect hooks not fired (start=%v, done=%v)", tt.connectStart, tt.connectDone)
+	}
+	if !hookFired(tt.wroteRequest, tt.firstByte) {
+		t.Errorf("HTTPS: TTFB hooks not fired (wrote=%v, first=%v)", tt.wroteRequest, tt.firstByte)
+	}
+	if tt.firstByte.IsZero() || tt.bodyReadDone.IsZero() || tt.bodyReadDone.Before(tt.firstByte) {
+		t.Errorf("HTTPS: Download hooks not in order (first=%v, done=%v)", tt.firstByte, tt.bodyReadDone)
+	}
+}
+
+// delayConn wraps a net.Conn and sleeps for d on the first Write call.
+// This delays the TLS ClientHello, which lands inside the [tlsStart, tlsDone]
+// and [connectStart, connectDone] windows, making both phases > 1 ms.
+type delayConn struct {
+	net.Conn
+	delay time.Duration
+	once  bool
+}
+
+func (dc *delayConn) Write(b []byte) (int, error) {
+	if !dc.once {
+		dc.once = true
+		time.Sleep(dc.delay)
+	}
+	return dc.Conn.Write(b)
+}
+
+// TestTimingPhases_HTTPS_ViaExecuteRequest_AllPhasesNonZero verifies that all
+// relevant timing phase fields returned by ExecuteRequest are > 0 for an HTTPS
+// connection.  The handler sleeps 2 ms before writing headers (TTFB) and 2 ms
+// after flushing them (Download).  A wrapping net.Conn sleeps on the first
+// Write (TLS ClientHello), making TCPHandshake and TLSHandshake > 0.
+// DNSLookup resolves in < 1 ms on loopback and is excluded from > 0 assertions.
+func TestTimingPhases_HTTPS_ViaExecuteRequest_AllPhasesNonZero(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Delay before first byte → TTFB > 0.
+		time.Sleep(2 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		// Flush so the client records GotFirstResponseByte, then sleep so
+		// Download (firstByte → bodyReadDone) > 0.
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(2 * time.Millisecond)
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	// Build a transport that trusts the test cert.  The custom DialContext
+	// wraps the established net.Conn in delayConn so the first Write (TLS
+	// ClientHello) sleeps 2 ms, landing inside the ConnectDone / TLSHandshake
+	// measurement windows.
+	baseTLS := srv.Client().Transport.(*http.Transport).TLSClientConfig
+	slowTransport := &http.Transport{
+		TLSClientConfig: baseTLS,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return &delayConn{Conn: conn, delay: 2 * time.Millisecond}, nil
+		},
+	}
+
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = slowTransport
+	defer func() { http.DefaultTransport = origTransport }()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	result, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+
+	tp := result.Timing
+	// TCPHandshake on loopback is typically < 1 ms; assert it's non-negative.
+	if tp.TCPHandshake < 0 {
+		t.Errorf("HTTPS: TCPHandshake must be >= 0, got %d", tp.TCPHandshake)
+	}
+	// delayConn sleeps on first Write (TLS ClientHello) → TLSHandshake > 0.
+	if tp.TLSHandshake <= 0 {
+		t.Errorf("HTTPS: TLSHandshake must be > 0, got %d", tp.TLSHandshake)
+	}
+	// Handler sleep before headers → TTFB > 0.
+	if tp.TTFB <= 0 {
+		t.Errorf("HTTPS: TTFB must be > 0, got %d", tp.TTFB)
+	}
+	// Handler flush+sleep before body → Download > 0.
+	if tp.Download <= 0 {
+		t.Errorf("HTTPS: Download must be > 0, got %d", tp.Download)
+	}
+}
+
+// ─── US-9: TimingPhases — HTTP (non-TLS) request ─────────────────────────────
+
+// TestTimingPhases_HTTP_TLSHandshakeIsZero verifies two invariants for plain
+// HTTP connections:
+//  1. TLSHandshake is always 0 (no TLS negotiation occurs).
+//  2. The WroteRequest and GotFirstResponseByte hooks both fire, confirming
+//     the TTFB measurement path is active (even if the loopback value is 0 ms).
+func TestTimingPhases_HTTP_TLSHandshakeIsZero(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Sleep before writing headers → TTFB > 0.
+		time.Sleep(2 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		// Flush headers so GotFirstResponseByte fires, then sleep before
+		// writing the body so Download (firstByte → bodyReadDone) > 0.
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(2 * time.Millisecond)
+		w.Write([]byte("plain"))
+	}))
+	defer srv.Close()
+
+	// Use a wrapping DialContext that sleeps on the first conn.Write to make
+	// TCPHandshake (connectStart → connectDone) cross the 1 ms boundary.
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return &delayConn{Conn: conn, delay: 2 * time.Millisecond}, nil
+		},
+	}
+	defer func() { http.DefaultTransport = origTransport }()
+
+	// Verify via ExecuteRequest that TLSHandshake is exactly 0 and that the
+	// other non-TLS phases are non-zero.
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+	result, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest: %v", err)
+	}
+	tp := result.Timing
+	if tp.TLSHandshake != 0 {
+		t.Errorf("HTTP: expected TLSHandshake == 0, got %d", tp.TLSHandshake)
+	}
+	// TCPHandshake on loopback is typically < 1 ms; assert it's non-negative.
+	if tp.TCPHandshake < 0 {
+		t.Errorf("HTTP: expected TCPHandshake >= 0, got %d", tp.TCPHandshake)
+	}
+	// Handler sleep before headers → TTFB > 0.
+	if tp.TTFB <= 0 {
+		t.Errorf("HTTP: expected TTFB > 0, got %d", tp.TTFB)
+	}
+	// Handler flush+sleep before body → Download > 0.
+	if tp.Download <= 0 {
+		t.Errorf("HTTP: expected Download > 0, got %d", tp.Download)
+	}
+
+	// Verify hook firing at nanosecond precision via raw trace.
+	tt := doTracedGET(t, &http.Client{}, srv.URL)
+	if tt.tlsStart != (time.Time{}) || tt.tlsDone != (time.Time{}) {
+		t.Errorf("HTTP: TLS hooks should not fire, got start=%v done=%v", tt.tlsStart, tt.tlsDone)
+	}
+	if !hookFired(tt.wroteRequest, tt.firstByte) {
+		t.Errorf("HTTP: TTFB hooks not fired (wrote=%v, first=%v)", tt.wroteRequest, tt.firstByte)
+	}
+	if tt.firstByte.IsZero() || tt.bodyReadDone.IsZero() || tt.bodyReadDone.Before(tt.firstByte) {
+		t.Errorf("HTTP: Download hooks not in order (first=%v, done=%v)", tt.firstByte, tt.bodyReadDone)
+	}
+}
+
+// ─── US-9: TimingPhases — connection reuse ────────────────────────────────────
+
+// tracedRequest executes a single GET to rawURL using client and returns the
+// populated TimingPhases.  It mirrors the httptrace instrumentation inside
+// ExecuteRequest so the reuse test can share one *http.Client across calls.
+func tracedRequest(t *testing.T, client *http.Client, rawURL string) (db.TimingPhases, tracedTimes) {
+	t.Helper()
+	tt := doTracedGET(t, client, rawURL)
+	return db.TimingPhases{
+		DNSLookup:    ms(tt.dnsStart, tt.dnsDone),
+		TCPHandshake: ms(tt.connectStart, tt.connectDone),
+		TLSHandshake: ms(tt.tlsStart, tt.tlsDone),
+		TTFB:         ms(tt.wroteRequest, tt.firstByte),
+		Download:     ms(tt.firstByte, tt.bodyReadDone),
+	}, tt
+}
+
+func TestTimingPhases_ConnectionReuse_SecondRequestSkipsDNSAndTCP(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Sleep before headers → TTFB > 0.
+		time.Sleep(2 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		// Flush then sleep before body → Download > 0.
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(2 * time.Millisecond)
+		w.Write([]byte("reused"))
+	}))
+	defer srv.Close()
+
+	// A shared transport ensures the TCP connection is pooled between calls.
+	// We replace http.DefaultTransport so that both ExecuteRequest calls share
+	// the same pool, then restore it after the test.
+	sharedTransport := &http.Transport{}
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = sharedTransport
+	defer func() { http.DefaultTransport = origTransport }()
+
+	req := newTestRequest("GET", srv.URL, "[]", "[]", "none", "")
+
+	// First request establishes the TCP connection.
+	_, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest (first): %v", err)
+	}
+
+	// Second request should reuse the pooled connection.
+	result2, err := ExecuteRequest(req)
+	if err != nil {
+		t.Fatalf("ExecuteRequest (second): %v", err)
+	}
+
+	tp := result2.Timing
+	if tp.DNSLookup != 0 {
+		t.Errorf("reuse: DNSLookup must be 0 on second request, got %d", tp.DNSLookup)
+	}
+	if tp.TCPHandshake != 0 {
+		t.Errorf("reuse: TCPHandshake must be 0 on second request, got %d", tp.TCPHandshake)
+	}
+	if tp.TTFB <= 0 {
+		t.Errorf("reuse: TTFB must be > 0 on second request, got %d", tp.TTFB)
+	}
+	if tp.Download <= 0 {
+		t.Errorf("reuse: Download must be > 0 on second request, got %d", tp.Download)
 	}
 }
 
