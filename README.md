@@ -8,17 +8,25 @@ Built with [Wails v2](https://wails.io/), combining a Go backend with a React/Ty
 
 ## Features
 
-- **Collections & Requests** — organize requests into collections with full CRUD
-- **HTTP Methods** — GET, POST, PUT, PATCH, DELETE, and more
+- **Collections & Folders** — organize requests into collections with nested folder trees and drag-to-reorder
+- **HTTP Methods** — GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and more
 - **Headers & Query Params** — key-value editor with enable/disable toggles
-- **Request Body** — supports JSON, Raw, and Form Data body types
-- **JSON Beautify** — auto-format request bodies with one click
-- **Environments & Variables** — create environments, define variables, and interpolate `{{variable}}` tokens across URLs, headers, params, and bodies
+- **Request Body** — supports JSON, Raw, Form Data, and Form URL-encoded body types with JSON beautify
+- **Authentication** — Bearer Token, Basic Auth, and API Key auth types
+- **Environments & Variables** — create environments, define variables with secret masking (AES-256 encrypted at rest), and interpolate `{{variable}}` tokens across URLs, headers, params, and bodies
 - **Variable Autocomplete** — popover suggestions when typing `{{` anywhere in the editor
-- **Response Viewer** — syntax-highlighted JSON, status badges, response headers, duration, and size metrics
-- **Copy Response** — copy formatted response to clipboard
+- **Pre/Post-Request Scripts** — JavaScript execution via `goja` engine with access to request/response context and variable manipulation
+- **Test Assertions** — write test assertions against responses with pass/fail results display
+- **Collection Runner** — execute all requests in a collection sequentially with aggregated results
+- **Request History** — browse past requests with full response snapshots and timing breakdowns
+- **Response Viewer** — syntax-highlighted JSON, status badges, response headers, duration, size metrics, and timing waterfall
+- **Code Generation** — export requests as cURL, Python, Go, and other code snippets
+- **Response Diffing** — side-by-side comparison of two responses with headers diff
+- **cURL Import** — paste a cURL command to auto-populate a request
+- **Global Search** — keyboard-driven search palette to find requests instantly
 - **Resizable Panes** — drag to adjust the editor/response split
 - **Persistent Storage** — SQLite database stored in the OS user config directory
+- **Settings** — configurable timeout, theme, and other app preferences
 
 ---
 
@@ -28,9 +36,12 @@ Built with [Wails v2](https://wails.io/), combining a Go backend with a React/Ty
 |---|---|
 | Backend | Go 1.21, Wails v2 |
 | Database | SQLite (`modernc.org/sqlite` — pure Go, no CGO) |
+| Scripting | `goja` (JavaScript engine in Go) |
+| Encryption | AES-256 (OS keychain-backed) |
 | Frontend | React 18, TypeScript 5 |
 | State | Zustand |
 | Build | Vite |
+| Testing | Vitest (frontend), Go testing (backend) |
 
 ---
 
@@ -106,24 +117,34 @@ cd frontend && npm run test
 
 ```
 mash-potato/
-├── main.go                  # Entry point — initializes DB and Wails app
-├── app.go                   # Wails-exposed Go methods (the backend API)
-├── interpolator.go          # {{variable}} template interpolation
-├── db/                      # SQLite layer
-│   ├── db.go                # Init, WAL mode, schema migrations
-│   ├── collections.go       # Collection CRUD
-│   ├── requests.go          # Request CRUD
-│   ├── environments.go      # Environment CRUD
-│   └── settings.go          # App settings persistence
+├── main.go                     # Entry point — initializes DB and Wails app
+├── app.go                      # Wails-exposed Go methods (the backend API)
+├── interpolator.go             # {{variable}} template interpolation
+├── curl.go                     # cURL export and import
+├── runner.go                   # Collection runner with event emission
+├── db/                         # SQLite layer
+│   ├── db.go                   # Init, WAL mode, schema migrations
+│   ├── collections.go          # Collection CRUD
+│   ├── requests.go             # Request CRUD
+│   ├── folders.go              # Folder CRUD (nested)
+│   ├── environments.go         # Environment CRUD
+│   ├── history.go              # Request history CRUD
+│   └── settings.go             # App settings persistence
 ├── httpclient/
-│   └── client.go            # HTTP request execution with timing/size metrics
+│   ├── client.go               # HTTP request execution with timing/size metrics
+│   └── assertions.go           # Test assertion evaluation
+├── scripter/
+│   └── scripter.go             # JS pre/post-request script execution via goja
+├── encryption/
+│   └── vars.go                 # AES-256 encryption/decryption for secrets
 └── frontend/src/
-    ├── App.tsx               # Root layout
-    ├── components/           # UI components
-    ├── store/                # Zustand stores
-    ├── types/                # TypeScript interfaces
-    ├── hooks/                # Custom React hooks
-    └── utils/                # Shared utilities (JSON highlighter, var parser)
+    ├── App.tsx                  # Root layout
+    ├── components/              # UI components (60+)
+    ├── store/                   # Zustand stores (12)
+    ├── types/                   # TypeScript interfaces
+    ├── hooks/                   # Custom React hooks (5)
+    ├── utils/                   # Shared utilities
+    └── wailsjs/                 # Auto-generated Wails bindings
 ```
 
 ---
@@ -139,8 +160,12 @@ The frontend calls Go methods through Wails' auto-generated JS bindings (in `fro
 3. Go fetches the request from SQLite
 4. Active environment variables are loaded
 5. `{{variable}}` tokens are interpolated across all fields
-6. HTTP request executes with a 30s timeout
-7. Response (status, body, headers, duration, size) is returned to the frontend
+6. Pre-request script runs (can mutate vars/headers)
+7. HTTP request executes (configurable timeout, default 30s)
+8. Post-request script runs with access to response snapshot
+9. Test assertions evaluated against response
+10. Response (status, body, headers, duration, size, assertion results) returned to frontend
+11. Execution logged to `request_history`
 
 ---
 
@@ -150,13 +175,40 @@ SQLite file is stored in the OS user config directory (resolved at runtime). Sch
 
 ```sql
 collections(id, name, created_at)
-requests(id, collection_id, name, method, url, headers, params, body_type, body, created_at)
-environments(id, name, created_at)
-environment_variables(id, environment_id, key, value)
+folders(id, collection_id, parent_folder_id, name, created_at)
+requests(id, collection_id, folder_id, name, method, url, headers, params, body_type, body, auth_type, auth_config, timeout_seconds, tests, pre_script, post_script, sort_order, created_at)
+environments(id, name, is_global, created_at)
+environment_variables(id, environment_id, key, value, is_secret)
 settings(key, value)
+request_history(id, method, url, headers, params, body_type, body, response_status, response_body, response_headers, response_duration_ms, response_size_bytes, timing_json, executed_at)
 ```
 
-`headers` and `params` are JSON-encoded arrays of `{key, value, enabled}` objects.
+`headers` and `params` are JSON-encoded arrays of `{key, value, enabled}` objects. The built-in "Global" environment (`id = '__global__'`, `is_global = 1`) is seeded at startup.
+
+---
+
+## Stores
+
+| Store | Purpose |
+|---|---|
+| `collectionsStore` | Collections list and CRUD actions |
+| `foldersStore` | Folder tree state |
+| `requestsStore` | Open/active request state |
+| `tabsStore` | Open request tabs |
+| `environmentsStore` | Environments and variables |
+| `responseStore` | Last HTTP response + assertion results |
+| `runnerStore` | Collection runner state and results |
+| `historyStore` | Request history list |
+| `settingsStore` | App settings (theme, timeout, etc.) |
+
+## Hooks
+
+| Hook | Purpose |
+|---|---|
+| `useVarAutocomplete` | `{{variable}}` autocomplete suggestions |
+| `useVarHoverTooltip` | Variable hover tooltip |
+| `useCodeGen` | Code generation (curl, Python, etc.) from a request |
+| `useDiff` | Diff computation between two responses |
 
 ---
 
