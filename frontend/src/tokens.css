@@ -112,4 +112,19 @@
   --color-red:    #f87171;
   --color-green:  #4ade80;
   --color-yellow: #fbbf24;
+
+  /* ── Request timing phase colors ─────────────────────────── */
+  --timing-dns:  #a855f7;
+  --timing-tcp:  #3b82f6;
+  --timing-tls:  #14b8a6;
+  --timing-ttfb: #f97316;
+  --timing-dl:   #22c55e;
+}
+
+/* ── Timing bar ───────────────────────────────────────────── */
+.timing-bar {
+  min-width: 4px;
+  height: 10px;
+  border-radius: 9999px;
+  transition: width 0.2s ease;
 }
