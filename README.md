@@ -8,25 +8,52 @@ Built with [Wails v2](https://wails.io/), combining a Go backend with a React/Ty
 
 ## Features
 
+### Collections & Organization
 - **Collections & Folders** — organize requests into collections with nested folder trees and drag-to-reorder
+- **Request CRUD** — create, rename, duplicate, delete, and move requests between folders
+- **Collection Export/Import** — save and load collections as JSON files
+
+### Request Execution
 - **HTTP Methods** — GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and more
 - **Headers & Query Params** — key-value editor with enable/disable toggles
-- **Request Body** — supports JSON, Raw, Form Data, and Form URL-encoded body types with JSON beautify
+- **Request Body** — JSON, Raw, Form Data, and Form URL-encoded body types with JSON beautify
 - **Authentication** — Bearer Token, Basic Auth, and API Key auth types
-- **Environments & Variables** — create environments, define variables with secret masking (AES-256 encrypted at rest), and interpolate `{{variable}}` tokens across URLs, headers, params, and bodies
+- **Timeout Configuration** — per-request configurable timeout (default 30s)
+- **Cancel in Flight** — abort an in-progress request at any time
+
+### Environments & Variables
+- **Environments** — create, rename, delete, and switch active environments
+- **Global Environment** — always-active baseline variables available across all environments
+- **`{{variable}}` Interpolation** — token substitution across URLs, headers, params, body, and auth fields
 - **Variable Autocomplete** — popover suggestions when typing `{{` anywhere in the editor
-- **Pre/Post-Request Scripts** — JavaScript execution via `goja` engine with access to request/response context and variable manipulation
-- **Test Assertions** — write test assertions against responses with pass/fail results display
-- **Collection Runner** — execute all requests in a collection sequentially with aggregated results
-- **Request History** — browse past requests with full response snapshots and timing breakdowns
-- **Response Viewer** — syntax-highlighted JSON, status badges, response headers, duration, size metrics, and timing waterfall
-- **Code Generation** — export requests as cURL, Python, Go, and other code snippets
-- **Response Diffing** — side-by-side comparison of two responses with headers diff
+- **Variable Hover Tooltip** — hover over any `{{variable}}` token to see its resolved value
+- **Secret Variables** — AES-256-GCM encrypted at rest, masked in UI with 5-second reveal timeout; never logged in plaintext
+- **Save Response as Variable** — select text from a response body and save it directly as an environment variable
+
+### Scripting
+- **Pre/Post-Request Scripts** — JavaScript execution via `goja` engine before and after each request
+- **Environment Mutations** — scripts can read and write environment variables
+- **Console Panel** — view `console.log` output and script errors in a dedicated panel
+
+### Response & Analysis
+- **Response Viewer** — syntax-highlighted JSON body, status badge, headers, duration, and size metrics
+- **Timing Waterfall** — DNS, TCP, TLS, TTFB, and download breakdown per request
+- **Test Assertions** — write JavaScript assertions against responses with pass/fail results display
+- **Response Diffing** — side-by-side comparison of two responses including a headers diff table
+- **Request History** — last 100 requests with full response snapshots; diff any two history entries
+
+### Tooling
+- **Code Generation** — export requests as cURL, Python, JavaScript (Fetch/Axios), TypeScript, Go, or Java
 - **cURL Import** — paste a cURL command to auto-populate a request
-- **Global Search** — keyboard-driven search palette to find requests instantly
+- **Collection Runner** — execute all requests in a collection sequentially with aggregated pass/fail results
+- **Global Search** — keyboard-driven palette (Ctrl+K) to find requests across all collections instantly
+
+### UI & Persistence
+- **Tab System** — multi-request editing with unsaved-change (dirty-state) tracking
 - **Resizable Panes** — drag to adjust the editor/response split
-- **Persistent Storage** — SQLite database stored in the OS user config directory
-- **Settings** — configurable timeout, theme, and other app preferences
+- **Theme** — Dark, Light, or System theme with 8 accent color presets
+- **Persistent Storage** — SQLite database in the OS user config directory
+- **Settings** — configurable timeout, theme, accent color, and other app preferences
 
 ---
 
