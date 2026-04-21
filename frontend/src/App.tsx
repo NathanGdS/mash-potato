@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+
 import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
 import RequestEditor from './components/RequestEditor';
@@ -19,6 +20,10 @@ import './App.css';
 
 const MIN_PANE_HEIGHT = 120;
 const STORAGE_KEY = 'mash-potato:split-ratio';
+const SIDEBAR_STORAGE_KEY = 'mash-potato:sidebar-width';
+const SIDEBAR_MIN = 180;
+const SIDEBAR_MAX = 480;
+const SIDEBAR_DEFAULT = 240;
 
 function loadSplitRatio(): number {
   try {
@@ -31,6 +36,19 @@ function loadSplitRatio(): number {
     // ignore
   }
   return 0.5;
+}
+
+function loadSidebarWidth(): number {
+  try {
+    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (stored !== null) {
+      const width = parseInt(stored, 10);
+      if (!isNaN(width) && width >= SIDEBAR_MIN && width <= SIDEBAR_MAX) return width;
+    }
+  } catch {
+    // ignore
+  }
+  return SIDEBAR_DEFAULT;
 }
 
 const App: React.FC = () => {
@@ -123,9 +141,59 @@ const App: React.FC = () => {
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // ── Sidebar resize ───────────────────────────────────────
+  const [sidebarWidth, setSidebarWidth] = useState<number>(loadSidebarWidth);
+  const isDraggingSidebar = useRef(false);
+
+  const handleSidebarDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingSidebar.current = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const handleSidebarMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDraggingSidebar.current) return;
+    const clamped = Math.min(Math.max(e.clientX, SIDEBAR_MIN), SIDEBAR_MAX);
+    setSidebarWidth(clamped);
+  }, []);
+
+  const handleSidebarMouseUp = useCallback(() => {
+    if (!isDraggingSidebar.current) return;
+    isDraggingSidebar.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    setSidebarWidth((w) => {
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, String(w));
+      } catch {
+        // ignore
+      }
+      return w;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleSidebarMouseMove);
+    window.addEventListener('mouseup', handleSidebarMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleSidebarMouseMove);
+      window.removeEventListener('mouseup', handleSidebarMouseUp);
+    };
+  }, [handleSidebarMouseMove, handleSidebarMouseUp]);
+
   return (
     <div className="app-layout">
-      <Sidebar onSettingsClick={() => setShowSettings(true)} onCompare={handleCompare} />
+      <div className="app-sidebar-wrapper" style={{ width: sidebarWidth, flexShrink: 0 }}>
+        <Sidebar onSettingsClick={() => setShowSettings(true)} onCompare={handleCompare} onSearchClick={() => { setShowSearch(true); setSearchQuery(''); }} />
+      </div>
+      <div
+        className="app-divider app-divider--vertical"
+        onMouseDown={handleSidebarDividerMouseDown}
+        aria-label="Resize sidebar"
+        role="separator"
+        aria-orientation="vertical"
+      />
       <main className="app-main">
         <div className="app-topbar">
           <span className="app-brand">
