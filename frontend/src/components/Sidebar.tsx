@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { FolderInput, Search } from 'lucide-react';
 import { useCollectionsStore } from '../store/collectionsStore';
 import { useFoldersStore } from '../store/foldersStore';
 import { useRequestsStore } from '../store/requestsStore';
 import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
+import ImportModal from './ImportModal';
 import ImportCurlDialog from './ImportCurlDialog';
 import HistoryList from './HistoryList';
 import './Sidebar.css';
@@ -15,15 +17,17 @@ type SidebarTab = 'collections' | 'history';
 interface SidebarProps {
   onSettingsClick: () => void;
   onCompare: () => void;
+  onSearchClick: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare, onSearchClick }) => {
   const { collections, loading, error, fetchCollections, importCollection } = useCollectionsStore();
   const { moveRequest, moveRequestToCollection } = useFoldersStore();
   const reorderRequests = useRequestsStore((s) => s.reorderRequests);
   const requestsByCollection = useRequestsStore((s) => s.requestsByCollection);
   const foldersByCollection = useFoldersStore((s) => s.foldersByCollection);
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showImportCurl, setShowImportCurl] = useState(false);
   const [importCurlCollectionId, setImportCurlCollectionId] = useState('');
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections');
@@ -171,36 +175,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
             <div className="sidebar-header-actions">
               <button
                 className="sidebar-new-btn sidebar-new-btn--icon"
-                title="Import from cURL"
-                onClick={() => handleOpenImportCurl()}
-                aria-label="Import from cURL"
+                title="Search (Ctrl+K)"
+                onClick={onSearchClick}
+                aria-label="Search (Ctrl+K)"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="3 4 1 6 3 8" />
-                  <polyline points="9 4 11 6 9 8" />
-                  <line x1="7" y1="2" x2="5" y2="10" />
-                  <line x1="1" y1="13" x2="11" y2="13" />
-                  <polyline points="9 11 11 13 9 15" />
-                </svg>
+                <Search size={16} aria-hidden="true" />
               </button>
               <button
-                className="sidebar-new-btn"
-                title="Import Collection"
-                onClick={handleImport}
-                aria-label="Import Collection"
+                className="sidebar-new-btn sidebar-new-btn--icon"
+                title="Import"
+                onClick={() => setShowImportModal(true)}
+                aria-label="Import"
               >
-                ↑
+                <FolderInput size={16} aria-hidden="true" />
               </button>
               <button
                 className="sidebar-new-btn"
@@ -257,6 +244,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare }) => {
 
           {showModal && (
             <NewCollectionModal onClose={() => setShowModal(false)} />
+          )}
+
+          {showImportModal && (
+            <ImportModal
+              onClose={() => setShowImportModal(false)}
+              onImportCollection={handleImport}
+              onImportCurl={() => handleOpenImportCurl()}
+            />
           )}
 
           {showImportCurl && (

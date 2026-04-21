@@ -1,0 +1,54 @@
+/* ── Script Editor Wrapper ───────────────────────────────── */
+.script-editor-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+/* ── Format Button ───────────────────────────────────────── */
+.script-editor-format-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: var(--bg-elevated, var(--bg-secondary));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.script-editor-wrapper:hover .script-editor-format-btn,
+.script-editor-wrapper:focus-within .script-editor-format-btn {
+  opacity: 1;
+}
+
+.script-editor-format-btn:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--bg-elevated, var(--bg-secondary)));
+  border-color: var(--accent);
+}
+
+/* ── Format Error ────────────────────────────────────────── */
+.script-editor-format-error {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  color: var(--color-error, #e05252);
+  background: color-mix(in srgb, var(--color-error, #e05252) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error, #e05252) 30%, transparent);
+  border-radius: var(--radius-sm);
+  word-break: break-word;
+}

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTabsStore } from '../store/tabsStore';
 import { useRequestsStore } from '../store/requestsStore';
+import { activateTabAfterClose } from '../utils/tabActivation';
+import ContextMenu from './ContextMenu';
 import './TabBar.css';
 
 function methodClass(method: string): string {
@@ -14,9 +16,18 @@ function methodClass(method: string): string {
   }
 }
 
+interface ContextMenuState {
+  x: number;
+  y: number;
+  requestId: string;
+}
+
 const TabBar: React.FC = () => {
   const { openTabs, activeTabId, dirtyTabs, closeTab, setActiveTab } = useTabsStore();
   const openRequest = useRequestsStore((s) => s.openRequest);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  const handleDismissContextMenu = useCallback(() => setContextMenu(null), []);
 
   if (openTabs.length === 0) return null;
 
@@ -25,58 +36,62 @@ const TabBar: React.FC = () => {
     openRequest(requestId).catch((err) => console.error('Failed to load request:', err));
   };
 
+  const handleContextMenu = (e: React.MouseEvent, requestId: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, requestId });
+  };
+
   const handleClose = (e: React.MouseEvent, requestId: string) => {
     e.stopPropagation();
-    const { openTabs: tabs, activeTabId: currentActive } = useTabsStore.getState();
+    const wasActive = useTabsStore.getState().activeTabId === requestId;
     closeTab(requestId);
-
-    // If we closed the active tab, load the new active tab's request
-    if (currentActive === requestId) {
-      const idx = tabs.findIndex((t) => t.requestId === requestId);
-      const remaining = tabs.filter((t) => t.requestId !== requestId);
-      if (remaining.length === 0) {
-        // No tabs left — clear active request
-        useRequestsStore.setState({ activeRequest: null });
-      } else {
-        const nextTab = idx > 0 ? remaining[idx - 1] : remaining[0];
-        openRequest(nextTab.requestId).catch((err) =>
-          console.error('Failed to load request after close:', err)
-        );
-      }
+    if (wasActive) {
+      activateTabAfterClose();
     }
   };
 
   return (
-    <div className="tab-bar" role="tablist" aria-label="Open requests">
-      {openTabs.map((tab) => {
-        const isActive = tab.requestId === activeTabId;
-        const isDirty = dirtyTabs.has(tab.requestId);
-        return (
-          <button
-            key={tab.requestId}
-            role="tab"
-            aria-selected={isActive}
-            className={`tab-bar-item${isActive ? ' tab-bar-item--active' : ''}`}
-            onClick={() => handleTabClick(tab.requestId)}
-            title={tab.requestName}
-          >
-            <span className={methodClass(tab.method)}>{tab.method}</span>
-            <span className="tab-bar-name">{tab.requestName}</span>
-            {isDirty && (
-              <span className="tab-bar-dirty" aria-label="Unsaved changes" title="Unsaved changes" />
-            )}
-            <span
-              className="tab-bar-close"
-              role="button"
-              aria-label={`Close tab ${tab.requestName}`}
-              onClick={(e) => handleClose(e, tab.requestId)}
+    <>
+      <div className="tab-bar" role="tablist" aria-label="Open requests">
+        {openTabs.map((tab) => {
+          const isActive = tab.requestId === activeTabId;
+          const isDirty = dirtyTabs.has(tab.requestId);
+          return (
+            <button
+              key={tab.requestId}
+              role="tab"
+              aria-selected={isActive}
+              className={`tab-bar-item${isActive ? ' tab-bar-item--active' : ''}`}
+              onClick={() => handleTabClick(tab.requestId)}
+              onContextMenu={(e) => handleContextMenu(e, tab.requestId)}
+              title={tab.requestName}
             >
-              ×
-            </span>
-          </button>
-        );
-      })}
-    </div>
+              <span className={methodClass(tab.method)}>{tab.method}</span>
+              <span className="tab-bar-name">{tab.requestName}</span>
+              {isDirty && (
+                <span className="tab-bar-dirty" aria-label="Unsaved changes" title="Unsaved changes" />
+              )}
+              <span
+                className="tab-bar-close"
+                role="button"
+                aria-label={`Close tab ${tab.requestName}`}
+                onClick={(e) => handleClose(e, tab.requestId)}
+              >
+                ×
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          requestId={contextMenu.requestId}
+          onClose={handleDismissContextMenu}
+        />
+      )}
+    </>
   );
 };
 

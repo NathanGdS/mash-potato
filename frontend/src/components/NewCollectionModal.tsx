@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useCollectionsStore } from '../store/collectionsStore';
-import './NewCollectionModal.css';
+import './Modal.css';
 
 interface Props {
   onClose: () => void;

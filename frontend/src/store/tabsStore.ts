@@ -58,6 +58,18 @@ interface TabsState {
   /** Mark a tab as clean (changes saved). */
   markClean: (requestId: string) => void;
 
+  /** Close all tabs. */
+  closeAll: () => void;
+
+  /** Close all tabs except the one with the given requestId. */
+  closeOthers: (requestId: string) => void;
+
+  /** Close all tabs to the right of the given requestId. */
+  closeToRight: (requestId: string) => void;
+
+  /** Close all tabs to the left of the given requestId. */
+  closeToLeft: (requestId: string) => void;
+
   /**
    * Read persisted tab state from SQLite settings, validate each requestId
    * against the DB, and hydrate the store. Silently drops IDs that no longer exist.
@@ -143,6 +155,67 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       nextDirty.delete(requestId);
       return { dirtyTabs: nextDirty };
     });
+  },
+
+  closeAll: () => {
+    set({
+      openTabs: [],
+      activeTabId: null,
+      dirtyTabs: new Set<string>(),
+    });
+    scheduleSave([], null);
+  },
+
+  closeOthers: (requestId: string) => {
+    const { openTabs } = get();
+    const newTabs = openTabs.filter((t) => t.requestId === requestId);
+    const newActiveId = newTabs.length > 0 ? newTabs[0].requestId : null;
+    set((state) => {
+      const nextDirty = new Set<string>();
+      if (state.dirtyTabs.has(requestId)) nextDirty.add(requestId);
+      return { openTabs: newTabs, activeTabId: newActiveId, dirtyTabs: nextDirty };
+    });
+    scheduleSave(newTabs, newActiveId);
+  },
+
+  closeToRight: (requestId: string) => {
+    const { openTabs } = get();
+    const idx = openTabs.findIndex((t) => t.requestId === requestId);
+    const newTabs = idx === -1 ? openTabs : openTabs.slice(0, idx + 1);
+    const { activeTabId } = get();
+    const newActiveId = newTabs.some((t) => t.requestId === activeTabId)
+      ? activeTabId
+      : newTabs.length > 0
+      ? newTabs[newTabs.length - 1].requestId
+      : null;
+    set((state) => {
+      const keepIds = new Set(newTabs.map((t) => t.requestId));
+      const nextDirty = new Set<string>(
+        [...state.dirtyTabs].filter((id) => keepIds.has(id))
+      );
+      return { openTabs: newTabs, activeTabId: newActiveId, dirtyTabs: nextDirty };
+    });
+    scheduleSave(newTabs, newActiveId);
+  },
+
+  closeToLeft: (requestId: string) => {
+    const { openTabs } = get();
+    const idx = openTabs.findIndex((t) => t.requestId === requestId);
+    const newTabs = idx === -1 ? openTabs : openTabs.slice(idx);
+    const { activeTabId } = get();
+    const newActiveId = newTabs.some((t) => t.requestId === activeTabId)
+      ? activeTabId
+      : newTabs.length > 0
+      ? newTabs[0].requestId
+      : null;
+    set((state) => {
+      const keepIds = new Set(newTabs.map((t) => t.requestId));
+      const nextDirty = new Set<string>(
+        [...state.dirtyTabs].filter((id) => keepIds.has(id))
+      );
+      return { openTabs: newTabs, activeTabId: newActiveId, dirtyTabs: nextDirty };
+    });
+    scheduleSave(newTabs, newActiveId);
   },
 
   restoreTabs: async () => {

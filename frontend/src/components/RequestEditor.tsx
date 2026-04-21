@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Clock } from 'lucide-react';
 import { Request } from '../types/request';
 import { useRequestsStore } from '../store/requestsStore';
 import { useResponseStore } from '../store/responseStore';
@@ -11,6 +12,7 @@ import AuthEditor, { AuthType, AuthConfig } from './AuthEditor';
 import TestsEditor from './TestsEditor';
 import ScriptsTab from './ScriptsTab';
 import ScriptDocsModal from './ScriptDocsModal';
+import TestDocsModal from './TestDocsModal';
 import CodeGenPanel from './CodeGenPanel';
 import { main } from '../../wailsjs/go/models';
 
@@ -62,6 +64,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
   const [postScript, setPostScript] = useState(request.post_script ?? '');
   const [activeTab, setActiveTab] = useState<Tab>('params');
   const [showScriptDocs, setShowScriptDocs] = useState(false);
+  const [showTestDocs, setShowTestDocs] = useState(false);
 
   // Reset local state when the selected request changes
   useEffect(() => {
@@ -206,15 +209,21 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
       <div className="request-editor-bar">
         <MethodSelector value={method} onChange={handleMethodChange} />
         <UrlBar value={url} onChange={handleUrlChange} />
-        <div className="timeout-input-wrapper" title="Request timeout (0 for none)">
-          <input
-            type="number"
-            className="timeout-input"
-            value={timeoutSeconds}
-            onChange={handleTimeoutChange}
-            min="0"
-          />
-          <span className="timeout-unit">s</span>
+        <div className="timeout-tooltip-wrapper">
+          <div className="timeout-input-wrapper">
+            <Clock size={12} className="timeout-clock-icon" aria-hidden="true" />
+            <input
+              type="number"
+              className="timeout-input"
+              value={timeoutSeconds}
+              onChange={handleTimeoutChange}
+              min="0"
+              title="Request timeout in seconds"
+              placeholder="30"
+              aria-label="Timeout in seconds"
+            />
+            <span className="timeout-unit">s</span>
+          </div>
         </div>
         <button
           className={`send-btn${isLoading ? ' send-btn--cancel' : ''}`}
@@ -273,6 +282,20 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
                   onClick={() => setActiveTab(tab)}
                 >
                   {label}
+                  {tab === 'tests' && (
+                    <span
+                      className="re-tab-help"
+                      role="button"
+                      aria-label="Test assertions documentation"
+                      title="View test assertions documentation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTestDocs(true);
+                      }}
+                    >
+                      ?
+                    </span>
+                  )}
                   {tab === 'scripts' && (
                     <span
                       className="re-tab-help"
@@ -298,7 +321,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
       })()}
 
       {/* Tab panels */}
-      <div className="request-editor-panel">
+      <div className={`request-editor-panel${activeTab === 'tests' || activeTab === 'scripts' ? ' request-editor-panel--fill' : ''}`}>
         {activeTab === 'params' && (
           <KeyValueTable
             rows={params}
@@ -359,6 +382,9 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request }) => {
 
       {showScriptDocs && (
         <ScriptDocsModal onClose={() => setShowScriptDocs(false)} />
+      )}
+      {showTestDocs && (
+        <TestDocsModal onClose={() => setShowTestDocs(false)} />
       )}
     </div>
   );

@@ -1,0 +1,65 @@
+
+
+.import-modal-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.import-modal-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+
+.import-modal-choice:hover {
+  background: var(--bg-elevated, var(--bg-surface));
+  border-color: var(--accent);
+}
+
+.import-modal-choice:active {
+  transform: translateY(1px);
+}
+
+.import-modal-choice-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.import-modal-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.import-modal-choice-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-modal-choice-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.import-modal-cancel {
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: flex-end;
+}

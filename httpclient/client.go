@@ -287,9 +287,14 @@ func ExecuteRequest(req db.Request) (ResponseResult, error) {
 		return ResponseResult{}, fmt.Errorf("read response body: %w", err)
 	}
 
+	statusText := resp.Status
+	if idx := strings.IndexByte(resp.Status, ' '); idx != -1 {
+		statusText = resp.Status[idx+1:]
+	}
+
 	result := ResponseResult{
 		StatusCode: resp.StatusCode,
-		StatusText: resp.Status,
+		StatusText: statusText,
 		Body:       string(bodyBytes),
 		Headers:    map[string][]string(resp.Header),
 		DurationMs: elapsed.Milliseconds(),
