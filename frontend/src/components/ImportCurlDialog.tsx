@@ -4,7 +4,7 @@ import { useCollectionsStore } from '../store/collectionsStore';
 import { useRequestsStore } from '../store/requestsStore';
 import { useTabsStore } from '../store/tabsStore';
 import { ImportFromCurl } from '../wailsjs/go/main/App';
-import './NewCollectionModal.css';
+import './Modal.css';
 
 interface Props {
   /** Pre-selected collection id (e.g. from a collection context menu). Empty string means "let the user choose". */
