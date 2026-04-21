@@ -106,7 +106,7 @@ console.log(mp.request.method, mp.request.url);`}</code></pre>
             <pre className="script-docs-modal__code"><code>{`// Shape of mp.response
 {
   status:     number,  // e.g. 200
-  statusText: string,  // e.g. "200 OK"
+  statusText: string,  // e.g. "OK"
   body:       string,  // raw response body string
   headers:    object   // { "content-type": ["application/json"], ... }
 }

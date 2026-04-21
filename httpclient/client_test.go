@@ -161,8 +161,8 @@ func TestExecuteRequest_GET_ReturnsStatus200(t *testing.T) {
 	if result.StatusCode != 200 {
 		t.Errorf("expected StatusCode=200, got %d", result.StatusCode)
 	}
-	if !strings.Contains(result.StatusText, "200") {
-		t.Errorf("expected StatusText to contain 200, got %q", result.StatusText)
+	if result.StatusText != "OK" {
+		t.Errorf("expected StatusText=OK, got %q", result.StatusText)
 	}
 	// US-12: response body
 	if result.Body != `{"ok":true}` {
@@ -341,8 +341,8 @@ func TestExecuteRequest_Returns404Status(t *testing.T) {
 	if result.StatusCode != 404 {
 		t.Errorf("expected 404, got %d", result.StatusCode)
 	}
-	if !strings.Contains(result.StatusText, "404") {
-		t.Errorf("StatusText should contain 404, got %q", result.StatusText)
+	if result.StatusText != "Not Found" {
+		t.Errorf("expected StatusText='Not Found', got %q", result.StatusText)
 	}
 }
 
