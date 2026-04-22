@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Wand2 } from 'lucide-react';
 import { js as beautifyJs } from 'js-beautify';
+import { highlightCode } from '../utils/codeHighlighter';
 import './ScriptEditor.css';
 
 interface ScriptEditorProps {
@@ -11,6 +12,8 @@ interface ScriptEditorProps {
 
 const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholder }) => {
   const [formatError, setFormatError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLDivElement>(null);
 
   const handleFormat = () => {
     try {
@@ -36,6 +39,31 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
     onChange(e.target.value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const newValue = el.value.substring(0, start) + '  ' + el.value.substring(end);
+      onChange(newValue);
+      // Restore cursor after the two inserted spaces
+      requestAnimationFrame(() => {
+        el.selectionStart = start + 2;
+        el.selectionEnd = start + 2;
+      });
+    }
+  };
+
+  const syncScroll = () => {
+    if (textareaRef.current && mirrorRef.current) {
+      mirrorRef.current.scrollTop = textareaRef.current.scrollTop;
+      mirrorRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  };
+
+  const highlightedHtml = highlightCode(value, 'JavaScript');
+
   return (
     <div className="script-editor-wrapper">
       <button
@@ -46,13 +74,24 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
       >
         <Wand2 size={14} />
       </button>
-      <textarea
-        className="script-editor-textarea"
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        spellCheck={false}
-      />
+      <div className="script-editor-inner">
+        <div
+          ref={mirrorRef}
+          className="script-editor-mirror"
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+        />
+        <textarea
+          ref={textareaRef}
+          className="script-editor-textarea"
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onScroll={syncScroll}
+          placeholder={placeholder}
+          spellCheck={false}
+        />
+      </div>
       {formatError !== null && (
         <p className="script-editor-format-error">{formatError}</p>
       )}

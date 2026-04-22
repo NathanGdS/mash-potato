@@ -7,6 +7,40 @@
   width: 100%;
 }
 
+/* ── Inner container (mirror + textarea stacked) ─────────── */
+.script-editor-inner {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Highlight Mirror ────────────────────────────────────── */
+.script-editor-mirror {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: auto;
+  z-index: 0;
+  box-sizing: border-box;
+
+  /* Must exactly match .script-editor-textarea (including App.css values) */
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
+
+  /* Transparent background — the textarea behind provides the surface */
+  background: transparent;
+  /* Match textarea border width so content offsets align */
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
 /* ── Format Button ───────────────────────────────────────── */
 .script-editor-format-btn {
   position: absolute;
@@ -37,6 +71,67 @@
   color: var(--accent);
   background: color-mix(in srgb, var(--color-accent) 10%, var(--bg-elevated, var(--bg-secondary)));
   border-color: var(--accent);
+}
+
+/* ── Textarea overrides for mirror pattern ───────────────── */
+.script-editor-textarea {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+
+  /* Transparent text so the mirror shows through */
+  color: transparent !important;
+  caret-color: var(--text-primary);
+  background: transparent !important;
+  font-family: var(--font-mono);
+
+  /* Keep line-height / padding in sync with mirror — override App.css if needed */
+  font-size: 13px;
+  line-height: 1.5;
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+/* ── Syntax Token Colors ─────────────────────────────────── */
+.script-editor-mirror .code-keyword {
+  color: #569cd6;
+}
+
+.script-editor-mirror .code-string {
+  color: #ce9178;
+}
+
+.script-editor-mirror .code-number {
+  color: #b5cea8;
+}
+
+.script-editor-mirror .code-comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.script-editor-mirror .code-punctuation {
+  color: var(--text-muted);
+}
+
+/* ── Light-theme Token Color Overrides ───────────────────── */
+[data-theme="light"] .script-editor-mirror .code-keyword {
+  color: #0070c1;
+}
+
+[data-theme="light"] .script-editor-mirror .code-string {
+  color: #a31515;
+}
+
+[data-theme="light"] .script-editor-mirror .code-number {
+  color: #098658;
+}
+
+[data-theme="light"] .script-editor-mirror .code-comment {
+  color: #008000;
+  font-style: italic;
 }
 
 /* ── Format Error ────────────────────────────────────────── */
