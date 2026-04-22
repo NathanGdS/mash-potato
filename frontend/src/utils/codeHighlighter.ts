@@ -59,6 +59,16 @@ const KEYWORDS: Record<Language, ReadonlyArray<string>> = {
     'true', 'false', 'this', 'super', 'instanceof', 'boolean', 'int', 'long',
     'double', 'float', 'char', 'byte', 'short', 'var', 'String',
   ],
+  'JavaScript': [
+    // Control flow & declarations
+    'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while',
+    'do', 'switch', 'case', 'break', 'continue', 'new', 'typeof', 'instanceof',
+    'in', 'of', 'try', 'catch', 'finally', 'throw', 'class', 'extends',
+    'import', 'export', 'default', 'null', 'undefined', 'true', 'false',
+    'this', 'super', 'async', 'await', 'yield',
+    // Scripting-API globals
+    'mp', 'console', 'JSON', 'Promise', 'Math', 'Object', 'Array',
+  ],
 };
 
 // ── Tokenizer ──────────────────────────────────────────────

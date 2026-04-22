@@ -15,6 +15,7 @@ export const LANGUAGES = [
   'Go (net/http)',
   'TypeScript (fetch)',
   'Java (HttpClient)',
+  'JavaScript',
 ] as const;
 
 export type Language = (typeof LANGUAGES)[number];
