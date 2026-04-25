@@ -1,0 +1,42 @@
+swagger: "2.0"
+info:
+  title: Swagger Bookstore
+  version: "0.1.0"
+host: bookstore.example.com
+basePath: /api
+schemes:
+  - https
+paths:
+  /books:
+    get:
+      operationId: listBooks
+      tags:
+        - books
+      summary: List all books
+      parameters:
+        - name: q
+          in: query
+          required: false
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: array
+    post:
+      operationId: createBook
+      tags:
+        - books
+      summary: Create a book
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+      responses:
+        "201":
+          description: Created
+securityDefinitions:
+  basicAuth:
+    type: basic
