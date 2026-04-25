@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 )
@@ -101,4 +102,41 @@ func ListCollections() ([]Collection, error) {
 		return nil, fmt.Errorf("ListCollections rows: %w", err)
 	}
 	return cols, nil
+}
+
+// SetCollectionSpecSource stores the original file path of an imported spec
+// against the given collection ID. Pass an empty string to clear it.
+func SetCollectionSpecSource(db *sql.DB, id, path string) error {
+	var val interface{}
+	if path == "" {
+		val = nil
+	} else {
+		val = path
+	}
+	res, err := db.Exec(`UPDATE collections SET spec_source = ? WHERE id = ?`, val, id)
+	if err != nil {
+		return fmt.Errorf("SetCollectionSpecSource: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("SetCollectionSpecSource rows affected: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("SetCollectionSpecSource: no collection with id %q", id)
+	}
+	return nil
+}
+
+// GetCollectionSpecSource returns the stored spec file path for the given
+// collection, or an empty string if the value is NULL or not set.
+func GetCollectionSpecSource(db *sql.DB, id string) (string, error) {
+	var src sql.NullString
+	err := db.QueryRow(`SELECT spec_source FROM collections WHERE id = ?`, id).Scan(&src)
+	if err != nil {
+		return "", fmt.Errorf("GetCollectionSpecSource: %w", err)
+	}
+	if !src.Valid {
+		return "", nil
+	}
+	return src.String, nil
 }

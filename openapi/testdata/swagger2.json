@@ -1,0 +1,82 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Swagger Pet Store",
+    "version": "1.0.0"
+  },
+  "host": "petstore.swagger.io",
+  "basePath": "/v2",
+  "schemes": ["https", "http"],
+  "paths": {
+    "/pet": {
+      "post": {
+        "operationId": "addPet",
+        "tags": ["pet"],
+        "summary": "Add a new pet",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "type": "object" }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Pet added" },
+          "405": { "description": "Invalid input" }
+        }
+      },
+      "get": {
+        "operationId": "findPets",
+        "tags": ["pet"],
+        "summary": "Find pets",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": { "type": "array" }
+          }
+        }
+      }
+    },
+    "/pet/{petId}": {
+      "get": {
+        "operationId": "getPetById",
+        "tags": ["pet"],
+        "summary": "Find pet by ID",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "api_key"
+    },
+    "petstore_auth": {
+      "type": "oauth2"
+    },
+    "basicAuth": {
+      "type": "basic"
+    }
+  }
+}

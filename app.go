@@ -982,6 +982,99 @@ func (a *App) ToggleVariableSecret(varId int64, isSecret bool) error {
 	return nil
 }
 
+// PickOpenAPIFile opens a native file dialog for selecting an OpenAPI / Swagger
+// spec file (.yaml, .yml, .json). Returns the selected file path, or an empty
+// string if the user cancelled.
+func (a *App) PickOpenAPIFile() (string, error) {
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select OpenAPI / Swagger file",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "OpenAPI / Swagger", Pattern: "*.yaml;*.yml;*.json"},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("PickOpenAPIFile: dialog error: %w", err)
+	}
+	return filePath, nil
+}
+
+// ImportOpenAPISpec parses an OpenAPI 3.x or Swagger 2.0 spec at filePath,
+// creates a fully structured collection with folders and requests, and returns
+// a summary of what was created.
+func (a *App) ImportOpenAPISpec(filePath string) (ImportResult, error) {
+	if strings.TrimSpace(filePath) == "" {
+		return ImportResult{}, fmt.Errorf("ImportOpenAPISpec: filePath cannot be empty")
+	}
+	return importOpenAPISpec(filePath)
+}
+
+// ImportOpenAPISpecWithResolution resolves an import conflict using one of
+// three strategies:
+//   - "merge"   — adds new folders/requests into the existing collection;
+//     existing requests with the same name+folder are left unchanged.
+//   - "replace" — deletes the existing collection, then creates a fresh one.
+//   - "copy"    — creates a new collection named "{Title} (copy)" with no
+//     collision check applied.
+//
+// Any other resolution value returns a descriptive error without performing writes.
+func (a *App) ImportOpenAPISpecWithResolution(filePath, resolution string) (ImportResult, error) {
+	if strings.TrimSpace(filePath) == "" {
+		return ImportResult{}, fmt.Errorf("ImportOpenAPISpecWithResolution: filePath cannot be empty")
+	}
+	resolution = strings.TrimSpace(resolution)
+	if resolution == "" {
+		return ImportResult{}, fmt.Errorf("ImportOpenAPISpecWithResolution: resolution cannot be empty")
+	}
+	return importOpenAPISpecInternal(filePath, resolution)
+}
+
+// ExportCollectionAsOpenAPI serialises all requests in the given collection
+// to a valid OpenAPI 3.1 YAML document string. Request history is consulted to
+// enrich response schemas where available.
+func (a *App) ExportCollectionAsOpenAPI(collectionID string) (string, error) {
+	if strings.TrimSpace(collectionID) == "" {
+		return "", fmt.Errorf("ExportCollectionAsOpenAPI: collectionID cannot be empty")
+	}
+	return exportCollectionAsOpenAPI(collectionID)
+}
+
+// ExportCollectionAsOpenAPIToFile generates an OpenAPI 3.1 YAML document for the
+// collection, opens a native Save File dialog, and writes the result to disk.
+func (a *App) ExportCollectionAsOpenAPIToFile(collectionID string) error {
+	if strings.TrimSpace(collectionID) == "" {
+		return fmt.Errorf("ExportCollectionAsOpenAPIToFile: collectionID cannot be empty")
+	}
+
+	col, err := db.GetCollection(collectionID)
+	if err != nil {
+		return fmt.Errorf("ExportCollectionAsOpenAPIToFile: load collection: %w", err)
+	}
+
+	yaml, err := exportCollectionAsOpenAPI(collectionID)
+	if err != nil {
+		return err
+	}
+
+	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Export as OpenAPI 3.1",
+		DefaultFilename: col.Name + ".yaml",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "YAML Files (*.yaml, *.yml)", Pattern: "*.yaml;*.yml"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("ExportCollectionAsOpenAPIToFile: dialog error: %w", err)
+	}
+	if filePath == "" {
+		return nil
+	}
+
+	if err := os.WriteFile(filePath, []byte(yaml), 0644); err != nil {
+		return fmt.Errorf("ExportCollectionAsOpenAPIToFile: write file: %w", err)
+	}
+	return nil
+}
+
 // RotateVarEncryptionKey generates a new encryption key, re-encrypts all
 // secret variables with it in a single DB transaction, then stores the new
 // key in the OS keychain.

@@ -134,3 +134,69 @@ func TestListCollections_OrderedByCreatedAt(t *testing.T) {
 		t.Errorf("unexpected order: %v, %v, %v", cols[0].Name, cols[1].Name, cols[2].Name)
 	}
 }
+
+// US-2 (0022): spec_source column
+
+func TestSetAndGetCollectionSpecSource(t *testing.T) {
+	clearTables()
+	InsertCollection("spec-1", "My API")
+
+	// Initially NULL — should return empty string.
+	src, err := GetCollectionSpecSource(DB, "spec-1")
+	if err != nil {
+		t.Fatalf("GetCollectionSpecSource (initial): %v", err)
+	}
+	if src != "" {
+		t.Errorf("expected empty string for unset spec_source, got %q", src)
+	}
+
+	// Set a path.
+	const path = "/home/user/api/petstore.yaml"
+	if err := SetCollectionSpecSource(DB, "spec-1", path); err != nil {
+		t.Fatalf("SetCollectionSpecSource: %v", err)
+	}
+
+	// Retrieve the path.
+	src, err = GetCollectionSpecSource(DB, "spec-1")
+	if err != nil {
+		t.Fatalf("GetCollectionSpecSource (after set): %v", err)
+	}
+	if src != path {
+		t.Errorf("expected %q, got %q", path, src)
+	}
+}
+
+func TestSetCollectionSpecSource_ClearWithEmpty(t *testing.T) {
+	clearTables()
+	InsertCollection("spec-2", "Clearable")
+	SetCollectionSpecSource(DB, "spec-2", "/tmp/old.yaml")
+
+	// Clear by passing empty string.
+	if err := SetCollectionSpecSource(DB, "spec-2", ""); err != nil {
+		t.Fatalf("SetCollectionSpecSource (clear): %v", err)
+	}
+
+	src, err := GetCollectionSpecSource(DB, "spec-2")
+	if err != nil {
+		t.Fatalf("GetCollectionSpecSource (after clear): %v", err)
+	}
+	if src != "" {
+		t.Errorf("expected empty string after clear, got %q", src)
+	}
+}
+
+func TestSetCollectionSpecSource_NotFound(t *testing.T) {
+	clearTables()
+	err := SetCollectionSpecSource(DB, "ghost", "/some/path.yaml")
+	if err == nil {
+		t.Fatal("expected error for non-existent collection")
+	}
+}
+
+func TestGetCollectionSpecSource_NotFound(t *testing.T) {
+	clearTables()
+	_, err := GetCollectionSpecSource(DB, "ghost")
+	if err == nil {
+		t.Fatal("expected error for non-existent collection")
+	}
+}

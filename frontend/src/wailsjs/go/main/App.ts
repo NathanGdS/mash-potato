@@ -276,3 +276,37 @@ export function RotateVarEncryptionKey(): Promise<void> {
 export function ReorderRequests(folderId: string, requestIds: string[]): Promise<void> {
   return _app()?.ReorderRequests(folderId, requestIds);
 }
+
+export interface ImportResult {
+  CollectionID: string;
+  RequestCount: number;
+  FolderCount: number;
+}
+
+// PickOpenAPIFile opens a native file dialog for selecting an OpenAPI / Swagger
+// spec file (.yaml, .yml, .json). Returns the selected file path, or an empty
+// string if the user cancelled.
+export function PickOpenAPIFile(): Promise<string> {
+  return _app()?.PickOpenAPIFile();
+}
+
+// ImportOpenAPISpec parses an OpenAPI 3.x or Swagger 2.0 spec at filePath.
+// Returns ImportConflict-shaped error string when a collection with the same
+// name already exists (error message matches: "import conflict: ...").
+export function ImportOpenAPISpec(filePath: string): Promise<ImportResult> {
+  return _app()?.ImportOpenAPISpec(filePath);
+}
+
+// ImportOpenAPISpecWithResolution resolves a conflict from ImportOpenAPISpec.
+// resolution must be one of: "merge", "replace", "copy".
+export function ImportOpenAPISpecWithResolution(filePath: string, resolution: string): Promise<ImportResult> {
+  return _app()?.ImportOpenAPISpecWithResolution(filePath, resolution);
+}
+
+export function ExportCollectionAsOpenAPI(collectionId: string): Promise<string> {
+  return _app()?.ExportCollectionAsOpenAPI(collectionId);
+}
+
+export function ExportCollectionAsOpenAPIToFile(collectionId: string): Promise<void> {
+  return _app()?.ExportCollectionAsOpenAPIToFile(collectionId);
+}

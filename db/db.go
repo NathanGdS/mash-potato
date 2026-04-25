@@ -136,6 +136,8 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE environment_variables ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT 0`,
 		// US-3: add sort_order to requests
 		`ALTER TABLE requests ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+		// US-2 (0022): add spec_source to collections for OpenAPI import tracking
+		`ALTER TABLE collections ADD COLUMN spec_source TEXT`,
 	}
 	for _, stmt := range addColumns {
 		if _, execErr := db.Exec(stmt); execErr != nil {

@@ -1,0 +1,45 @@
+openapi: "3.0.3"
+info:
+  title: Pet Store YAML
+  version: "2.0.0"
+servers:
+  - url: https://petstore-yaml.example.com/v2
+paths:
+  /items:
+    get:
+      operationId: listItems
+      tags:
+        - items
+      summary: List all items
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: A list of items
+          content:
+            application/json:
+              schema:
+                type: array
+    post:
+      operationId: createItem
+      tags:
+        - items
+      summary: Create an item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Item created
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

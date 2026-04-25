@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Download, Terminal } from 'lucide-react';
+import { Download, Terminal, FileCode } from 'lucide-react';
 import './Modal.css';
 import './ImportModal.css';
 
@@ -8,9 +8,10 @@ interface Props {
   onClose: () => void;
   onImportCollection: () => void;
   onImportCurl: () => void;
+  onImportOpenAPI?: () => void;
 }
 
-const ImportModal: React.FC<Props> = ({ onClose, onImportCollection, onImportCurl }) => {
+const ImportModal: React.FC<Props> = ({ onClose, onImportCollection, onImportCurl, onImportOpenAPI }) => {
   const firstChoiceRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,11 @@ const ImportModal: React.FC<Props> = ({ onClose, onImportCollection, onImportCur
   const handleImportCurl = () => {
     onClose();
     onImportCurl();
+  };
+
+  const handleImportOpenAPI = () => {
+    onClose();
+    onImportOpenAPI?.();
   };
 
   return ReactDOM.createPortal(
@@ -78,6 +84,19 @@ const ImportModal: React.FC<Props> = ({ onClose, onImportCollection, onImportCur
             <span className="import-modal-choice-text">
               <span className="import-modal-choice-label">Import from cURL</span>
               <span className="import-modal-choice-desc">Paste a cURL command to create a request</span>
+            </span>
+          </button>
+
+          <button
+            className="import-modal-choice"
+            onClick={handleImportOpenAPI}
+          >
+            <span className="import-modal-choice-icon" aria-hidden="true">
+              <FileCode size={20} />
+            </span>
+            <span className="import-modal-choice-text">
+              <span className="import-modal-choice-label">Import OpenAPI / Swagger</span>
+              <span className="import-modal-choice-desc">Import an OpenAPI 3.x or Swagger 2.0 spec file</span>
             </span>
           </button>
         </div>
