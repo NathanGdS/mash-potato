@@ -9,6 +9,7 @@ import CollectionItem from './CollectionItem';
 import NewCollectionModal from './NewCollectionModal';
 import ImportModal from './ImportModal';
 import ImportCurlDialog from './ImportCurlDialog';
+import ImportOpenAPIDialog from './ImportOpenAPIDialog';
 import HistoryList from './HistoryList';
 import './Sidebar.css';
 
@@ -30,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare, onSearchC
   const [showImportModal, setShowImportModal] = useState(false);
   const [showImportCurl, setShowImportCurl] = useState(false);
   const [importCurlCollectionId, setImportCurlCollectionId] = useState('');
+  const [showImportOpenAPI, setShowImportOpenAPI] = useState(false);
   const [activeTab, setActiveTab] = useState<SidebarTab>('collections');
   const [importError, setImportError] = useState<string | null>(null);
   const [dragOverlayRequest, setDragOverlayRequest] = useState<{ id: string; name: string; method: string } | null>(null);
@@ -251,6 +253,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare, onSearchC
               onClose={() => setShowImportModal(false)}
               onImportCollection={handleImport}
               onImportCurl={() => handleOpenImportCurl()}
+              onImportOpenAPI={() => setShowImportOpenAPI(true)}
             />
           )}
 
@@ -258,6 +261,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onSettingsClick, onCompare, onSearchC
             <ImportCurlDialog
               defaultCollectionId={importCurlCollectionId}
               onClose={() => setShowImportCurl(false)}
+            />
+          )}
+
+          {showImportOpenAPI && (
+            <ImportOpenAPIDialog
+              onClose={() => setShowImportOpenAPI(false)}
             />
           )}
         </>

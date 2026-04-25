@@ -15,7 +15,7 @@ import { useFoldersStore } from '../store/foldersStore';
 import { useRunnerStore } from '../store/runnerStore';
 import { Collection } from '../types/collection';
 import { Request } from '../types/request';
-import { ExportCollection, ExportRequestAsCurl, ListRequests, ListFolders } from '../wailsjs/go/main/App';
+import { ExportCollection, ExportRequestAsCurl, ExportCollectionAsOpenAPIToFile, ListRequests, ListFolders } from '../wailsjs/go/main/App';
 import FolderItem from './FolderItem';
 
 interface SortableRequestItemProps {
@@ -164,6 +164,8 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
   const editingRequestInputRef = useRef<HTMLInputElement>(null);
 
   const [curlToast, setCurlToast] = useState(false);
+  const [exportOpenAPIError, setExportOpenAPIError] = useState<string | null>(null);
+  const [exportOpenAPISuccess, setExportOpenAPISuccess] = useState(false);
 
   const [collectionMenu, setCollectionMenu] = useState<{ x: number; y: number } | null>(null);
   const collectionMenuRef = useRef<HTMLDivElement>(null);
@@ -206,6 +208,19 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
       await ExportCollection(collection.id);
     } catch (err) {
       console.error('Export collection failed:', err);
+    }
+  };
+
+  const handleExportOpenAPI = async () => {
+    setCollectionMenu(null);
+    setExportOpenAPIError(null);
+    setExportOpenAPISuccess(false);
+    try {
+      await ExportCollectionAsOpenAPIToFile(collection.id);
+      setExportOpenAPISuccess(true);
+      setTimeout(() => setExportOpenAPISuccess(false), 2000);
+    } catch (err) {
+      setExportOpenAPIError(String(err));
     }
   };
 
@@ -702,6 +717,9 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
             </svg>
             Export
           </button>
+          <button className="request-context-menu-item" onClick={handleExportOpenAPI}>
+            Export as OpenAPI 3.1
+          </button>
           <button className="request-context-menu-item" onClick={handleImportCurl}>
             Import from cURL…
           </button>
@@ -710,6 +728,14 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
 
       {curlToast && (
         <div className="collection-curl-toast">Copied to clipboard</div>
+      )}
+
+      {exportOpenAPISuccess && (
+        <div className="collection-curl-toast">Exported as OpenAPI 3.1</div>
+      )}
+
+      {exportOpenAPIError && (
+        <div className="collection-rename-error" style={{ marginTop: 4 }}>{exportOpenAPIError}</div>
       )}
     </li>
   );

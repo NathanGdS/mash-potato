@@ -1,0 +1,107 @@
+.ioad-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  cursor: default;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 120px;
+  text-align: center;
+}
+
+.ioad-drop-zone--drag-over,
+.ioad-drop-zone.wails-drop-target-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+}
+
+.ioad-drop-zone--rejected {
+  border-color: var(--status-5xx-fg);
+  background: color-mix(in srgb, var(--status-5xx-fg) 8%, var(--bg-secondary));
+}
+
+.ioad-drop-zone-icon {
+  color: var(--text-muted, var(--text-secondary));
+  opacity: 0.6;
+}
+
+.ioad-drop-zone-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ioad-drop-zone-hint {
+  font-size: 11px;
+  color: var(--text-muted, var(--text-secondary));
+  opacity: 0.7;
+}
+
+.ioad-file-name {
+  margin-top: var(--space-2);
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.ioad-resolution-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.ioad-resolution-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+
+.ioad-resolution-btn:hover:not(:disabled) {
+  background: var(--bg-elevated, var(--bg-surface));
+  border-color: var(--accent);
+}
+
+.ioad-resolution-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ioad-resolution-btn-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ioad-resolution-btn-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.ioad-conflict-notice {
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ioad-conflict-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
