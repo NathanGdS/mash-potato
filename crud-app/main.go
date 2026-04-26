@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -67,8 +69,10 @@ func logRequest(r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/items", handleItems)
+	http.HandleFunc("/items/long-query", handleLongQuery)
 	http.HandleFunc("/items/", handleItem)
+	http.HandleFunc("/items", handleItems)
+	http.HandleFunc("/login", handleLogin)
 	fmt.Println("Listening on :3000")
 	http.ListenAndServe(":3000", nil)
 }
@@ -161,4 +165,39 @@ func handleItem(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func handleLongQuery(w http.ResponseWriter, r *http.Request) {
+	logRequest(r)
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	time.Sleep(5 * time.Second)
+	mu.Lock()
+	list := make([]Item, 0, len(items))
+	for _, v := range items {
+		list = append(list, v)
+	}
+	mu.Unlock()
+	json.NewEncoder(w).Encode(list)
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	logRequest(r)
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	tokenBytes := make([]byte, 32)
+	rand.Read(tokenBytes)
+	token := hex.EncodeToString(tokenBytes)
+	resp := map[string]string{
+		"token":      token,
+		"token_type": "Bearer",
+		"expires_in": "3600",
+	}
+	json.NewEncoder(w).Encode(resp)
 }
