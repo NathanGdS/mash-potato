@@ -505,6 +505,121 @@
   min-height: 0;
 }
 
+/* ── Flow diagram ────────────────────────────────────────── */
+.runner-flow-section {
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+.flow-diagram {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+.flow-diagram-nodes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.flow-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.flow-node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-muted, #555);
+}
+
+.flow-node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-node--pending .flow-node-dot  { background: var(--text-muted, #666); }
+.flow-node--running                 { background: rgba(59,130,246,0.1); }
+.flow-node--running .flow-node-dot  { background: var(--accent-color, #3b82f6); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+.flow-node--pass .flow-node-dot     { background: var(--color-green, #22c55e); }
+.flow-node--pass                    { color: var(--text-primary); }
+.flow-node--fail .flow-node-dot     { background: var(--color-red, #e05c5c); }
+.flow-node--testFailed .flow-node-dot { background: var(--color-yellow, #eab308); }
+.flow-node--skipped                 { opacity: 0.38; }
+
+.flow-arrows {
+  flex-shrink: 0;
+}
+
+.flow-arrow-path {
+  fill: none;
+  stroke: var(--accent-color, #3b82f6);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 2;
+  opacity: 0.7;
+}
+
+.flow-arrow-head {
+  fill: var(--accent-color, #3b82f6);
+}
+
+/* ── Retry input + badge ─────────────────────────────────── */
+.runner-retry-input {
+  width: 44px;
+  padding: 2px 4px;
+  font-size: 11px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  text-align: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.runner-retry-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--accent-muted, rgba(59,130,246,0.15));
+  color: var(--accent-color, #3b82f6);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Terminal state banner ───────────────────────────────── */
+.runner-terminal-banner {
+  padding: 7px 16px;
+  font-size: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.runner-terminal-banner--script {
+  background: rgba(234,179,8,0.1);
+  color: var(--color-yellow, #ca8a04);
+}
+
+.runner-terminal-banner--loop {
+  background: rgba(239,68,68,0.1);
+  color: var(--color-red, #e05c5c);
+}
+
 /* ── Stop button ─────────────────────────────────────────── */
 .btn--danger {
   background: var(--color-red, #e05c5c);
