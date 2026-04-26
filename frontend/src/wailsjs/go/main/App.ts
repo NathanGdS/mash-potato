@@ -220,6 +220,18 @@ export function SetSetting(key: string, value: string): Promise<void> {
   return _app()?.SetSetting(key, value);
 }
 
+export function ExportRunReport(runResult: RunCollectionResult): Promise<string> {
+  return _app()?.ExportRunReport(runResult);
+}
+
+export function GetRunnerLoopLimit(): Promise<number> {
+  return _app()?.GetRunnerLoopLimit();
+}
+
+export function SetRunnerLoopLimit(n: number): Promise<void> {
+  return _app()?.SetRunnerLoopLimit(n);
+}
+
 export function ExportRequestAsCurl(id: string): Promise<string> {
   return _app()?.ExportRequestAsCurl(id);
 }
@@ -234,11 +246,25 @@ export interface RunResult {
   Status: number;
   DurationMs: number;
   Passed: boolean;
+  TestsPassed: boolean;
   Error: string;
+  ResponseBody: string;
+  ResponseHeaders: Record<string, string[]>;
+  TestResults: unknown[];
+  ConsoleLogs: string[];
+  ScriptErrors: string[];
+  RetryCount: number;
+  SkippedByFlow: boolean;
+  JumpedTo: string;
 }
 
-export function RunCollection(collectionId: string, requestIds: string[], delayMs: number): Promise<RunResult[]> {
-  return _app()?.RunCollection(collectionId, requestIds, delayMs);
+export interface RunCollectionResult {
+  Results: RunResult[];
+  TerminalState: string;
+}
+
+export function RunCollection(collectionId: string, requestIds: string[], delayMs: number, retryMap: Record<string, number> | null): Promise<RunCollectionResult> {
+  return _app()?.RunCollection(collectionId, requestIds, delayMs, retryMap);
 }
 
 export function CancelRun(): Promise<void> {
