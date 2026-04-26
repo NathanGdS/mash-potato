@@ -41,11 +41,11 @@ func (a *App) ExportRequestAsCurl(id string) (string, error) {
 		}
 	}
 	if len(vars) > 0 {
-		req.URL = Interpolate(req.URL, vars, map[string]bool{}).Value
-		req.Headers = Interpolate(req.Headers, vars, map[string]bool{}).Value
-		req.Params = Interpolate(req.Params, vars, map[string]bool{}).Value
-		req.Body = Interpolate(req.Body, vars, map[string]bool{}).Value
-		req.AuthConfig = Interpolate(req.AuthConfig, vars, map[string]bool{}).Value
+		req.URL = Interpolate(req.URL, vars, map[string]bool{}, nil).Value
+		req.Headers = Interpolate(req.Headers, vars, map[string]bool{}, nil).Value
+		req.Params = Interpolate(req.Params, vars, map[string]bool{}, nil).Value
+		req.Body = Interpolate(req.Body, vars, map[string]bool{}, nil).Value
+		req.AuthConfig = Interpolate(req.AuthConfig, vars, map[string]bool{}, nil).Value
 	}
 
 	return buildCurlCommand(req)
