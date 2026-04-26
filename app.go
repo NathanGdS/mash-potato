@@ -30,6 +30,9 @@ type App struct {
 	// runner fields — protected by runnerMu.
 	runnerMu     sync.Mutex
 	runnerCancel context.CancelFunc
+
+	// emitEvent is the Wails event emitter. Nil in tests (events are fire-and-forget).
+	emitEvent func(eventName string, optionalData ...interface{})
 }
 
 // newApp creates an App instance.
@@ -37,9 +40,19 @@ func newApp() *App {
 	return &App{}
 }
 
+// emit fires a Wails event if the emitter is configured (no-op in tests).
+func (a *App) emit(event string, data interface{}) {
+	if a.emitEvent != nil {
+		a.emitEvent(event, data)
+	}
+}
+
 // startup is called by Wails when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.emitEvent = func(eventName string, optionalData ...interface{}) {
+		runtime.EventsEmit(ctx, eventName, optionalData...)
+	}
 
 	key, err := encryption.GetOrCreateKey()
 	if err != nil {
@@ -291,11 +304,11 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 	// and the redaction loop below is a no-op.
 	var allSecretValues []string
 	if len(vars) > 0 {
-		urlR := Interpolate(req.URL, vars, secretsMap)
-		headersR := Interpolate(req.Headers, vars, secretsMap)
-		paramsR := Interpolate(req.Params, vars, secretsMap)
-		bodyR := Interpolate(req.Body, vars, secretsMap)
-		authR := Interpolate(req.AuthConfig, vars, secretsMap)
+		urlR := Interpolate(req.URL, vars, secretsMap, nil)
+		headersR := Interpolate(req.Headers, vars, secretsMap, nil)
+		paramsR := Interpolate(req.Params, vars, secretsMap, nil)
+		bodyR := Interpolate(req.Body, vars, secretsMap, nil)
+		authR := Interpolate(req.AuthConfig, vars, secretsMap, nil)
 
 		req.URL = urlR.Value
 		req.Headers = headersR.Value
@@ -618,6 +631,25 @@ func (a *App) GetSetting(key string) (string, error) {
 		return "", fmt.Errorf("GetSetting: %w", err)
 	}
 	return value, nil
+}
+
+// GetRunnerLoopLimit returns the max visit count per request before the runner
+// halts with a loop-limit error. Defaults to 10 when not set.
+func (a *App) GetRunnerLoopLimit() int {
+	raw, err := db.GetSetting("runner_loop_limit")
+	if err != nil || raw == "" {
+		return 10
+	}
+	var n int
+	if _, err := fmt.Sscanf(raw, "%d", &n); err != nil || n <= 0 {
+		return 10
+	}
+	return n
+}
+
+// SetRunnerLoopLimit persists the runner loop limit setting.
+func (a *App) SetRunnerLoopLimit(n int) error {
+	return db.SetSetting("runner_loop_limit", fmt.Sprintf("%d", n))
 }
 
 // SetSetting upserts a key/value pair in the settings table.
@@ -1080,6 +1112,17 @@ func (a *App) ExportCollectionAsOpenAPIToFile(collectionID string) error {
 // key in the OS keychain.
 // NOTE: Wails auto-generates a JS binding for this method. It is not
 // wired to any frontend UI but is reachable via IPC — known limitation.
+// ExportRunReport serializes the run result (results + terminal state) to a
+// JSON string for download by the frontend. The caller triggers the file-save
+// dialog in JS.
+func (a *App) ExportRunReport(runResult RunCollectionResult) (string, error) {
+	data, err := json.Marshal(runResult)
+	if err != nil {
+		return "", fmt.Errorf("ExportRunReport: %w", err)
+	}
+	return string(data), nil
+}
+
 func (a *App) RotateVarEncryptionKey() error {
 	a.encKeyMu.RLock()
 	oldKey := make([]byte, len(a.encKey))

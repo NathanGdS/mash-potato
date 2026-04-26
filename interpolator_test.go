@@ -11,7 +11,7 @@ import (
 
 func TestInterpolate_SingleVar(t *testing.T) {
 	vars := map[string]string{"host": "example.com"}
-	got := Interpolate("https://{{host}}/api", vars, map[string]bool{})
+	got := Interpolate("https://{{host}}/api", vars, map[string]bool{}, nil)
 	if got.Value != "https://example.com/api" {
 		t.Errorf("unexpected result: %q", got.Value)
 	}
@@ -19,7 +19,7 @@ func TestInterpolate_SingleVar(t *testing.T) {
 
 func TestInterpolate_MultipleVars(t *testing.T) {
 	vars := map[string]string{"host": "example.com", "version": "v2"}
-	got := Interpolate("https://{{host}}/{{version}}/users", vars, map[string]bool{})
+	got := Interpolate("https://{{host}}/{{version}}/users", vars, map[string]bool{}, nil)
 	if got.Value != "https://example.com/v2/users" {
 		t.Errorf("unexpected result: %q", got.Value)
 	}
@@ -27,7 +27,7 @@ func TestInterpolate_MultipleVars(t *testing.T) {
 
 func TestInterpolate_MissingKeyLeftAsIs(t *testing.T) {
 	vars := map[string]string{"host": "example.com"}
-	got := Interpolate("https://{{host}}/{{missing}}", vars, map[string]bool{})
+	got := Interpolate("https://{{host}}/{{missing}}", vars, map[string]bool{}, nil)
 	if got.Value != "https://example.com/{{missing}}" {
 		t.Errorf("unexpected result: %q", got.Value)
 	}
@@ -35,7 +35,7 @@ func TestInterpolate_MissingKeyLeftAsIs(t *testing.T) {
 
 func TestInterpolate_NoActiveEnvironment(t *testing.T) {
 	// Passing an empty/nil vars map simulates no active environment.
-	got := Interpolate("https://{{host}}/api", map[string]string{}, map[string]bool{})
+	got := Interpolate("https://{{host}}/api", map[string]string{}, map[string]bool{}, nil)
 	if got.Value != "https://{{host}}/api" {
 		t.Errorf("unexpected result: %q", got.Value)
 	}
@@ -43,7 +43,7 @@ func TestInterpolate_NoActiveEnvironment(t *testing.T) {
 
 func TestInterpolate_SpecialCharsInValue(t *testing.T) {
 	vars := map[string]string{"token": "abc$def&ghi=jkl"}
-	got := Interpolate("Bearer {{token}}", vars, map[string]bool{})
+	got := Interpolate("Bearer {{token}}", vars, map[string]bool{}, nil)
 	if got.Value != "Bearer abc$def&ghi=jkl" {
 		t.Errorf("unexpected result: %q", got.Value)
 	}
@@ -51,7 +51,7 @@ func TestInterpolate_SpecialCharsInValue(t *testing.T) {
 
 func TestInterpolate_EmptyTemplate(t *testing.T) {
 	vars := map[string]string{"key": "value"}
-	got := Interpolate("", vars, map[string]bool{})
+	got := Interpolate("", vars, map[string]bool{}, nil)
 	if got.Value != "" {
 		t.Errorf("expected empty string, got %q", got.Value)
 	}
@@ -65,7 +65,7 @@ func TestInterpolate_SecretValueTracked(t *testing.T) {
 	vars := map[string]string{"token": "super-secret", "host": "api.example.com"}
 	secrets := map[string]bool{"token": true}
 
-	result := Interpolate("https://{{host}}?key={{token}}", vars, secrets)
+	result := Interpolate("https://{{host}}?key={{token}}", vars, secrets, nil)
 
 	if result.Value != "https://api.example.com?key=super-secret" {
 		t.Errorf("unexpected interpolated value: %q", result.Value)
@@ -81,7 +81,7 @@ func TestInterpolate_NonSecretNotTracked(t *testing.T) {
 	vars := map[string]string{"host": "api.example.com", "version": "v1"}
 	secrets := map[string]bool{} // nothing is secret
 
-	result := Interpolate("https://{{host}}/{{version}}", vars, secrets)
+	result := Interpolate("https://{{host}}/{{version}}", vars, secrets, nil)
 
 	if result.Value != "https://api.example.com/v1" {
 		t.Errorf("unexpected interpolated value: %q", result.Value)
@@ -98,7 +98,7 @@ func TestInterpolate_SecretUsedTwiceRecordedTwice(t *testing.T) {
 	vars := map[string]string{"apiKey": "key-abc123"}
 	secrets := map[string]bool{"apiKey": true}
 
-	result := Interpolate("{{apiKey}}:{{apiKey}}", vars, secrets)
+	result := Interpolate("{{apiKey}}:{{apiKey}}", vars, secrets, nil)
 
 	if result.Value != "key-abc123:key-abc123" {
 		t.Errorf("unexpected interpolated value: %q", result.Value)
@@ -119,7 +119,7 @@ func TestInterpolate_SecretEmptyValueNotTracked(t *testing.T) {
 	vars := map[string]string{"emptySecret": ""}
 	secrets := map[string]bool{"emptySecret": true}
 
-	result := Interpolate("prefix-{{emptySecret}}-suffix", vars, secrets)
+	result := Interpolate("prefix-{{emptySecret}}-suffix", vars, secrets, nil)
 
 	if result.Value != "prefix--suffix" {
 		t.Errorf("unexpected interpolated value: %q", result.Value)
@@ -133,7 +133,7 @@ func TestInterpolate_SecretEmptyValueNotTracked(t *testing.T) {
 // UsedSecretValues is non-nil and has length 0 when there are no
 // substitutions at all (nil-safety guard).
 func TestInterpolate_NoSubstitutions_UsedSecretValuesNotNil(t *testing.T) {
-	result := Interpolate("plain text with no tokens", map[string]string{}, map[string]bool{})
+	result := Interpolate("plain text with no tokens", map[string]string{}, map[string]bool{}, nil)
 
 	if result.UsedSecretValues == nil {
 		t.Error("expected UsedSecretValues to be non-nil, got nil")
@@ -198,6 +198,30 @@ func TestSendRequest_InterpolatesURL(t *testing.T) {
 	}
 	if !strings.HasSuffix(gotPath, "/ping") {
 		t.Errorf("expected path to end with /ping, got %q", gotPath)
+	}
+}
+
+// --- run var interpolation tests ---
+
+func TestInterpolate_EnvVarWinsOverRunVar(t *testing.T) {
+	// env var "token" shadows run var "token"; {{run.token}} still reads run var
+	got := Interpolate("{{token}} {{run.token}}", map[string]string{"token": "env-val"}, map[string]bool{}, map[string]string{"token": "run-val"})
+	if got.Value != "env-val run-val" {
+		t.Errorf("expected 'env-val run-val', got %q", got.Value)
+	}
+}
+
+func TestInterpolate_RunVar_MissingLeftAsIs(t *testing.T) {
+	got := Interpolate("{{run.missing}}", map[string]string{}, map[string]bool{}, map[string]string{})
+	if got.Value != "{{run.missing}}" {
+		t.Errorf("expected token left as-is, got %q", got.Value)
+	}
+}
+
+func TestInterpolate_RunVar_Resolves(t *testing.T) {
+	got := Interpolate("https://api.example.com/{{run.token}}", map[string]string{}, map[string]bool{}, map[string]string{"token": "xyz"})
+	if got.Value != "https://api.example.com/xyz" {
+		t.Errorf("expected run var resolved, got %q", got.Value)
 	}
 }
 

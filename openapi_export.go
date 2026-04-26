@@ -110,11 +110,11 @@ func exportCollectionAsOpenAPI(collectionID string) (string, error) {
 		req := &reqs[i]
 		// Interpolate all {{variable}} tokens with actual values.
 		if len(vars) > 0 {
-			urlR := Interpolate(req.URL, vars, secretsMap)
-			headersR := Interpolate(req.Headers, vars, secretsMap)
-			paramsR := Interpolate(req.Params, vars, secretsMap)
-			bodyR := Interpolate(req.Body, vars, secretsMap)
-			authR := Interpolate(req.AuthConfig, vars, secretsMap)
+			urlR := Interpolate(req.URL, vars, secretsMap, nil)
+			headersR := Interpolate(req.Headers, vars, secretsMap, nil)
+			paramsR := Interpolate(req.Params, vars, secretsMap, nil)
+			bodyR := Interpolate(req.Body, vars, secretsMap, nil)
+			authR := Interpolate(req.AuthConfig, vars, secretsMap, nil)
 
 			req.URL = urlR.Value
 			req.Headers = headersR.Value

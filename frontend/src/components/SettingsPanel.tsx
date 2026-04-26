@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { AccentColor, ThemeValue } from '../store/settingsStore';
+import { GetRunnerLoopLimit, SetRunnerLoopLimit } from '../wailsjs/go/main/App';
 import './SettingsPanel.css';
 
 interface SettingsPanelProps {
@@ -125,6 +126,7 @@ function getThemeIcon(value: ThemeValue) {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
   const { theme, accentColor, setTheme, setAccentColor } = useTheme();
+  const [loopLimit, setLoopLimit] = useState<number>(10);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -134,6 +136,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    GetRunnerLoopLimit().then(setLoopLimit).catch(() => {});
+  }, [isOpen]);
+
+  const handleLoopLimitChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val > 0) {
+      setLoopLimit(val);
+      await SetRunnerLoopLimit(val).catch(() => {});
+    }
+  };
 
   return (
     <>
@@ -202,6 +217,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   {accentColor === color.value && <CheckIcon />}
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* Runner section */}
+          <section className="settings-section">
+            <h3 className="settings-section-label">Collection Runner</h3>
+            <div className="settings-field-row">
+              <label className="settings-field-label" htmlFor="loop-limit-input">
+                Loop limit
+              </label>
+              <input
+                id="loop-limit-input"
+                type="number"
+                className="settings-field-input"
+                min={1}
+                value={loopLimit}
+                onChange={handleLoopLimitChange}
+                aria-label="Runner loop limit"
+                title="Max times any single request can be visited before the runner halts"
+              />
             </div>
           </section>
         </div>

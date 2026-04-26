@@ -26,15 +26,18 @@ type ResponseSnapshot struct {
 // ScriptContext is the input context passed to script execution.
 type ScriptContext struct {
 	EnvVars  map[string]string // current env snapshot
+	RunVars  map[string]string // run-scoped variables (read-only snapshot)
 	Request  RequestSnapshot   // url, method, headers, body
 	Response *ResponseSnapshot // nil for pre-script
 }
 
 // ScriptResult is the output of script execution.
 type ScriptResult struct {
-	EnvMutations map[string]string // keys written via mp.env.set()
-	Logs         []string          // console.log lines
-	Errors       []string          // non-fatal script errors
+	EnvMutations    map[string]string // keys written via mp.env.set()
+	RunVarMutations map[string]string // keys written via mp.runVars.set()
+	NextRequest     *string           // nil=not called; ""=stop; non-empty=jump target
+	Logs            []string          // console.log lines
+	Errors          []string          // non-fatal script errors
 }
 
 // RunPreScript executes a pre-request script in a sandboxed goja runtime.
@@ -52,9 +55,10 @@ func RunPostScript(script string, ctx ScriptContext) ScriptResult {
 // run is the shared execution engine for both pre and post scripts.
 func run(script string, ctx ScriptContext) ScriptResult {
 	result := ScriptResult{
-		EnvMutations: make(map[string]string),
-		Logs:         []string{},
-		Errors:       []string{},
+		EnvMutations:    make(map[string]string),
+		RunVarMutations: make(map[string]string),
+		Logs:            []string{},
+		Errors:          []string{},
 	}
 
 	if strings.TrimSpace(script) == "" {
@@ -77,6 +81,45 @@ func run(script string, ctx ScriptContext) ScriptResult {
 		return goja.Undefined()
 	})
 	_ = vm.Set("console", console)
+
+	// --- setNextRequest global ---
+	_ = vm.Set("setNextRequest", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 || goja.IsNull(call.Arguments[0]) || goja.IsUndefined(call.Arguments[0]) {
+			empty := ""
+			result.NextRequest = &empty
+		} else {
+			s := call.Arguments[0].String()
+			result.NextRequest = &s
+		}
+		return goja.Undefined()
+	})
+
+	// --- mp.runVars object ---
+	runVarsCopy := make(map[string]string, len(ctx.RunVars))
+	for k, v := range ctx.RunVars {
+		runVarsCopy[k] = v
+	}
+	mpRunVars := vm.NewObject()
+	_ = mpRunVars.Set("get", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			return goja.Undefined()
+		}
+		val, ok := runVarsCopy[call.Arguments[0].String()]
+		if !ok {
+			return goja.Undefined()
+		}
+		return vm.ToValue(val)
+	})
+	_ = mpRunVars.Set("set", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 2 {
+			return goja.Undefined()
+		}
+		key := call.Arguments[0].String()
+		value := call.Arguments[1].String()
+		runVarsCopy[key] = value
+		result.RunVarMutations[key] = value
+		return goja.Undefined()
+	})
 
 	// --- mp.env object ---
 	envVarsCopy := make(map[string]string, len(ctx.EnvVars))
@@ -122,6 +165,7 @@ func run(script string, ctx ScriptContext) ScriptResult {
 	// --- mp object ---
 	mp := vm.NewObject()
 	_ = mp.Set("env", mpEnv)
+	_ = mp.Set("runVars", mpRunVars)
 	_ = mp.Set("request", mpRequest)
 
 	// --- mp.response (post-script only, when Response is non-nil) ---
@@ -131,11 +175,27 @@ func run(script string, ctx ScriptContext) ScriptResult {
 			_ = respHeaders.Set(k, v)
 		}
 
+		responseBody := ctx.Response.Body
 		mpResponse := vm.NewObject()
 		_ = mpResponse.Set("status", ctx.Response.Status)
 		_ = mpResponse.Set("statusText", ctx.Response.StatusText)
-		_ = mpResponse.Set("body", ctx.Response.Body)
+		_ = mpResponse.Set("body", responseBody)
 		_ = mpResponse.Set("headers", respHeaders)
+		_ = mpResponse.Set("json", func(call goja.FunctionCall) goja.Value {
+			val, err := vm.RunString("(function(s){try{return JSON.parse(s)}catch(e){return undefined}})")
+			if err != nil {
+				return goja.Undefined()
+			}
+			fn, ok := goja.AssertFunction(val)
+			if !ok {
+				return goja.Undefined()
+			}
+			res, err := fn(goja.Undefined(), vm.ToValue(responseBody))
+			if err != nil {
+				return goja.Undefined()
+			}
+			return res
+		})
 
 		_ = mp.Set("response", mpResponse)
 	}
