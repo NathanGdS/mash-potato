@@ -1,0 +1,110 @@
+/* ── doRequest autocomplete popover ──────────────────────── */
+.do-request-popover {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  list-style: none;
+  padding: var(--space-1) 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.do-request-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.08s, color 0.08s;
+  white-space: nowrap;
+}
+
+.do-request-popover-item:hover,
+.do-request-popover-item--active {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--text-primary);
+}
+
+.do-request-popover-item--active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+.drp-collection-icon,
+.drp-folder-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+/* HTTP method badge inside popover */
+.drp-method-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  line-height: 1;
+}
+
+.drp-method-badge--get {
+  color: #61affe;
+  background: color-mix(in srgb, #61affe 12%, transparent);
+}
+
+.drp-method-badge--post {
+  color: #49cc90;
+  background: color-mix(in srgb, #49cc90 12%, transparent);
+}
+
+.drp-method-badge--put {
+  color: #fca130;
+  background: color-mix(in srgb, #fca130 12%, transparent);
+}
+
+.drp-method-badge--patch {
+  color: #50e3c2;
+  background: color-mix(in srgb, #50e3c2 12%, transparent);
+}
+
+.drp-method-badge--delete {
+  color: #f93e3e;
+  background: color-mix(in srgb, #f93e3e 12%, transparent);
+}
+
+.drp-method-badge--other {
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+.do-request-popover-name {
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-weight: 500;
+  font-size: 12px;
+  margin: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.do-request-popover-slash {
+  color: var(--text-muted);
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  margin-left: auto;
+  padding-left: 8px;
+}

@@ -147,3 +147,28 @@
   border-radius: var(--radius-sm);
   word-break: break-word;
 }
+
+/* ── Cursor Mirror (for popover positioning) ─────────────── */
+.script-editor-cursor-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  visibility: hidden;
+  z-index: -1;
+
+  /* Must exactly match .script-editor-textarea */
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+
+  /* Constrain to same width as textarea */
+  width: 100%;
+}

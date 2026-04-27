@@ -7,6 +7,7 @@ interface VarPopoverProps {
   items: string[];
   selectedIdx: number;
   anchorRef: React.RefObject<HTMLElement | null>;
+  cursorCoords?: { top: number; left: number } | null;
   onSelect: (varName: string) => void;
   onClose: () => void;
 }
@@ -22,6 +23,7 @@ const VarPopover: React.FC<VarPopoverProps> = ({
   items,
   selectedIdx,
   anchorRef,
+  cursorCoords,
   onSelect,
   onClose,
 }) => {
@@ -31,15 +33,24 @@ const VarPopover: React.FC<VarPopoverProps> = ({
   // Recompute position whenever the popover opens
   useEffect(() => {
     if (!open || !anchorRef.current) return;
-    const rect = anchorRef.current.getBoundingClientRect();
-    const popoverHeight = Math.min(items.length * 36 + 8, 220);
-    const spaceBelow = window.innerHeight - rect.bottom - 8;
-    const top =
-      spaceBelow >= popoverHeight
-        ? rect.bottom + 4
-        : rect.top - popoverHeight - 4;
-    setPos({ top, left: rect.left, minWidth: Math.max(rect.width, 220) });
-  }, [open, anchorRef, items.length]);
+
+    let top: number, left: number, width: number;
+
+    if (cursorCoords) {
+      top = cursorCoords.top;
+      left = cursorCoords.left;
+      width = Math.max(anchorRef.current.getBoundingClientRect().width, 220);
+    } else {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const popoverHeight = Math.min(items.length * 36 + 8, 220);
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      top = spaceBelow >= popoverHeight ? rect.bottom + 4 : rect.top - popoverHeight - 4;
+      left = rect.left;
+      width = Math.max(rect.width, 220);
+    }
+
+    setPos({ top, left, minWidth: width });
+  }, [open, anchorRef, items.length, cursorCoords]);
 
   // Scroll the active item into view
   useEffect(() => {

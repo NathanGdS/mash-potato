@@ -7,6 +7,12 @@ import (
 	"github.com/dop251/goja"
 )
 
+const maxDoRequestDepth = 5
+
+// RequestExecutor executes a request by path and returns its response.
+// depth tracks the current call depth for recursion limiting.
+type RequestExecutor func(path string, depth int) (ResponseSnapshot, error)
+
 // RequestSnapshot holds a read-only snapshot of the request for script access.
 type RequestSnapshot struct {
 	URL     string
@@ -16,11 +22,13 @@ type RequestSnapshot struct {
 }
 
 // ResponseSnapshot holds a read-only snapshot of the response for post-script access.
+// Logs carries console output from nested script execution (populated by executors).
 type ResponseSnapshot struct {
 	Status     int
 	StatusText string
 	Body       string
 	Headers    map[string]string
+	Logs       []string
 }
 
 // ScriptContext is the input context passed to script execution.
@@ -35,25 +43,25 @@ type ScriptContext struct {
 type ScriptResult struct {
 	EnvMutations    map[string]string // keys written via mp.env.set()
 	RunVarMutations map[string]string // keys written via mp.runVars.set()
-	NextRequest     *string           // nil=not called; ""=stop; non-empty=jump target
+	StopRunner      bool              // set by stopRunner()
 	Logs            []string          // console.log lines
 	Errors          []string          // non-fatal script errors
 }
 
 // RunPreScript executes a pre-request script in a sandboxed goja runtime.
 // Response is not exposed in the mp object.
-func RunPreScript(script string, ctx ScriptContext) ScriptResult {
-	return run(script, ctx)
+func RunPreScript(script string, ctx ScriptContext, executor RequestExecutor, depth int) ScriptResult {
+	return run(script, ctx, executor, depth)
 }
 
 // RunPostScript executes a post-response script in a sandboxed goja runtime.
 // Both mp.request and mp.response are exposed.
-func RunPostScript(script string, ctx ScriptContext) ScriptResult {
-	return run(script, ctx)
+func RunPostScript(script string, ctx ScriptContext, executor RequestExecutor, depth int) ScriptResult {
+	return run(script, ctx, executor, depth)
 }
 
 // run is the shared execution engine for both pre and post scripts.
-func run(script string, ctx ScriptContext) ScriptResult {
+func run(script string, ctx ScriptContext, executor RequestExecutor, depth int) ScriptResult {
 	result := ScriptResult{
 		EnvMutations:    make(map[string]string),
 		RunVarMutations: make(map[string]string),
@@ -67,9 +75,6 @@ func run(script string, ctx ScriptContext) ScriptResult {
 
 	vm := goja.New()
 
-	// Disable access to Go's native net/os by not exposing them.
-	// goja does not expose any Go stdlib by default — only what we bind explicitly.
-
 	// --- console object ---
 	console := vm.NewObject()
 	_ = console.Set("log", func(call goja.FunctionCall) goja.Value {
@@ -82,15 +87,56 @@ func run(script string, ctx ScriptContext) ScriptResult {
 	})
 	_ = vm.Set("console", console)
 
-	// --- setNextRequest global ---
-	_ = vm.Set("setNextRequest", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) < 1 || goja.IsNull(call.Arguments[0]) || goja.IsUndefined(call.Arguments[0]) {
-			empty := ""
-			result.NextRequest = &empty
-		} else {
-			s := call.Arguments[0].String()
-			result.NextRequest = &s
+	// --- doRequest global ---
+	_ = vm.Set("doRequest", func(call goja.FunctionCall) goja.Value {
+		if depth >= maxDoRequestDepth {
+			panic(vm.NewGoError(fmt.Errorf("doRequest: max recursion depth (%d) exceeded", maxDoRequestDepth)))
 		}
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("doRequest: path argument required")))
+		}
+		path := call.Arguments[0].String()
+		if executor == nil {
+			panic(vm.NewGoError(fmt.Errorf("doRequest: not available in this context")))
+		}
+		resp, err := executor(path, depth+1)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		// Append sub-script logs to parent result.
+		result.Logs = append(result.Logs, resp.Logs...)
+
+		respHeaders := vm.NewObject()
+		for k, v := range resp.Headers {
+			_ = respHeaders.Set(k, v)
+		}
+		respBody := resp.Body
+		respObj := vm.NewObject()
+		_ = respObj.Set("status", resp.Status)
+		_ = respObj.Set("statusText", resp.StatusText)
+		_ = respObj.Set("body", respBody)
+		_ = respObj.Set("headers", respHeaders)
+		_ = respObj.Set("json", func(call goja.FunctionCall) goja.Value {
+			val, err := vm.RunString("(function(s){try{return JSON.parse(s)}catch(e){return undefined}})")
+			if err != nil {
+				return goja.Undefined()
+			}
+			fn, ok := goja.AssertFunction(val)
+			if !ok {
+				return goja.Undefined()
+			}
+			res, err := fn(goja.Undefined(), vm.ToValue(respBody))
+			if err != nil {
+				return goja.Undefined()
+			}
+			return res
+		})
+		return respObj
+	})
+
+	// --- stopRunner global ---
+	_ = vm.Set("stopRunner", func(call goja.FunctionCall) goja.Value {
+		result.StopRunner = true
 		return goja.Undefined()
 	})
 
