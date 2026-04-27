@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import {
   useDroppable,
 } from '@dnd-kit/core';
@@ -650,7 +651,7 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
           </ul>
         )}
 
-      {contextMenu && (
+      {contextMenu && ReactDOM.createPortal(
         <div
           ref={contextMenuRef}
           className="request-context-menu"
@@ -695,10 +696,11 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
           <button className="request-context-menu-item request-context-menu-item--danger" onClick={handleDeleteRequest}>
             Delete
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {collectionMenu && (
+      {collectionMenu && ReactDOM.createPortal(
         <div
           ref={collectionMenuRef}
           className="request-context-menu"
@@ -723,7 +725,8 @@ const CollectionItem: React.FC<CollectionItemProps> = ({ collection, onImportCur
           <button className="request-context-menu-item" onClick={handleImportCurl}>
             Import from cURL…
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {curlToast && (
