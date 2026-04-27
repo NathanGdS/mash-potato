@@ -37,7 +37,9 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
   const noBodyMethod = method === 'GET' || method === 'DELETE';
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const cursorMirrorRef = useRef<HTMLDivElement>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [cursorCoords, setCursorCoords] = useState<{ top: number; left: number } | null>(null);
 
   /** Sync vertical scroll so the highlight overlay stays aligned. */
   const syncScroll = () => {
@@ -57,6 +59,26 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
       inputRef: textareaRef,
       onInsert: (v) => { onBodyChange(v); syncScroll(); },
     });
+
+  // Calculate cursor coordinates for popover positioning in multi-line textarea
+  useEffect(() => {
+    if (!open || !textareaRef.current || !cursorMirrorRef.current) return;
+
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart ?? 0;
+    const textBeforeCursor = body.substring(0, cursorPos);
+
+    const mirror = cursorMirrorRef.current;
+    mirror.textContent = textBeforeCursor;
+
+    const textareaRect = textarea.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
+
+    setCursorCoords({
+      top: textareaRect.top + mirrorRect.height + 4,
+      left: textareaRect.left + 10,
+    });
+  }, [open, body]);
 
   const { wrapperProps, tooltipState, cancelDismiss } = useVarHoverTooltip({
     inputRef: textareaRef,
@@ -178,11 +200,17 @@ const BodyEditor: React.FC<BodyEditorProps> = ({
             spellCheck={false}
             aria-label="Request body"
           />
+          <div
+            ref={cursorMirrorRef}
+            className="body-cursor-mirror"
+            aria-hidden="true"
+          />
           <VarPopover
             open={open}
             items={filteredVars}
             selectedIdx={selectedIdx}
             anchorRef={textareaRef}
+            cursorCoords={cursorCoords}
             onSelect={select}
             onClose={close}
           />

@@ -1377,6 +1377,26 @@ body[data-theme='light'] .send-btn-spinner {
   z-index: 0;
 }
 
+.body-cursor-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  visibility: hidden;
+  z-index: -1;
+
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px var(--space-3);
+  white-space: pre-wrap;
+  word-break: break-all;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .body-textarea--highlight {
   position: relative;
   z-index: 1;
