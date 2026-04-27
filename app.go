@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -278,13 +279,45 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 		Body:    req.Body,
 	}
 
+	// Build executor so doRequest() works in standalone context too.
+	// stopRunner() is a no-op for standalone (single request always completes).
+	standaloneExecutor := func(path string, subDepth int) (scripter.ResponseSnapshot, error) {
+		subReqID, err := db.ResolveRequestByPath(path)
+		if err != nil {
+			return scripter.ResponseSnapshot{}, err
+		}
+		subResult, _, _ := a.executeForRunner(subReqID, nil, subDepth)
+		if subResult.Status == 0 && subResult.Error != "" {
+			return scripter.ResponseSnapshot{}, fmt.Errorf("%s", subResult.Error)
+		}
+		prefixedLogs := make([]string, len(subResult.ConsoleLogs))
+		for i, l := range subResult.ConsoleLogs {
+			prefixedLogs[i] = "[" + path + "] " + l
+		}
+		consoleLogs = append(consoleLogs, prefixedLogs...)
+		resp := scripter.ResponseSnapshot{
+			Status:     subResult.Status,
+			StatusText: http.StatusText(subResult.Status),
+			Body:       subResult.ResponseBody,
+		}
+		if subResult.ResponseHeaders != nil {
+			resp.Headers = make(map[string]string, len(subResult.ResponseHeaders))
+			for k, vals := range subResult.ResponseHeaders {
+				if len(vals) > 0 {
+					resp.Headers[k] = vals[0]
+				}
+			}
+		}
+		return resp, nil
+	}
+
 	// --- Pre-script ---
 	if req.PreScript != "" {
 		preResult := scripter.RunPreScript(req.PreScript, scripter.ScriptContext{
 			EnvVars:  vars,
 			Request:  reqSnapshot,
 			Response: nil,
-		})
+		}, standaloneExecutor, 0)
 		// NOTE: secretsMap is not updated after applyMutations. If a pre-script
 		// writes a new key that corresponds to a secret variable in the DB, that
 		// value will not be tracked in UsedSecretValues and may appear unredacted
@@ -347,7 +380,7 @@ func (a *App) SendRequest(id string) (httpclient.ResponseResult, error) {
 			EnvVars:  vars,
 			Request:  reqSnapshot,
 			Response: respSnapshot,
-		})
+		}, standaloneExecutor, 0)
 		applyMutations(postResult.EnvMutations)
 		consoleLogs = append(consoleLogs, postResult.Logs...)
 		scriptErrors = append(scriptErrors, postResult.Errors...)

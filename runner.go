@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"mash-potato/db"
@@ -27,18 +29,16 @@ type RunResult struct {
 	ScriptErrors    []string                     `json:"ScriptErrors"`
 	RetryCount      int                          `json:"RetryCount"`
 	SkippedByFlow   bool                         `json:"SkippedByFlow"`
-	JumpedTo        string                       `json:"JumpedTo"`
 }
 
 // RunCollectionResult is the top-level return value of RunCollection.
 type RunCollectionResult struct {
 	Results       []RunResult `json:"Results"`
-	TerminalState string      `json:"TerminalState"` // "completed" | "cancelled" | "stopped_by_script" | "stopped_by_loop_limit"
+	TerminalState string      `json:"TerminalState"` // "completed" | "cancelled" | "stopped_by_script"
 }
 
-// RunCollection executes the specified requests in cursor-based order, supporting
-// flow control via setNextRequest, run variables, loop detection, and per-request
-// retry (retryMap is wired in issue 005; pass nil to use no retries).
+// RunCollection executes the specified requests in order, supporting run variables,
+// per-request retry, stopRunner() halting, and doRequest() sub-execution.
 func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs int, retryMap map[string]int) (RunCollectionResult, error) {
 	ctx, cancel := context.WithCancel(a.ctx)
 
@@ -56,7 +56,6 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 		cancel()
 	}()
 
-	// Resolve the request list.
 	ids := requestIDs
 	if len(ids) == 0 {
 		reqs, err := db.ListRequests(collectionID)
@@ -68,28 +67,12 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 		}
 	}
 
-	// Load request names for nameToIndex (needed for setNextRequest jumps).
-	nameToIndex := make(map[string]int, len(ids))
-	for i, id := range ids {
-		req, err := db.GetRequest(id)
-		if err == nil {
-			nameToIndex[req.Name] = i
-		}
-	}
-
-	loopLimit := a.GetRunnerLoopLimit()
-	visitCount := make(map[string]int, len(ids))
 	runVars := make(map[string]string)
-
-	// Results slice pre-allocated with zero values; filled as requests execute.
 	results := make([]RunResult, len(ids))
 	executed := make([]bool, len(ids))
-
 	terminalState := "completed"
-	cursor := 0
 
-	for cursor < len(ids) {
-		// Honour cancellation before each request.
+	for cursor := 0; cursor < len(ids); cursor++ {
 		select {
 		case <-ctx.Done():
 			terminalState = "cancelled"
@@ -98,8 +81,6 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 		}
 
 		idx := cursor
-
-		// Retry loop: attempt the request up to 1+maxRetries times.
 		maxRetries := 0
 		if retryMap != nil {
 			maxRetries = retryMap[ids[idx]]
@@ -108,11 +89,14 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 
 		var result RunResult
 		var scriptRes scripter.ScriptResult
+		var stop bool
 		for {
-			result, scriptRes = a.executeForRunner(ids[idx], runVars)
-			// Merge run var mutations each attempt.
+			result, scriptRes, stop = a.executeForRunner(ids[idx], runVars, 0)
 			for k, v := range scriptRes.RunVarMutations {
 				runVars[k] = v
+			}
+			if stop {
+				break
 			}
 			failed := !result.Passed || !result.TestsPassed
 			if !failed || retryBudget == 0 {
@@ -124,37 +108,14 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 
 		executed[idx] = true
 		results[idx] = result
-
 		a.emit("runner:result", result)
 
-		// Determine next cursor from setNextRequest.
-		nextCursor := cursor + 1 // default linear
-		if scriptRes.NextRequest != nil {
-			target := *scriptRes.NextRequest
-			if target == "" {
-				// setNextRequest(null) — stop run.
-				terminalState = "stopped_by_script"
-				goto done
-			}
-			jumpIdx, ok := nameToIndex[target]
-			if !ok {
-				results[idx].Error += fmt.Sprintf("; setNextRequest: request %q not found", target)
-				terminalState = "stopped_by_script"
-				goto done
-			}
-			results[idx].JumpedTo = target
-			nextCursor = jumpIdx
-
-			// Count this request visit (only on jumps, not linear advances).
-			visitCount[ids[idx]]++
-			if visitCount[ids[idx]] > loopLimit {
-				terminalState = "stopped_by_loop_limit"
-				goto done
-			}
+		if stop {
+			terminalState = "stopped_by_script"
+			goto done
 		}
 
-		// Delay between requests.
-		if nextCursor < len(ids) && delayMs > 0 {
+		if cursor+1 < len(ids) && delayMs > 0 {
 			select {
 			case <-ctx.Done():
 				terminalState = "cancelled"
@@ -162,12 +123,9 @@ func (a *App) RunCollection(collectionID string, requestIDs []string, delayMs in
 			case <-time.After(time.Duration(delayMs) * time.Millisecond):
 			}
 		}
-
-		cursor = nextCursor
 	}
 
 done:
-	// Mark unexecuted requests as skipped.
 	for i := range ids {
 		if !executed[i] {
 			req, _ := db.GetRequest(ids[i])
@@ -201,9 +159,9 @@ func (a *App) CancelRun() {
 	}
 }
 
-// executeForRunner runs a single request and returns both the RunResult and the
-// raw ScriptResult so the caller can inspect NextRequest and RunVarMutations.
-func (a *App) executeForRunner(requestID string, runVars map[string]string) (RunResult, scripter.ScriptResult) {
+// executeForRunner runs a single request and returns the RunResult, the last
+// ScriptResult (for RunVarMutations), and whether stopRunner() was called.
+func (a *App) executeForRunner(requestID string, runVars map[string]string, depth int) (RunResult, scripter.ScriptResult, bool) {
 	emptyScript := scripter.ScriptResult{
 		RunVarMutations: map[string]string{},
 		Logs:            []string{},
@@ -217,7 +175,7 @@ func (a *App) executeForRunner(requestID string, runVars map[string]string) (Run
 			Error:        fmt.Sprintf("load request: %s", err.Error()),
 			ConsoleLogs:  []string{},
 			ScriptErrors: []string{},
-		}, emptyScript
+		}, emptyScript, false
 	}
 
 	result := RunResult{
@@ -282,9 +240,44 @@ func (a *App) executeForRunner(requestID string, runVars map[string]string) (Run
 		return m
 	}
 
+	// Build executor for doRequest calls from within scripts.
+	executor := func(path string, subDepth int) (scripter.ResponseSnapshot, error) {
+		subReqID, err := db.ResolveRequestByPath(path)
+		if err != nil {
+			return scripter.ResponseSnapshot{}, err
+		}
+		subResult, _, _ := a.executeForRunner(subReqID, runVars, subDepth)
+		if len(subResult.ScriptErrors) > 0 {
+			return scripter.ResponseSnapshot{}, fmt.Errorf("doRequest sub-execution script errors: %s", strings.Join(subResult.ScriptErrors, "; "))
+		}
+		if subResult.Status == 0 && subResult.Error != "" {
+			return scripter.ResponseSnapshot{}, fmt.Errorf("%s", subResult.Error)
+		}
+		prefixedLogs := make([]string, len(subResult.ConsoleLogs))
+		for i, l := range subResult.ConsoleLogs {
+			prefixedLogs[i] = "[" + path + "] " + l
+		}
+		resp := scripter.ResponseSnapshot{
+			Status:     subResult.Status,
+			StatusText: http.StatusText(subResult.Status),
+			Body:       subResult.ResponseBody,
+			Logs:       prefixedLogs,
+		}
+		if subResult.ResponseHeaders != nil {
+			resp.Headers = make(map[string]string, len(subResult.ResponseHeaders))
+			for k, vals := range subResult.ResponseHeaders {
+				if len(vals) > 0 {
+					resp.Headers[k] = vals[0]
+				}
+			}
+		}
+		return resp, nil
+	}
+
 	var consoleLogs []string
 	var scriptErrors []string
 	var lastScriptResult scripter.ScriptResult
+	var stopRunner bool
 
 	reqSnapshot := scripter.RequestSnapshot{
 		URL:     req.URL,
@@ -300,16 +293,13 @@ func (a *App) executeForRunner(requestID string, runVars map[string]string) (Run
 			RunVars:  runVars,
 			Request:  reqSnapshot,
 			Response: nil,
-		})
+		}, executor, depth)
 		applyEnvMutations(preResult.EnvMutations)
 		consoleLogs = append(consoleLogs, preResult.Logs...)
 		scriptErrors = append(scriptErrors, preResult.Errors...)
 		lastScriptResult = preResult
-		// Pre-script can also call setNextRequest to skip the request entirely.
-		if preResult.NextRequest != nil {
-			result.ConsoleLogs = consoleLogs
-			result.ScriptErrors = scriptErrors
-			return result, preResult
+		if preResult.StopRunner {
+			stopRunner = true
 		}
 	}
 
@@ -326,7 +316,7 @@ func (a *App) executeForRunner(requestID string, runVars map[string]string) (Run
 		result.Error = err.Error()
 		result.ConsoleLogs = consoleLogs
 		result.ScriptErrors = scriptErrors
-		return result, lastScriptResult
+		return result, lastScriptResult, stopRunner
 	}
 
 	result.Status = resp.StatusCode
@@ -365,14 +355,17 @@ func (a *App) executeForRunner(requestID string, runVars map[string]string) (Run
 			RunVars:  runVars,
 			Request:  reqSnapshot,
 			Response: respSnapshot,
-		})
+		}, executor, depth)
 		applyEnvMutations(postResult.EnvMutations)
 		consoleLogs = append(consoleLogs, postResult.Logs...)
 		scriptErrors = append(scriptErrors, postResult.Errors...)
 		lastScriptResult = postResult
+		if postResult.StopRunner {
+			stopRunner = true
+		}
 	}
 
 	result.ConsoleLogs = consoleLogs
 	result.ScriptErrors = scriptErrors
-	return result, lastScriptResult
+	return result, lastScriptResult, stopRunner
 }
