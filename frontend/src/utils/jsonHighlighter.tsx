@@ -31,13 +31,32 @@ export function tokenizeJson(json: string): JsonToken[] {
   const tokens: JsonToken[] = [];
   let match;
 
+  const VAR_IN_STRING = /\{\{[^{}]*\}\}/g;
+
   while ((match = regex.exec(json)) !== null) {
     if (match[1]) { // Var
       tokens.push({ type: 'var', value: match[1] });
-    } else if (match[2]) { // String or Key
-      // Check if it's a key (followed by :)
+    } else if (match[2]) { // String or Key — split embedded {{var}} tokens
       const isKey = /^\s*:/.test(json.substring(regex.lastIndex));
-      tokens.push({ type: isKey ? 'key' : 'string', value: match[2] });
+      const tokenType: JsonTokenType = isKey ? 'key' : 'string';
+      const raw = match[2];
+      VAR_IN_STRING.lastIndex = 0;
+      let varMatch: RegExpExecArray | null;
+      let lastIdx = 0;
+      let hadVar = false;
+      while ((varMatch = VAR_IN_STRING.exec(raw)) !== null) {
+        hadVar = true;
+        if (varMatch.index > lastIdx) {
+          tokens.push({ type: tokenType, value: raw.slice(lastIdx, varMatch.index) });
+        }
+        tokens.push({ type: 'var', value: varMatch[0] });
+        lastIdx = varMatch.index + varMatch[0].length;
+      }
+      if (hadVar) {
+        if (lastIdx < raw.length) tokens.push({ type: tokenType, value: raw.slice(lastIdx) });
+      } else {
+        tokens.push({ type: tokenType, value: raw });
+      }
     } else if (match[3]) {
       tokens.push({ type: 'number', value: match[3] });
     } else if (match[4]) {
