@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Wand2 } from 'lucide-react';
 import { js as beautifyJs } from 'js-beautify';
 import { highlightCode } from '../utils/codeHighlighter';
+import DoRequestPopover from './DoRequestPopover';
 import './ScriptEditor.css';
 
 interface ScriptEditorProps {
@@ -10,10 +11,50 @@ interface ScriptEditorProps {
   placeholder: string;
 }
 
+// Match doRequest(" or doRequest(' with optional partial path up to cursor
+const DO_REQUEST_PATTERN = /doRequest\(\s*(["'])([^"']*?)$/;
+
 const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholder }) => {
   const [formatError, setFormatError] = useState<string | null>(null);
+  const [doRequestOpen, setDoRequestOpen] = useState(false);
+  const [doRequestPartial, setDoRequestPartial] = useState('');
+  const [cursorCoords, setCursorCoords] = useState<{ top: number; left: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const cursorMirrorRef = useRef<HTMLDivElement>(null);
+
+  const detectDoRequestPattern = useCallback((text: string, cursorPos: number) => {
+    const textUpToCursor = text.substring(0, cursorPos);
+    const match = textUpToCursor.match(DO_REQUEST_PATTERN);
+    if (match) {
+      setDoRequestPartial(match[2]);
+      setDoRequestOpen(true);
+    } else {
+      setDoRequestOpen(false);
+      setDoRequestPartial('');
+    }
+  }, []);
+
+  // Calculate cursor coordinates for popover positioning
+  useEffect(() => {
+    if (!doRequestOpen || !textareaRef.current || !cursorMirrorRef.current) return;
+
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = textarea.value.substring(0, cursorPos);
+
+    const mirror = cursorMirrorRef.current;
+    mirror.textContent = textBeforeCursor;
+
+    const textareaRect = textarea.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
+
+    // Position below the current line (mirror height gives us the line bottom)
+    const top = textareaRect.top + mirrorRect.height + 2;
+    const left = textareaRect.left;
+
+    setCursorCoords({ top, left });
+  }, [doRequestOpen, doRequestPartial, value]);
 
   const handleFormat = () => {
     try {
@@ -37,6 +78,52 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
       setFormatError(null);
     }
     onChange(e.target.value);
+    detectDoRequestPattern(e.target.value, e.target.selectionStart);
+  };
+
+  const handleSelectPath = (fullPath: string, isRequest: boolean) => {
+    if (!textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+
+    const match = textBefore.match(DO_REQUEST_PATTERN);
+    if (!match) {
+      setDoRequestOpen(false);
+      return;
+    }
+
+    const quoteChar = match[1];
+    const insertStart = cursorPos - doRequestPartial.length;
+    const insertEnd = cursorPos;
+
+    const charAfter = textarea.value[cursorPos];
+    let insertEndAdjusted = insertEnd;
+    if (charAfter === quoteChar) {
+      insertEndAdjusted = cursorPos + 1;
+    }
+
+    let insertValue = fullPath;
+    if (isRequest) {
+      insertValue = fullPath + quoteChar + ')';
+    }
+
+    const newValue = textarea.value.substring(0, insertStart) + insertValue + textarea.value.substring(insertEndAdjusted);
+    onChange(newValue);
+    setDoRequestOpen(false);
+    setDoRequestPartial('');
+
+    const newCursorPos = insertStart + insertValue.length;
+    requestAnimationFrame(() => {
+      textarea.selectionStart = newCursorPos;
+      textarea.selectionEnd = newCursorPos;
+      textarea.focus();
+    });
+  };
+
+  const handleClosePopover = () => {
+    setDoRequestOpen(false);
+    setDoRequestPartial('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -47,11 +134,14 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
       const end = el.selectionEnd;
       const newValue = el.value.substring(0, start) + '  ' + el.value.substring(end);
       onChange(newValue);
-      // Restore cursor after the two inserted spaces
       requestAnimationFrame(() => {
         el.selectionStart = start + 2;
         el.selectionEnd = start + 2;
       });
+    }
+    if (e.key === 'Escape' && doRequestOpen) {
+      e.preventDefault();
+      handleClosePopover();
     }
   };
 
@@ -88,6 +178,11 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onScroll={syncScroll}
+          onClick={() => {
+            if (textareaRef.current) {
+              detectDoRequestPattern(textareaRef.current.value, textareaRef.current.selectionStart);
+            }
+          }}
           placeholder={placeholder}
           spellCheck={false}
         />
@@ -95,6 +190,18 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({ value, onChange, placeholde
       {formatError !== null && (
         <p className="script-editor-format-error">{formatError}</p>
       )}
+      <div
+        ref={cursorMirrorRef}
+        className="script-editor-cursor-mirror"
+        aria-hidden="true"
+      />
+      <DoRequestPopover
+        open={doRequestOpen}
+        partialPath={doRequestPartial}
+        cursorCoords={cursorCoords}
+        onSelect={handleSelectPath}
+        onClose={handleClosePopover}
+      />
     </div>
   );
 };
