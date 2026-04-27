@@ -1,5 +1,6 @@
 .claude/
 *.local.*
+issues/
 
 # Go build output
 *.exe

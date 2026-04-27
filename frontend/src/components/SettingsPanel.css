@@ -184,3 +184,36 @@
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
 }
 
+/* ── Settings field row (e.g. Loop limit) ─────────────── */
+.settings-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.settings-field-input {
+  width: 72px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-ui, inherit);
+  padding: 4px 8px;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.settings-field-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+

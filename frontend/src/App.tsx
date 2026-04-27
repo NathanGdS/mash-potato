@@ -10,9 +10,12 @@ import CollectionRunner from './components/CollectionRunner';
 import SettingsPanel from './components/SettingsPanel';
 import SearchPalette from './components/SearchPalette';
 import DiffViewer from './components/DiffViewer';
+import Toast from './components/Toast';
 import { useRequestsStore } from './store/requestsStore';
+import { useResponseStore } from './store/responseStore';
 import { useTabsStore } from './store/tabsStore';
 import { useHistoryStore } from './store/historyStore';
+import { useEnvironmentsStore } from './store/environmentsStore';
 import './styles/themes/dark.css';
 import './styles/themes/light.css';
 import './styles/accents.css';
@@ -57,6 +60,9 @@ const App: React.FC = () => {
   const restoreTabs = useTabsStore((s) => s.restoreTabs);
   const diffSelection = useHistoryStore((s) => s.diffSelection);
   const clearDiffSelection = useHistoryStore((s) => s.clearDiffSelection);
+  const fetchEnvironments = useEnvironmentsStore((s) => s.fetchEnvironments);
+  const responseError = useResponseStore((s) => s.error);
+  const clearResponseError = useResponseStore((s) => s.clearError);
   const [showEnvPanel, setShowEnvPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -66,6 +72,11 @@ const App: React.FC = () => {
   const handleCompare = useCallback(() => {
     setShowDiffViewer(true);
   }, []);
+
+  // Load environments immediately on app mount so they're available before panels open.
+  useEffect(() => {
+    fetchEnvironments();
+  }, [fetchEnvironments]);
 
   // Restore open tabs on app load.
   useEffect(() => {
@@ -248,6 +259,9 @@ const App: React.FC = () => {
           setQuery={setSearchQuery}
           onClose={() => setShowSearch(false)}
         />
+      )}
+      {responseError && (
+        <Toast message={responseError} onDismiss={clearResponseError} />
       )}
       {showDiffViewer && diffSelection.length === 2 && (() => {
         const [older, newer] = [...diffSelection].sort(

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import {
   useDroppable,
 } from '@dnd-kit/core';
@@ -452,7 +453,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
         </ul>
       )}
 
-      {folderMenu && (
+      {folderMenu && ReactDOM.createPortal(
         <div
           ref={folderMenuRef}
           className="request-context-menu"
@@ -473,10 +474,11 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
           >
             Delete
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {requestMenu && (
+      {requestMenu && ReactDOM.createPortal(
         <div
           ref={requestMenuRef}
           className="request-context-menu"
@@ -534,7 +536,8 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, allRequests, allFolders
           >
             Delete
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {curlToast && (

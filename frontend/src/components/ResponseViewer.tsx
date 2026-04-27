@@ -13,7 +13,7 @@ import { httpclient } from '../../wailsjs/go/models';
 type ResponseTab = 'body' | 'headers' | 'tests' | 'console' | 'timing';
 
 const ResponseViewer: React.FC = () => {
-  const { responses, activeRequestId, error } = useResponseStore();
+  const { responses, activeRequestId } = useResponseStore();
   const response = (activeRequestId ? responses[activeRequestId] : null) as httpclient.ResponseResult | null;
   const [activeTab, setActiveTab] = useState<ResponseTab>('body');
   const [copied, setCopied] = useState(false);
@@ -29,15 +29,6 @@ const ResponseViewer: React.FC = () => {
       console.error('Failed to copy response body', err);
     }
   };
-
-  if (error) {
-    return (
-      <div className="response-viewer response-viewer--error" role="alert">
-        <span className="response-viewer-error-icon">!</span>
-        <span className="response-viewer-error-text">{error}</span>
-      </div>
-    );
-  }
 
   if (!response) {
     return (

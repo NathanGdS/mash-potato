@@ -29,6 +29,9 @@ interface ResponseState {
 
   /** Directly store a response result for a given request ID (e.g. from history). */
   setResponse: (id: string, result: ResponseResult) => void;
+
+  /** Dismiss the current error (e.g. when toast is closed). */
+  clearError: () => void;
 }
 
 // Mutable cancel flag lives outside Zustand state so the async closure can read it.
@@ -89,5 +92,9 @@ export const useResponseStore = create<ResponseState>((set, get) => ({
       responses: { ...state.responses, [id]: result },
       timing: result.Timing ?? undefined,
     }));
+  },
+
+  clearError: () => {
+    set({ error: null });
   },
 }));
