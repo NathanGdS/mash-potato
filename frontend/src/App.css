@@ -1237,6 +1237,22 @@
   flex-shrink: 0;
 }
 
+/* ── Send button light-mode overrides ───────────────────── */
+body[data-theme='light'] .send-btn--cancel {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+body[data-theme='light'] .send-btn--cancel:hover {
+  background: var(--bg-secondary);
+}
+
+body[data-theme='light'] .send-btn-spinner {
+  border-color: var(--text-muted);
+  border-top-color: var(--text-primary);
+}
+
 /* ── Send error ─────────────────────────────────────────── */
 .send-error {
   background: rgba(138, 32, 32, 0.18);
