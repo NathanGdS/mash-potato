@@ -30,15 +30,6 @@ const ResponseViewer: React.FC = () => {
     }
   };
 
-  if (error) {
-    return (
-      <div className="response-viewer response-viewer--error" role="alert">
-        <span className="response-viewer-error-icon">!</span>
-        <span className="response-viewer-error-text">{error}</span>
-      </div>
-    );
-  }
-
   if (!response) {
     return (
       <div className="response-viewer response-viewer--empty">
