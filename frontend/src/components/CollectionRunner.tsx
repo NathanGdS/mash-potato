@@ -46,7 +46,6 @@ interface RunResultEvent {
   TestResults: AssertionResult[];
   RetryCount: number;
   SkippedByFlow: boolean;
-  JumpedTo: string;
 }
 
 type RunState = 'idle' | 'running' | 'done' | 'stopped';
@@ -68,65 +67,6 @@ function methodBadgeClass(method: string): string {
 function StatusDot({ status }: { status: RowStatus }) {
   return <span className={`runner-status-dot runner-status-dot--${status}`} aria-label={status} />;
 }
-
-// ── FlowDiagram ────────────────────────────────────────────
-
-const NODE_H = 36;
-
-interface FlowDiagramProps {
-  rows: RunRow[];
-  jumps: Array<{ fromName: string; toName: string }>;
-}
-
-function nodeStateClass(row: RunRow): string {
-  if (row.skippedByFlow) return 'flow-node--skipped';
-  return `flow-node--${row.status}`;
-}
-
-const FlowDiagram: React.FC<FlowDiagramProps> = ({ rows, jumps }) => {
-  const enabled = rows.filter((r) => r.enabled);
-  if (enabled.length === 0) return null;
-
-  const totalH = enabled.length * NODE_H;
-
-  return (
-    <div className="flow-diagram">
-      <div className="flow-diagram-nodes">
-        {enabled.map((row) => (
-          <div key={row.id} className={`flow-node ${nodeStateClass(row)}`} style={{ height: NODE_H }}>
-            <span className="flow-node-dot" />
-            <span className="flow-node-name">{row.name}</span>
-          </div>
-        ))}
-      </div>
-
-      {jumps.length > 0 && (
-        <svg className="flow-arrows" width={48} height={totalH} aria-hidden="true">
-          {jumps.map((jump, idx) => {
-            const fromIdx = enabled.findIndex((r) => r.name === jump.fromName);
-            const toIdx = enabled.findIndex((r) => r.name === jump.toName);
-            if (fromIdx < 0 || toIdx < 0) return null;
-            const y1 = fromIdx * NODE_H + NODE_H / 2;
-            const y2 = toIdx * NODE_H + NODE_H / 2;
-            const cx = 36;
-            // Curved bezier — bulges to the right.
-            const d = `M 0 ${y1} C ${cx} ${y1}, ${cx} ${y2}, 0 ${y2}`;
-            return (
-              <g key={idx}>
-                <path d={d} className="flow-arrow-path" markerEnd="url(#arrow)" />
-              </g>
-            );
-          })}
-          <defs>
-            <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L6,3 z" className="flow-arrow-head" />
-            </marker>
-          </defs>
-        </svg>
-      )}
-    </div>
-  );
-};
 
 // ── Component ──────────────────────────────────────────────
 
@@ -156,7 +96,6 @@ const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
     }))
   );
   const [terminalState, setTerminalState] = useState<TerminalState>('');
-  const [jumps, setJumps] = useState<Array<{ fromName: string; toName: string }>>([]);
   const [lastRunResult, setLastRunResult] = useState<RunCollectionResult | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [responseModalRow, setResponseModalRow] = useState<RunRow | null>(null);
@@ -198,19 +137,12 @@ const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
             };
           }
           // Mark next request as running for active-node highlight.
-          if (result.JumpedTo) {
-            if (row.name === result.JumpedTo) return { ...row, status: 'running' };
-          } else if (!result.SkippedByFlow && i === completedIdx + 1 && row.enabled && row.status === 'pending') {
+          if (!result.SkippedByFlow && i === completedIdx + 1 && row.enabled && row.status === 'pending') {
             return { ...row, status: 'running' };
           }
           return row;
         });
       });
-
-      // Record jump for flow diagram arrows.
-      if (result.JumpedTo) {
-        setJumps((prev) => [...prev, { fromName: result.RequestName, toName: result.JumpedTo }]);
-      }
     };
 
     EventsOn('runner:result', handler);
@@ -265,7 +197,6 @@ const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
     // Reset row statuses
     setExpandedId(null);
     setTerminalState('');
-    setJumps([]);
     setLastRunResult(null);
     setRows((prev) =>
       prev.map((r) => ({
@@ -381,13 +312,6 @@ const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
             <span className="runner-delay-error">{delayError}</span>
           )}
         </div>
-
-        {/* Flow diagram */}
-        {rows.some((r) => r.enabled) && (
-          <div className="runner-flow-section">
-            <FlowDiagram rows={rows} jumps={jumps} />
-          </div>
-        )}
 
         {/* Request list */}
         <div className="runner-modal-body">
@@ -523,7 +447,7 @@ const CollectionRunner: React.FC<Props> = ({ scope, onClose }) => {
         {/* Terminal state banner */}
         {showSummary && terminalState === 'stopped_by_script' && (
           <div className="runner-terminal-banner runner-terminal-banner--script">
-            Run stopped by script (<code>setNextRequest(null)</code>)
+            Run stopped by script (<code>stopRunner()</code>)
           </div>
         )}
         {showSummary && terminalState === 'stopped_by_loop_limit' && (

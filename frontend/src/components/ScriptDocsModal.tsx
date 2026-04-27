@@ -52,8 +52,9 @@ const ScriptDocsModal: React.FC<ScriptDocsModalProps> = ({ onClose }) => {
             <p className="script-docs-modal__text">
               Scripts run inside a sandboxed JavaScript engine. They cannot make network
               requests or access the filesystem. A single global object <code>mp</code> is
-              injected into every script, along with the global function{' '}
-              <code>setNextRequest</code> for collection runner flow control.
+              injected into every script, along with the global functions{' '}
+              <code>doRequest(path)</code> and <code>stopRunner()</code> for collection runner
+              control.
             </p>
             <p className="script-docs-modal__text">
               <strong>Pre-request scripts</strong> run before <code>{'{{variable}}'}</code>{' '}
@@ -162,30 +163,57 @@ const token = mp.runVars.get('token');`}</CodeBlock>
           </section>
 
           <section className="script-docs-modal__section">
-            <h3 className="script-docs-modal__section-title">setNextRequest</h3>
+            <h3 className="script-docs-modal__section-title">doRequest(path)</h3>
             <p className="script-docs-modal__text">
-              Global function available in both pre-request and post-response scripts when
-              running inside the <strong>Collection Runner</strong>. Controls which request
-              executes next, enabling branching, looping, and early exit.
+              Global function available in both pre-request and post-response scripts.
+              Executes another request by its path and returns the response synchronously.
+              The path format is <code>collection/request</code> or{' '}
+              <code>collection/folder/request</code> for nested requests.
             </p>
-            <CodeBlock>{`// Jump to a named request
-setNextRequest('Login');
+            <CodeBlock>{`// Shape of the return value
+{
+  status:     number,   // e.g. 200
+  statusText: string,   // e.g. "OK"
+  body:       string,   // raw response body
+  headers:    object,   // response headers
+  json():     function  // parses body as JSON
+}
 
-// Stop the run immediately (equivalent to passing null or undefined)
-setNextRequest(null);
-
-// Loop — re-run the current request
-setNextRequest(mp.request.url); // not valid; use the request NAME, not the URL
-// setNextRequest('Poll Job Status'); // runs that request next`}</CodeBlock>
+// Example: fetch a token in a pre-request script
+const auth = doRequest('auth-collection/get-token');
+const token = auth.json().access_token;
+mp.env.set('authToken', token);`}</CodeBlock>
             <p className="script-docs-modal__text">
-              The runner automatically halts with a warning when the same request is visited
-              more than the configured loop limit (default: 10) times in a single run. The
-              limit is adjustable in <strong>Settings</strong>.
+              <strong>Error cases:</strong> path not found throws a JS exception; network errors
+              throw a JS exception; HTTP 4xx/5xx responses are returned normally (not thrown).
             </p>
             <p className="script-docs-modal__text script-docs-modal__note">
-              <code>setNextRequest</code> has no effect when a request is executed outside
-              the collection runner (i.e., from the main request editor). Calling it with an
-              unknown request name stops the run with an error.
+              <code>doRequest</code> has a maximum recursion depth of 5. Circular calls
+              (A → B → A) will hit this limit and surface as a script error. Environment
+              mutations from the sub-request persist into the parent run.
+            </p>
+          </section>
+
+          <section className="script-docs-modal__section">
+            <h3 className="script-docs-modal__section-title">stopRunner()</h3>
+            <p className="script-docs-modal__text">
+              Global function that halts the collection run after the current request completes.
+              Has no effect in standalone execution (single request sent from the editor).
+            </p>
+            <CodeBlock>{`// Stop the run if we get an unexpected error
+if (mp.response.status >= 500) {
+  console.log('Server error, aborting run');
+  stopRunner();
+}
+
+// Stop after finding the data we need
+const data = mp.response.json();
+if (data.found) {
+  stopRunner();
+}`}</CodeBlock>
+            <p className="script-docs-modal__text script-docs-modal__note">
+              When <code>stopRunner()</code> is called, the run's terminal state becomes{' '}
+              <code>"stopped_by_script"</code> and remaining requests are skipped.
             </p>
           </section>
 
@@ -225,10 +253,11 @@ const ts = Date.now().toString();
 mp.env.set('timestamp', ts);
 mp.env.set('signature', apiKey + ':' + ts);`}</CodeBlock>
 
-            <p className="script-docs-modal__label">Runner — re-authenticate on 401</p>
-            <CodeBlock>{`// Post-response script on any protected request
-if (mp.response.status === 401) {
-  setNextRequest('Login'); // jump to the Login request, then resume
+            <p className="script-docs-modal__label">Pre-request — fetch token via doRequest</p>
+            <CodeBlock>{`// Pre-request script: authenticate before the main request
+const auth = doRequest('auth-collection/login');
+if (auth.status === 200) {
+  mp.env.set('authToken', auth.json().token);
 }`}</CodeBlock>
 
             <p className="script-docs-modal__label">Runner — pass a token between requests</p>
@@ -237,18 +266,11 @@ const token = mp.response.json().access_token;
 mp.runVars.set('token', token);
 // Downstream requests can use {{run.token}} in their URL/headers/body`}</CodeBlock>
 
-            <p className="script-docs-modal__label">Runner — poll until a job finishes</p>
-            <CodeBlock>{`// Post-response script on "Poll Job Status"
-const body = mp.response.json();
-if (body.status !== 'done') {
-  setNextRequest('Poll Job Status'); // loop back; runner loop limit prevents infinite loops
-}`}</CodeBlock>
-
             <p className="script-docs-modal__label">Runner — stop early on unexpected error</p>
             <CodeBlock>{`// Post-response script
 if (mp.response.status >= 500) {
   console.log('Server error, aborting run');
-  setNextRequest(null);
+  stopRunner();
 }`}</CodeBlock>
           </section>
 
