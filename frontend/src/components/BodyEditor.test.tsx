@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import BodyEditor, { BodyType } from './BodyEditor';
 
 // Mock VarPopover with a testable implementation
