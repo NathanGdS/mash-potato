@@ -1,113 +1,212 @@
 import { describe, it, expect } from 'vitest';
-import { tokenizeCode } from './codeHighlighter';
+import { highlightCode } from './codeHighlighter';
 
-describe('tokenizeCode – JavaScript language', () => {
-  it('classifies control-flow keywords correctly', () => {
-    const tokens = tokenizeCode('const x = 1;', 'JavaScript');
-    const constToken = tokens.find((t) => t.value === 'const');
-    expect(constToken?.type).toBe('keyword');
+describe('highlightCode – JavaScript (mash-js grammar)', () => {
+  it('doRequest produces token builtin span', () => {
+    const html = highlightCode('doRequest', 'JavaScript');
+    expect(html).toContain('class="token builtin"');
+    expect(html).toContain('doRequest');
   });
 
-  it('classifies scripting-API globals as keywords', () => {
-    for (const global of ['mp', 'console', 'JSON', 'Promise', 'Math', 'Object', 'Array']) {
-      const tokens = tokenizeCode(global, 'JavaScript');
-      expect(tokens[0].type).toBe('keyword');
+  it('stopRunner produces token builtin span', () => {
+    const html = highlightCode('stopRunner', 'JavaScript');
+    expect(html).toContain('class="token builtin"');
+    expect(html).toContain('stopRunner');
+  });
+
+  it('mp standalone produces token builtin span', () => {
+    const html = highlightCode('mp', 'JavaScript');
+    expect(html).toContain('class="token builtin"');
+    expect(html).toContain('mp');
+  });
+
+  it('xmp, tempo, compress do NOT produce builtin spans', () => {
+    for (const ident of ['xmp', 'tempo', 'compress']) {
+      const html = highlightCode(ident, 'JavaScript');
+      expect(html).not.toContain('class="token builtin"');
     }
   });
 
-  it('tokenizes "const x = 1; // hello" with correct token types', () => {
-    const code = 'const x = 1; // hello';
-    const tokens = tokenizeCode(code, 'JavaScript');
-
-    // keyword: const
-    expect(tokens.find((t) => t.value === 'const')?.type).toBe('keyword');
-    // text: x
-    expect(tokens.find((t) => t.value === 'x')?.type).toBe('text');
-    // number: 1
-    expect(tokens.find((t) => t.value === '1')?.type).toBe('number');
-    // comment: // hello
-    const comment = tokens.find((t) => t.value.startsWith('//'));
-    expect(comment?.type).toBe('comment');
+  it('console is not a keyword (plain identifier in Prism)', () => {
+    const html = highlightCode('console', 'JavaScript');
+    expect(html).not.toContain('class="token keyword"');
   });
 
-  it('classifies async/await/yield as keywords', () => {
-    for (const kw of ['async', 'await', 'yield']) {
-      const [token] = tokenizeCode(kw, 'JavaScript');
-      expect(token.type).toBe('keyword');
+  it('const produces token keyword span', () => {
+    const html = highlightCode('const', 'JavaScript');
+    expect(html).toContain('class="token keyword"');
+    expect(html).toContain('const');
+  });
+
+  it('"hello" produces token string span', () => {
+    const html = highlightCode('"hello"', 'JavaScript');
+    expect(html).toContain('class="token string"');
+  });
+
+  it('42 produces token number span', () => {
+    const html = highlightCode('42', 'JavaScript');
+    expect(html).toContain('class="token number"');
+  });
+
+  it('// comment produces token comment span', () => {
+    const html = highlightCode('// comment', 'JavaScript');
+    expect(html).toContain('class="token comment"');
+    expect(html).toContain('comment');
+  });
+
+  it('template literal interpolation is not inside token string span', () => {
+    const html = highlightCode('`Bearer ${token}`', 'JavaScript');
+    const stringTokenMatch = html.match(/<span class="token string">([\s\S]*?)<\/span>/g);
+    if (stringTokenMatch) {
+      for (const match of stringTokenMatch) {
+        expect(match).not.toContain('${token}');
+      }
     }
+    expect(html).toContain('token');
   });
 
-  it('does not affect JS Fetch keyword set', () => {
-    // "mp" is a JavaScript-only keyword; should be text in JS Fetch
-    const [token] = tokenizeCode('mp', 'JS Fetch');
-    expect(token.type).toBe('text');
+  it('/^\\d+$/g produces token regex span', () => {
+    const html = highlightCode('/^\\d+$/g', 'JavaScript');
+    expect(html).toContain('class="token regex"');
+  });
+});
+
+describe('highlightCode – JS Fetch (standard javascript grammar)', () => {
+  it('doRequest does NOT produce token builtin span', () => {
+    const html = highlightCode('doRequest', 'JS Fetch');
+    expect(html).not.toContain('class="token builtin"');
+  });
+});
+
+describe('highlightCode – Python (mash-python grammar)', () => {
+  it('None produces token keyword span', () => {
+    const html = highlightCode('None', 'Python (requests)');
+    expect(html).toContain('class="token keyword"');
   });
 
-  it('does not affect JS Axios keyword set', () => {
-    const [token] = tokenizeCode('mp', 'JS Axios');
-    expect(token.type).toBe('text');
+  it('doRequest produces no token builtin span', () => {
+    const html = highlightCode('doRequest', 'Python (requests)');
+    expect(html).not.toContain('class="token builtin"');
   });
 
-  it('does not affect Python keyword set', () => {
-    const tokens = tokenizeCode('None', 'Python (requests)');
-    expect(tokens[0].type).toBe('keyword');
-    // 'null' is a JS keyword, not Python
-    const [nullToken] = tokenizeCode('null', 'Python (requests)');
-    expect(nullToken.type).toBe('text');
+  it('.json() produces token method span', () => {
+    const html = highlightCode('.json()', 'Python (requests)');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('json');
   });
 
-  it('unknown identifiers in JavaScript are text', () => {
-    const [token] = tokenizeCode('myVar', 'JavaScript');
-    expect(token.type).toBe('text');
+  it('.data produces token property span', () => {
+    const html = highlightCode('.data', 'Python (requests)');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('data');
+  });
+});
+
+describe('highlightCode – cURL (no Prism grammar)', () => {
+  it('returns plain escaped text with no spans', () => {
+    const html = highlightCode('curl -X GET http://example.com', 'cURL');
+    expect(html).toBe('curl -X GET http://example.com');
+    expect(html).not.toContain('<span');
+  });
+});
+
+describe('highlightCode – Go', () => {
+  it('func produces token keyword span', () => {
+    const html = highlightCode('func', 'Go (net/http)');
+    expect(html).toContain('class="token keyword"');
   });
 
-  // ── US-5 focused token tests ──────────────────────────────
-
-  it('single standalone keyword produces a single keyword token', () => {
-    const [token] = tokenizeCode('const', 'JavaScript');
-    expect(token.type).toBe('keyword');
-    expect(token.value).toBe('const');
+  it('.String() produces token method span', () => {
+    const html = highlightCode('.String()', 'Go (net/http)');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('String');
   });
 
-  it('single-quoted string produces a token of type string', () => {
-    const tokens = tokenizeCode("'hello'", 'JavaScript');
-    const strToken = tokens.find((t) => t.value === "'hello'");
-    expect(strToken?.type).toBe('string');
+  it('.Body produces token property span', () => {
+    const html = highlightCode('.Body', 'Go (net/http)');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('Body');
+  });
+});
+
+describe('highlightCode – Java', () => {
+  it('import produces token keyword span', () => {
+    const html = highlightCode('import', 'Java (HttpClient)');
+    expect(html).toContain('class="token keyword"');
   });
 
-  it('double-quoted string produces a token of type string', () => {
-    const tokens = tokenizeCode('"world"', 'JavaScript');
-    const strToken = tokens.find((t) => t.value === '"world"');
-    expect(strToken?.type).toBe('string');
+  it('.getBody() produces token method span', () => {
+    const html = highlightCode('.getBody()', 'Java (HttpClient)');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('getBody');
   });
 
-  it('template literal produces a token of type string', () => {
-    const tokens = tokenizeCode('`foo`', 'JavaScript');
-    const strToken = tokens.find((t) => t.value === '`foo`');
-    expect(strToken?.type).toBe('string');
+  it('.uri produces token property span', () => {
+    const html = highlightCode('.uri', 'Java (HttpClient)');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('uri');
+  });
+});
+
+describe('highlightCode – TypeScript', () => {
+  it('interface produces token keyword span', () => {
+    const html = highlightCode('interface', 'TypeScript (fetch)');
+    expect(html).toContain('class="token keyword"');
   });
 
-  it('numeric literal produces a token of type number', () => {
-    const [token] = tokenizeCode('42', 'JavaScript');
-    expect(token.type).toBe('number');
-    expect(token.value).toBe('42');
+  it('.json() produces token method span', () => {
+    const html = highlightCode('.json()', 'TypeScript (fetch)');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('json');
   });
 
-  it('line comment produces a token of type comment', () => {
-    const [token] = tokenizeCode('// note', 'JavaScript');
-    expect(token.type).toBe('comment');
-    expect(token.value).toBe('// note');
+  it('.data produces token property span', () => {
+    const html = highlightCode('.data', 'TypeScript (fetch)');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('data');
+  });
+});
+
+describe('highlightCode – method chains', () => {
+  it('.json() produces token method span with method-name', () => {
+    const html = highlightCode('.json()', 'JavaScript');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('class="token method-name"');
+    expect(html).toContain('json');
   });
 
-  it('block comment produces a token of type comment', () => {
-    const [token] = tokenizeCode('/* note */', 'JavaScript');
-    expect(token.type).toBe('comment');
-    expect(token.value).toBe('/* note */');
+  it('.then() produces token method span', () => {
+    const html = highlightCode('.then()', 'JavaScript');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('then');
   });
 
-  it('non-keyword identifier produces a token of type text and not keyword', () => {
-    const [token] = tokenizeCode('myCustomVar', 'JavaScript');
-    expect(token.type).toBe('text');
-    expect(token.type).not.toBe('keyword');
+  it('.token (property access) produces token property span', () => {
+    const html = highlightCode('.token', 'JavaScript');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('class="token property-name"');
+    expect(html).toContain('token');
+  });
+
+  it('full chain: doRequest().json().token highlights all parts', () => {
+    const html = highlightCode("doRequest('api/login').json().token", 'JavaScript');
+    expect(html).toContain('class="token builtin"');
+    expect(html).toContain('doRequest');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('json');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('token');
+  });
+
+  it('.data produces token property span', () => {
+    const html = highlightCode('.data', 'JavaScript');
+    expect(html).toContain('class="token property"');
+    expect(html).toContain('data');
+  });
+
+  it('.map() in array chain produces token method span', () => {
+    const html = highlightCode('.map()', 'JavaScript');
+    expect(html).toContain('class="token method"');
+    expect(html).toContain('map');
   });
 });
