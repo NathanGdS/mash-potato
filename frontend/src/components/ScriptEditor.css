@@ -96,42 +96,76 @@
 
 /* ── Syntax Token Colors ─────────────────────────────────── */
 .script-editor-mirror .code-keyword {
-  color: #569cd6;
+  color: var(--code-keyword);
 }
 
 .script-editor-mirror .code-string {
-  color: #ce9178;
+  color: var(--code-string);
 }
 
 .script-editor-mirror .code-number {
-  color: #b5cea8;
+  color: var(--code-number);
 }
 
 .script-editor-mirror .code-comment {
-  color: #6a9955;
+  color: var(--code-comment);
   font-style: italic;
 }
 
 .script-editor-mirror .code-punctuation {
-  color: var(--text-muted);
+  color: var(--code-punctuation);
 }
 
-/* ── Light-theme Token Color Overrides ───────────────────── */
-[data-theme="light"] .script-editor-mirror .code-keyword {
-  color: #0070c1;
+.script-editor-mirror .code-builtin {
+  color: color-mix(in srgb, var(--accent) 85%, var(--text-primary));
 }
 
-[data-theme="light"] .script-editor-mirror .code-string {
-  color: #a31515;
+/* ── Prism Token Colors ──────────────────────────────────── */
+.script-editor-mirror .token.keyword {
+  color: var(--code-keyword);
 }
 
-[data-theme="light"] .script-editor-mirror .code-number {
-  color: #098658;
+.script-editor-mirror .token.string {
+  color: var(--code-string);
 }
 
-[data-theme="light"] .script-editor-mirror .code-comment {
-  color: #008000;
+.script-editor-mirror .token.number {
+  color: var(--code-number);
+}
+
+.script-editor-mirror .token.comment {
+  color: var(--code-comment);
   font-style: italic;
+}
+
+.script-editor-mirror .token.punctuation {
+  color: var(--code-punctuation);
+}
+
+.script-editor-mirror .token.builtin {
+  color: color-mix(in srgb, var(--accent) 85%, var(--text-primary));
+}
+
+.script-editor-mirror .token.regex {
+  color: var(--code-string);
+}
+
+.script-editor-mirror .token.operator {
+  color: var(--code-punctuation);
+}
+
+.script-editor-mirror .token.function {
+  color: var(--text-primary);
+}
+
+.script-editor-mirror .token.method,
+.script-editor-mirror .method-name {
+  color: var(--code-method);
+}
+
+.script-editor-mirror .token.property,
+.script-editor-mirror .property-name {
+  color: var(--code-property);
 }
 
 /* ── Format Error ────────────────────────────────────────── */

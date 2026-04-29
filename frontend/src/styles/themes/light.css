@@ -73,8 +73,10 @@ body[data-theme='light'] {
   --code-keyword:     #7c3aed;
   --code-string:      #15803d;
   --code-number:      #b45309;
-  --code-comment:     #9ca3af;
+  --code-comment:     #6b7280;
   --code-punctuation: #334155;
+  --code-method:      #2563eb;
+  --code-property:    #0891b2;
 
   /* ── Semantic color aliases ───────────────────────────── */
   --color-red:    #dc2626;
