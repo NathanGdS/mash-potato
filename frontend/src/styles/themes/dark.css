@@ -72,8 +72,10 @@ body[data-theme='dark'] {
   --code-keyword:     #c084fc;
   --code-string:      #86efac;
   --code-number:      #fcd34d;
-  --code-comment:     #5c6476;
+  --code-comment:     #6b7280;
   --code-punctuation: #8892a4;
+  --code-method:      #60a5fa;
+  --code-property:    #67e8f9;
 
   /* ── Semantic color aliases ───────────────────────────── */
   --color-red:    #f87171;
