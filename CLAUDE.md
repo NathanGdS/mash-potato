@@ -63,6 +63,8 @@ The frontend calls Go methods via Wails' auto-generated JS bindings in `frontend
 | `app.go` | `App` struct with all Wails-exposed methods |
 | `interpolator.go` | `{{variable}}` template interpolation via regex |
 | `curl.go` | cURL export (`ExportRequestAsCurl`) and import (`ImportFromCurl`) |
+| `openapi_import.go` | OpenAPI 3.x YAML/JSON parser; scaffolds collections from parsed specs |
+| `openapi_export.go` | Exports collections as OpenAPI 3.1 YAML (`ExportCollectionAsOpenAPI`) |
 | `runner.go` | Collection runner; executes requests in sequence, emits `RunResult` events |
 | `db/db.go` | SQLite init, WAL mode, foreign keys, schema migrations |
 | `db/collections.go` | Collection CRUD |
