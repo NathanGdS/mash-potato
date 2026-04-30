@@ -4,13 +4,17 @@ A lightweight, native desktop API client — your Postman alternative without th
 
 Built with [Wails v2](https://wails.io/), combining a Go backend with a React/TypeScript frontend into a single self-contained binary.
 
+![Mash Potato](docs/app.png)
+
 ---
 
 ## Features
 
 ### Collections & Organization
-- **Collections & Folders** — organize requests into collections with nested folder trees and drag-to-reorder
-- **Request CRUD** — create, rename, duplicate, delete, and move requests between folders
+- **Collections & Folders** — organize requests into collections with nested folder trees
+- **Request CRUD** — create, duplicate, delete, and move requests between folders
+- **Rename** — inline rename via double-click or right-click context menu; persisted immediately
+- **Drag & Drop** — reorder requests within a folder or move them across folders and collections
 - **Collection Export/Import** — save and load collections as JSON files
 
 ### Request Execution
@@ -32,7 +36,12 @@ Built with [Wails v2](https://wails.io/), combining a Go backend with a React/Ty
 
 ### Scripting
 - **Pre/Post-Request Scripts** — JavaScript execution via `goja` engine before and after each request
-- **Environment Mutations** — scripts can read and write environment variables
+- **Environment Mutations** — scripts can read and write environment variables via `env.get` / `env.set`
+- **`doRequest(path)`** — call another request by collection path from within a script (supports chaining and recursion up to depth 3)
+- **`stopRunner()`** — halt a running collection runner from within a post-request script
+- **JS Syntax Highlighting** — Prism.js-powered token coloring in the script editor (keywords, strings, numbers, comments)
+- **JavaScript Formatter** — one-click `js-beautify` formatting in the script editor; syntax errors shown inline
+- **Autocomplete Popover** — `doRequest` path suggestions while typing in the script editor
 - **Console Panel** — view `console.log` output and script errors in a dedicated panel
 
 ### Response & Analysis
@@ -43,14 +52,17 @@ Built with [Wails v2](https://wails.io/), combining a Go backend with a React/Ty
 - **Request History** — last 100 requests with full response snapshots; diff any two history entries
 
 ### Tooling
-- **Code Generation** — export requests as cURL, Python, JavaScript (Fetch/Axios), TypeScript, Go, or Java
+- **Code Generation** — export requests as cURL, Python, JavaScript (Fetch/Axios), TypeScript, Go, or Java; syntax-highlighted via Prism.js
 - **cURL Import** — paste a cURL command to auto-populate a request
+- **OpenAPI / Swagger Import** — import an OpenAPI 3.x YAML or JSON spec to scaffold a full collection with requests
+- **OpenAPI Export** — export any collection as an OpenAPI 3.1 YAML spec from the sidebar context menu
 - **Collection Runner** — execute all requests in a collection sequentially with aggregated pass/fail results
 - **Global Search** — keyboard-driven palette (Ctrl+K) to find requests across all collections instantly
 
 ### UI & Persistence
 - **Tab System** — multi-request editing with unsaved-change (dirty-state) tracking
-- **Resizable Panes** — drag to adjust the editor/response split
+- **Tab Context Menu** — right-click any tab to close it, close others, close to the left/right, or close all
+- **Resizable Panes** — drag to adjust the editor/response split and the sidebar width
 - **Theme** — Dark, Light, or System theme with 8 accent color presets
 - **Persistent Storage** — SQLite database in the OS user config directory
 - **Settings** — configurable timeout, theme, accent color, and other app preferences
@@ -148,6 +160,8 @@ mash-potato/
 ├── app.go                      # Wails-exposed Go methods (the backend API)
 ├── interpolator.go             # {{variable}} template interpolation
 ├── curl.go                     # cURL export and import
+├── openapi_import.go           # OpenAPI 3.x spec parser and collection scaffolder
+├── openapi_export.go           # Collection → OpenAPI 3.1 YAML exporter
 ├── runner.go                   # Collection runner with event emission
 ├── db/                         # SQLite layer
 │   ├── db.go                   # Init, WAL mode, schema migrations
