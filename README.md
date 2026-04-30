@@ -4,7 +4,25 @@ A lightweight, native desktop API client — your Postman alternative without th
 
 Built with [Wails v2](https://wails.io/), combining a Go backend with a React/TypeScript frontend into a single self-contained binary.
 
+[![Latest Release](https://img.shields.io/github/v/release/NathanGdS/mash-potato?style=flat-square&label=download&color=orange)](https://github.com/NathanGdS/mash-potato/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+
 ![Mash Potato](docs/app.png)
+
+---
+
+## Download
+
+Pre-built binaries are available for Windows, macOS, and Linux on the [Releases page](https://github.com/NathanGdS/mash-potato/releases).
+
+| Platform | File |
+|---|---|
+| Windows (64-bit) | `mash-potato-windows-amd64.exe` |
+| macOS (Apple Silicon) | `mash-potato-darwin-arm64` |
+| macOS (Intel) | `mash-potato-darwin-amd64` |
+| Linux (64-bit) | `mash-potato-linux-amd64` |
+
+> No installation required — download, run, done.
 
 ---
 
